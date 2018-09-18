@@ -7,11 +7,14 @@
 #ifndef __XMLB_H
 #define __XMLB_H
 
-#include <libxmlb/xb-builder.h>
-#include <libxmlb/xb-node.h>
-#include <libxmlb/xb-silo-export.h>
-#include <libxmlb/xb-silo.h>
-#include <libxmlb/xb-silo-query.h>
-#include <libxmlb/xb-version.h>
+#include <xb-builder.h>
+#include <xb-node.h>
+#include <xb-silo-export.h>
+#include <xb-silo.h>
+#include <xb-silo-query.h>
+
+#ifdef USE_XMLB_VERSION_H
+#include <xb-version.h>
+#endif
 
 #endif /* __XMLB_H */
