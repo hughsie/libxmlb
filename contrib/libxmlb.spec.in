@@ -44,7 +44,6 @@ Files for development with %{name}.
 
 %check
 %meson_test
-%endif
 
 %install
 %meson_install
@@ -55,16 +54,19 @@ Files for development with %{name}.
 %postun
 /sbin/ldconfig
 
-%files -f
-%doc README.md NEWS
+%files
+%doc README.md
 %license LICENSE
 %{_bindir}/xb-tool
+%{_libdir}/girepository-1.0/*.typelib
+%{_libdir}/libxmlb.so.1*
 
 %files devel
+%{_datadir}/gir-1.0/*.gir
 %{_datadir}/gtk-doc/html/libxmlb
 %{_includedir}/libxmlb-1
-%{_libdir}/libxmlb*.so
-%{_libdir}/pkgconfig/libxmlb.pc
+%{_libdir}/libxmlb.so
+%{_libdir}/pkgconfig/xmlb.pc
 
 %changelog
 * #LONGDATE# Richard Hughes <richard@hughsie.com> #VERSION#-0.#BUILD##ALPHATAG#

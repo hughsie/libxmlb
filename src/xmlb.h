@@ -1,33 +1,17 @@
 /*
- * Copyright (C) 2015 Richard Hughes <richard@hughsie.com>
+ * Copyright (C) 2018 Richard Hughes <richard@hughsie.com>
  *
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-/**
- * SECTION:libxmlb
- * @short_description: Helper objects for accessing libxmlb
- */
+#ifndef __XMLB_H
+#define __XMLB_H
 
-#ifndef __LIBXMLB_H__
-#define __LIBXMLB_H__
+#include <libxmlb/xb-builder.h>
+#include <libxmlb/xb-node.h>
+#include <libxmlb/xb-silo-export.h>
+#include <libxmlb/xb-silo.h>
+#include <libxmlb/xb-silo-query.h>
+#include <libxmlb/xb-version.h>
 
-#define __LIBXMLB_H_INSIDE__
-
-#include <libxmlb/libxmlb-client.h>
-#include <libxmlb/libxmlb-common.h>
-#include <libxmlb/libxmlb-device.h>
-#include <libxmlb/libxmlb-enums.h>
-#include <libxmlb/libxmlb-error.h>
-#include <libxmlb/libxmlb-release.h>
-#include <libxmlb/libxmlb-remote.h>
-#include <libxmlb/libxmlb-version.h>
-
-#ifndef LIBXMLB_DISABLE_DEPRECATED
-#include <libxmlb/libxmlb-deprecated.h>
-#endif
-
-#undef __LIBXMLB_H_INSIDE__
-
-#endif /* __LIBXMLB_H__ */
-
+#endif /* __XMLB_H */

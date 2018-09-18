@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2018 Richard Hughes <richard@hughsie.com> -->
+<component type="firmware">
+  <id>test.firmware</id>
+  <name>ColorHug2</name>
+  <summary>Firmware</summary>
+  <description><p>New features!</p></description>
+  <provides>
+    <firmware type="flashed">2082b5e0</firmware>
+  </provides>
+  <requires>
+    <id compare="ge" version="0.8.0">fwupd</id>
+    <firmware compare="eq" version="2.0.99"/>
+  </requires>
+  <url type="homepage">http://com/</url>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0+</project_license>
+  <updatecontact>richard</updatecontact>
+  <developer_name>Hughski</developer_name>
+  <releases>
+    <release urgency="medium" version="2.0.3" timestamp="1429362707">
+      <description>
+        <p>stable:</p>
+        <ul>
+          <li>Quicker</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+</component>

@@ -10,7 +10,11 @@ install_headers(
 )
 
 install_headers([
+    'xb-builder.h',
+    'xb-node.h',
+    'xb-silo-export.h',
     'xb-silo.h',
+    'xb-silo-query.h',
     libxmlb_version_h,
   ],
   subdir : 'libxmlb-1/libxmlb',
@@ -19,9 +23,15 @@ install_headers([
 mapfile = 'libxmlb.map'
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
 libxmlb = shared_library(
-  'libxmlb',
+  'xmlb',
   sources : [
+    'xb-common.c',
+    'xb-builder.c',
+    'xb-builder-node.c',
+    'xb-node.c',
     'xb-silo.c',
+    'xb-silo-export.c',
+    'xb-silo-query.c',
   ],
   soversion : lt_current,
   version : lt_version,
@@ -34,6 +44,25 @@ libxmlb = shared_library(
   install : true
 )
 
+xb_tool = executable(
+  'xb-tool',
+  sources : [
+    'xb-tool.c',
+  ],
+  include_directories : [
+    include_directories('..'),
+  ],
+  dependencies : [
+    gio,
+#    libm,
+  ],
+  link_with : [
+    libxmlb,
+  ],
+  install : true,
+  install_dir : bindir
+)
+
 pkgg = import('pkgconfig')
 pkgg.generate(
   libraries : libxmlb,
@@ -41,21 +70,30 @@ pkgg.generate(
   subdirs : 'libxmlb-1',
   version : meson.project_version(),
   name : 'libxmlb',
-  filebase : 'libxmlb',
+  filebase : 'xmlb',
   description : 'libxmlb is a library to create or query compressed XML files',
 )
 
 if get_option('introspection')
   gir = gnome.generate_gir(libxmlb,
     sources : [
+      'xb-builder.c',
+      'xb-builder.h',
+      'xb-node.c',
+      'xb-node.h',
+      'xb-silo.c',
       'xb-silo.h',
+      'xb-silo-export.c',
+      'xb-silo-export.h',
+      'xb-silo-query.c',
+      'xb-silo-query.h',
     ],
-    nsversion : '2.0',
-    namespace : 'Libxmlb',
-    symbol_prefix : 'libxmlb',
-    identifier_prefix : 'Libxmlb',
+    nsversion : '1.0',
+    namespace : 'Xmlb',
+    symbol_prefix : 'xb',
+    identifier_prefix : 'Xb',
     export_packages : 'libxmlb',
-    extra_args : '--c-include=libxmlb.h', # This can be replaced with header : 'libxmlb.h' once can depend on Meson 0.43.0
+    header : 'xmlb.h',
     dependencies : [
       gio,
     ],

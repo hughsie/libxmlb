@@ -2,6 +2,41 @@
 
 LIBXMLB_0.1.0 {
   global:
-    libxmlb_get_version;
+    xb_builder_append_guid;
+    xb_builder_end;
+    xb_builder_get_type;
+    xb_builder_import;
+    xb_builder_import_dir;
+    xb_builder_import_file;
+    xb_builder_new;
+    xb_node_export;
+    xb_node_get_attr;
+    xb_node_get_child;
+    xb_node_get_children;
+    xb_node_get_depth;
+    xb_node_get_element;
+    xb_node_get_next;
+    xb_node_get_parent;
+    xb_node_get_root;
+    xb_node_get_text;
+    xb_node_get_type;
+    xb_node_query;
+    xb_node_query_export;
+    xb_node_query_first;
+    xb_node_query_text;
+    xb_node_query_text_as_uint;
+    xb_silo_export;
+    xb_silo_get_bytes;
+    xb_silo_get_root;
+    xb_silo_get_size;
+    xb_silo_get_type;
+    xb_silo_load_from_bytes;
+    xb_silo_load_from_file;
+    xb_silo_new;
+    xb_silo_new_from_xml;
+    xb_silo_query;
+    xb_silo_query_first;
+    xb_silo_save_to_file;
+    xb_silo_to_string;
   local: *;
 };

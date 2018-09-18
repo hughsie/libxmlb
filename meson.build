@@ -1,7 +1,7 @@
 project('libxmlb', 'c',
   version : '0.1.0',
   license : 'LGPL-2.1+',
-  meson_version : '>=0.43.0',
+  meson_version : '>=0.46.0',
   default_options : ['warning_level=2', 'c_std=c99'],
 )
 
@@ -12,9 +12,9 @@ libxmlb_minor_version = varr[1]
 libxmlb_micro_version = varr[2]
 
 conf = configuration_data()
-conf.set('LIBXMLB_MAJOR_VERSION', libxmlb_major_version)
-conf.set('LIBXMLB_MINOR_VERSION', libxmlb_minor_version)
-conf.set('LIBXMLB_MICRO_VERSION', libxmlb_micro_version)
+conf.set('XMLB_MAJOR_VERSION', libxmlb_major_version)
+conf.set('XMLB_MINOR_VERSION', libxmlb_minor_version)
+conf.set('XMLB_MICRO_VERSION', libxmlb_micro_version)
 conf.set_quoted('PACKAGE_VERSION', libxmlb_version)
 
 # libtool versioning - this applies to libxmlb

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 /**
- * SECTION:libxmlb-version
+ * SECTION:xb-version
  * @short_description: Obtains the version for the installed libxmlb
  *
  * These compile time macros allow the user to enable parts of client code
@@ -19,30 +19,30 @@
 #define __LIBXMLB_VERSION_H
 
 /**
- * LIBXMLB_MAJOR_VERSION:
+ * XMLB_MAJOR_VERSION:
  *
  * The compile-time major version
  */
-#ifndef LIBXMLB_MAJOR_VERSION
-#define LIBXMLB_MAJOR_VERSION				(@LIBXMLB_MAJOR_VERSION@)
+#ifndef XMLB_MAJOR_VERSION
+#define XMLB_MAJOR_VERSION				(@XMLB_MAJOR_VERSION@)
 #endif
 
 /**
- * LIBXMLB_MINOR_VERSION:
+ * XMLB_MINOR_VERSION:
  *
  * The compile-time minor version
  */
-#ifndef LIBXMLB_MINOR_VERSION
-#define LIBXMLB_MINOR_VERSION				(@LIBXMLB_MINOR_VERSION@)
+#ifndef XMLB_MINOR_VERSION
+#define XMLB_MINOR_VERSION				(@XMLB_MINOR_VERSION@)
 #endif
 
 /**
- * LIBXMLB_MICRO_VERSION:
+ * XMLB_MICRO_VERSION:
  *
  * The compile-time micro version
  */
-#ifndef LIBXMLB_MICRO_VERSION
-#define LIBXMLB_MICRO_VERSION				(@LIBXMLB_MICRO_VERSION@)
+#ifndef XMLB_MICRO_VERSION
+#define XMLB_MICRO_VERSION				(@XMLB_MICRO_VERSION@)
 #endif
 
 /**
@@ -55,9 +55,9 @@
  * major.minor.micro.
  */
 #define LIBXMLB_CHECK_VERSION(major,minor,micro)    \
-    (LIBXMLB_MAJOR_VERSION > (major) || \
-     (LIBXMLB_MAJOR_VERSION == (major) && LIBXMLB_MINOR_VERSION > (minor)) || \
-     (LIBXMLB_MAJOR_VERSION == (major) && LIBXMLB_MINOR_VERSION == (minor) && \
-      LIBXMLB_MICRO_VERSION >= (micro)))
+    (XMLB_MAJOR_VERSION > (major) || \
+     (XMLB_MAJOR_VERSION == (major) && XMLB_MINOR_VERSION > (minor)) || \
+     (XMLB_MAJOR_VERSION == (major) && XMLB_MINOR_VERSION == (minor) && \
+      XMLB_MICRO_VERSION >= (micro)))
 
 #endif /* __LIBXMLB_VERSION_H */

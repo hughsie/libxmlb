@@ -25,8 +25,10 @@
         Functionality exported by libxmlb for client applications.
       </para>
     </partintro>
-    <xi:include href="xml/libxmlb-silo.xml"/>
-    <xi:include href="xml/libxmlb-node.xml"/>
+    <xi:include href="xml/xb-builder.xml"/>
+    <xi:include href="xml/xb-node.xml"/>
+    <xi:include href="xml/xb-silo.xml"/>
+    <xi:include href="xml/xb-silo-query.xml"/>
   </reference>
 
   <index id="api-index-full">
