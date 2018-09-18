@@ -1,0 +1,2 @@
+# libxmlb
+A library to help create and query binary XML blobs
