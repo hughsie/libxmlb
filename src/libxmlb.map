@@ -1,0 +1,7 @@
+# generated automatically, do not edit!
+
+LIBXMLB_0.1.0 {
+  global:
+    libxmlb_get_version;
+  local: *;
+};
