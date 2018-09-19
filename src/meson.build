@@ -27,6 +27,7 @@ libxmlb = shared_library(
   sources : [
     'xb-common.c',
     'xb-builder.c',
+    'xb-builder-import.c',
     'xb-builder-node.c',
     'xb-node.c',
     'xb-silo.c',

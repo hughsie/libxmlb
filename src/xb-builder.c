@@ -13,11 +13,12 @@
 
 #include "xb-silo-private.h"
 #include "xb-builder.h"
+#include "xb-builder-import.h"
 #include "xb-builder-node.h"
 
 struct _XbBuilder {
 	GObject			 parent_instance;
-	GPtrArray		*istreams;
+	GPtrArray		*imports; /* of XbBuilderImport */
 	XbSilo			*silo;
 	GString			*guid;
 };
@@ -185,14 +186,6 @@ xb_builder_compile_text_cb (GMarkupParseContext *context,
 	}
 }
 
-static void
-xb_builder_import_istream (XbBuilder *self, GInputStream *istream)
-{
-	g_return_if_fail (XB_IS_BUILDER (self));
-	g_return_if_fail (G_IS_INPUT_STREAM (istream));
-	g_ptr_array_add (self->istreams, g_object_ref (istream));
-}
-
 /**
  * xb_builder_import_xml:
  * @self: a #XbSilo
@@ -208,25 +201,19 @@ xb_builder_import_istream (XbBuilder *self, GInputStream *istream)
 gboolean
 xb_builder_import_xml (XbBuilder *self, const gchar *xml, GError **error)
 {
-	g_autoptr(GBytes) blob = NULL;
-	g_autoptr(GChecksum) csum = g_checksum_new (G_CHECKSUM_SHA1);
-	g_autoptr(GInputStream) istream = NULL;
+	XbBuilderImport *import;
 
 	g_return_val_if_fail (XB_IS_BUILDER (self), FALSE);
 	g_return_val_if_fail (xml != NULL, FALSE);
 
-	/* add a GUID of the SHA1 hash of the entire string */
-	g_checksum_update (csum, (const guchar *) xml, -1);
-	xb_builder_append_guid (self, g_checksum_get_string (csum));
-
-	/* create input stream */
-	blob = g_bytes_new (xml, strlen (xml));
-	istream = g_memory_input_stream_new_from_bytes (blob);
-	if (istream == NULL)
+	/* add import */
+	import = xb_builder_import_new_xml (xml, error);
+	if (import == NULL)
 		return FALSE;
-	xb_builder_import_istream (self, istream);
 
 	/* success */
+	xb_builder_append_guid (self, xb_builder_import_get_guid (import));
+	g_ptr_array_add (self->imports, import);
 	return TRUE;
 }
 
@@ -281,55 +268,19 @@ xb_builder_import_dir (XbBuilder *self,
 gboolean
 xb_builder_import_file (XbBuilder *self, GFile *file, GCancellable *cancellable, GError **error)
 {
-	const gchar *content_type = NULL;
-	guint64 mtime;
-	g_autofree gchar *fn = NULL;
-	g_autofree gchar *guid = NULL;
-	g_autoptr(GConverter) conv = NULL;
-	g_autoptr(GFileInfo) info = NULL;
-	g_autoptr(GInputStream) istream = NULL;
-	g_autoptr(GInputStream) istream_xml = NULL;
+	XbBuilderImport *import;
 
-	/* create input stream */
-	istream = G_INPUT_STREAM (g_file_read (file, cancellable, error));
-	if (istream == NULL)
+	g_return_val_if_fail (XB_IS_BUILDER (self), FALSE);
+	g_return_val_if_fail (G_IS_FILE (file), FALSE);
+
+	/* add import */
+	import = xb_builder_import_new_file (file, cancellable, error);
+	if (import == NULL)
 		return FALSE;
-
-	/* what kind of file is this */
-	info = g_file_query_info (file,
-				  G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE ","
-				  G_FILE_ATTRIBUTE_TIME_MODIFIED,
-				  G_FILE_QUERY_INFO_NONE,
-				  cancellable,
-				  error);
-	if (info == NULL)
-		return FALSE;
-
-	/* add data to GUID */
-	fn = g_file_get_path (file);
-	mtime = g_file_info_get_attribute_uint64 (info, G_FILE_ATTRIBUTE_TIME_MODIFIED);
-	guid = g_strdup_printf ("%s:%" G_GUINT64_FORMAT, fn, mtime);
-	xb_builder_append_guid (self, guid);
-
-	/* decompress if required */
-	content_type = g_file_info_get_attribute_string (info, G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE);
-	if (g_strcmp0 (content_type, "application/gzip") == 0 ||
-	    g_strcmp0 (content_type, "application/x-gzip") == 0) {
-		conv = G_CONVERTER (g_zlib_decompressor_new (G_ZLIB_COMPRESSOR_FORMAT_GZIP));
-		istream_xml = g_converter_input_stream_new (istream, conv);
-	} else if (g_strcmp0 (content_type, "application/xml") == 0) {
-		istream_xml = g_object_ref (istream);
-	} else {
-		g_set_error (error,
-			     G_IO_ERROR,
-			     G_IO_ERROR_NOT_SUPPORTED,
-			     "cannot process file of type %s",
-			     content_type);
-		return FALSE;
-	}
 
 	/* success */
-	xb_builder_import_istream (self, istream_xml);
+	xb_builder_append_guid (self, xb_builder_import_get_guid (import));
+	g_ptr_array_add (self->imports, import);
 	return TRUE;
 }
 
@@ -654,10 +605,15 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	helper->strtab_hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 
 	/* build node tree */
-	for (guint i = 0; i < self->istreams->len; i++) {
-		GInputStream *istream = g_ptr_array_index (self->istreams, i);
-		if (!xb_builder_compile_istream (helper, istream, cancellable, error))
+	for (guint i = 0; i < self->imports->len; i++) {
+		XbBuilderImport *import = g_ptr_array_index (self->imports, i);
+		GInputStream *istream = xb_builder_import_get_istream (import);
+		g_debug ("compiling %s…", xb_builder_import_get_guid (import));
+		if (!xb_builder_compile_istream (helper, istream, cancellable, error)) {
+			g_prefix_error (error, "failed to compile %s: ",
+					xb_builder_import_get_guid (import));
 			return NULL;
+		}
 	}
 
 	/* more opening than closing */
@@ -818,7 +774,7 @@ xb_builder_finalize (GObject *obj)
 {
 	XbBuilder *self = XB_BUILDER (obj);
 
-	g_ptr_array_unref (self->istreams);
+	g_ptr_array_unref (self->imports);
 	g_object_unref (self->silo);
 	g_string_free (self->guid, TRUE);
 
@@ -835,7 +791,7 @@ xb_builder_class_init (XbBuilderClass *klass)
 static void
 xb_builder_init (XbBuilder *self)
 {
-	self->istreams = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+	self->imports = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	self->silo = xb_silo_new ();
 	self->guid = g_string_new (NULL);
 }
