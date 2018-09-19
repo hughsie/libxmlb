@@ -14,6 +14,7 @@ LIBXMLB_0.1.0 {
     xb_node_get_attr;
     xb_node_get_child;
     xb_node_get_children;
+    xb_node_get_data;
     xb_node_get_depth;
     xb_node_get_element;
     xb_node_get_next;
@@ -26,6 +27,7 @@ LIBXMLB_0.1.0 {
     xb_node_query_first;
     xb_node_query_text;
     xb_node_query_text_as_uint;
+    xb_node_set_data;
     xb_silo_export;
     xb_silo_get_bytes;
     xb_silo_get_guid;

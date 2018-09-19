@@ -53,6 +53,11 @@ gchar		*xb_node_query_export		(XbNode		*self,
 gchar		*xb_node_export			(XbNode		*self,
 						 XbNodeExportFlags flags,
 						 GError		**error);
+GBytes		*xb_node_get_data		(XbNode		*self,
+						 const gchar	*key);
+void		 xb_node_set_data		(XbNode		*self,
+						 const gchar	*key,
+						 GBytes		*data);
 
 XbNode		*xb_node_get_root		(XbNode		*self);
 XbNode		*xb_node_get_parent		(XbNode		*self);

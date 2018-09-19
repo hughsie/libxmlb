@@ -24,6 +24,46 @@ struct _XbNode
 G_DEFINE_TYPE (XbNode, xb_node, G_TYPE_OBJECT)
 
 /**
+ * xb_node_get_data:
+ * @self: a #XbNode
+ * @key: a string key, e.g. `fwupd::RemoteId`
+ *
+ * Gets any data that has been set on the node using xb_node_set_data().
+ *
+ * Returns: (transfer none): a #GBytes, or %NULL if not found
+ *
+ * Since: 0.1.0
+ **/
+GBytes *
+xb_node_get_data (XbNode *self, const gchar *key)
+{
+	g_return_val_if_fail (XB_IS_NODE (self), NULL);
+	g_return_val_if_fail (key != NULL, NULL);
+	return g_object_get_data (G_OBJECT (self), key);
+}
+
+/**
+ * xb_node_set_data:
+ * @self: a #XbNode
+ * @key: a string key, e.g. `fwupd::RemoteId`
+ * @data: a #GBytes
+ *
+ * Sets some data on the node which can be retrieved using xb_node_get_data().
+ *
+ * Since: 0.1.0
+ **/
+void
+xb_node_set_data (XbNode *self, const gchar *key, GBytes *data)
+{
+	g_return_if_fail (XB_IS_NODE (self));
+	g_return_if_fail (key != NULL);
+	g_return_if_fail (data != NULL);
+	g_object_set_data_full (G_OBJECT (self), key,
+				g_bytes_ref (data),
+				(GDestroyNotify) g_bytes_unref);
+}
+
+/**
  * xb_node_get_sn: (skip)
  * @self: a #XbNode
  *
