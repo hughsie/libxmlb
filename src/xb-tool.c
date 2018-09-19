@@ -230,17 +230,18 @@ xb_tool_export (XbToolPrivate *priv, gchar **values, GError **error)
 static gboolean
 xb_tool_query (XbToolPrivate *priv, gchar **values, GError **error)
 {
+	guint limit = 1;
 	g_autoptr(GFile) file = NULL;
-	g_autoptr(XbNode) n = NULL;
+	g_autoptr(GPtrArray) results = NULL;
 	g_autoptr(XbSilo) silo = xb_silo_new ();
 
 	/* check args */
-	if (g_strv_length (values) != 2) {
+	if (g_strv_length (values) < 2) {
 		g_set_error_literal (error,
 				     G_IO_ERROR,
 				     G_IO_ERROR_FAILED,
 				     "Invalid arguments, expected "
-				     "FILENAME QUERY"
+				     "FILENAME QUERY [LIMIT]"
 				     " -- e.g. `example.xmlb`");
 		return FALSE;
 	}
@@ -250,12 +251,26 @@ xb_tool_query (XbToolPrivate *priv, gchar **values, GError **error)
 	if (!xb_silo_load_from_file (silo, file, XB_SILO_LOAD_FLAG_NONE, error))
 		return FALSE;
 
-	/* query */
-	n = xb_silo_query_first (silo, values[1], error);
-	if (n == NULL)
-		return FALSE;
+	/* parse optional limit */
+	if (g_strv_length (values) == 3)
+		limit = g_ascii_strtoull (values[2], NULL, 10);
 
-	g_print ("RESULT: %s\n", xb_node_get_text (n));
+	/* query */
+	results = xb_silo_query (silo, values[1], limit, error);
+	if (results == NULL)
+		return FALSE;
+	for (guint i = 0; i < results->len; i++) {
+		XbNode *n = g_ptr_array_index (results, i);
+		g_autofree gchar *xml = NULL;
+		xml = xb_node_export (n,
+				      XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE |
+				      XB_NODE_EXPORT_FLAG_FORMAT_INDENT,
+				      error);
+		if (xml == NULL)
+			return FALSE;
+		g_print ("RESULT: %s\n", xml);
+	}
+
 	return TRUE;
 }
 
@@ -328,7 +343,7 @@ main (int argc, char *argv[])
 		     xb_tool_export);
 	xb_tool_add (priv->cmd_array,
 		     "query",
-		     "FILENAME",
+		     "FILENAME [LIMIT]",
 		     /* TRANSLATORS: command description */
 		     "Queries a XMLb file",
 		     xb_tool_query);
