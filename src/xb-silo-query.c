@@ -216,7 +216,8 @@ xb_silo_query_section_root (XbSilo *self, XbSiloNode *sn, guint i, XbSiloQueryHe
 //					 xb_silo_get_offset_for_node (self, sn));
 				if (!xb_silo_query_section_root (self, c, i + 1, helper, error))
 					return FALSE;
-				if (helper->results->len == helper->limit)
+				if (helper->results->len > 0 &&
+				    helper->results->len == helper->limit)
 					break;
 			}
 		}
