@@ -236,12 +236,12 @@ xb_tool_convert (XbToolPrivate *priv, gchar **values, GError **error)
 
 	/* load file */
 	file = g_file_new_for_path (values[0]);
-	if (!xb_builder_import_file (builder, file,
-				     XB_BUILDER_IMPORT_FLAG_LITERAL_TEXT |
-				     XB_BUILDER_IMPORT_FLAG_NATIVE_LANGS,
-				     NULL, error))
+	if (!xb_builder_import_file (builder, file, NULL, error))
 		return FALSE;
-	silo = xb_builder_end (builder, error);
+	silo = xb_builder_compile (builder,
+				   XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT |
+				   XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS,
+				   NULL, error);
 	if (silo == NULL)
 		return FALSE;
 

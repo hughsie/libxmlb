@@ -79,7 +79,7 @@ xb_builder_empty_func (void)
 	g_autoptr(XbSilo) silo = NULL;
 
 	/* import from XML */
-	silo = xb_builder_end (builder, &error);
+	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);
 
@@ -323,15 +323,13 @@ xb_builder_multiple_roots_func (void)
 
 	/* import from XML */
 	builder = xb_builder_new ();
-	ret = xb_builder_import (builder, "<tag>value</tag>",
-				 XB_BUILDER_IMPORT_FLAG_NONE, &error);
+	ret = xb_builder_import_xml (builder, "<tag>value</tag>", &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
-	ret = xb_builder_import (builder, "<tag>value2</tag>",
-				 XB_BUILDER_IMPORT_FLAG_NONE, &error);
+	ret = xb_builder_import_xml (builder, "<tag>value2</tag>", &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
-	silo = xb_builder_end (builder, &error);
+	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);
 

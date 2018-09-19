@@ -17,31 +17,38 @@
 
 struct _XbBuilder {
 	GObject			 parent_instance;
-	GString			*strtab;
+	GPtrArray		*istreams;
+	XbSilo			*silo;
 	GString			*guid;
-	GHashTable		*strtab_hash;
-	gboolean		 used;
-	XbBuilderNode		*current;
 };
 
 G_DEFINE_TYPE (XbBuilder, xb_builder, G_TYPE_OBJECT)
 
 #define XB_SILO_APPENDBUF(str,data,sz)	g_string_append_len(str,(const gchar *)data, sz);
 
+typedef struct {
+	XbBuilderNode		*root;
+	XbBuilderNode		*current;
+	XbBuilderCompileFlags	 flags;
+	GHashTable		*strtab_hash;
+	GString			*strtab;
+	const gchar * const	*locales;
+} XbBuilderCompileHelper;
+
 static guint32
-xb_builder_import_add_to_strtab (XbBuilder *self, const gchar *str)
+xb_builder_compile_add_to_strtab (XbBuilderCompileHelper *helper, const gchar *str)
 {
 	gpointer val;
 	guint32 idx;
 
 	/* already exists */
-	if (g_hash_table_lookup_extended (self->strtab_hash, str, NULL, &val))
+	if (g_hash_table_lookup_extended (helper->strtab_hash, str, NULL, &val))
 		return GPOINTER_TO_UINT (val);
 
 	/* new */
-	idx = self->strtab->len;
-	XB_SILO_APPENDBUF (self->strtab, str, strlen (str) + 1);
-	g_hash_table_insert (self->strtab_hash, g_strdup (str), GUINT_TO_POINTER (idx));
+	idx = helper->strtab->len;
+	XB_SILO_APPENDBUF (helper->strtab, str, strlen (str) + 1);
+	g_hash_table_insert (helper->strtab_hash, g_strdup (str), GUINT_TO_POINTER (idx));
 	return idx;
 }
 
@@ -96,22 +103,15 @@ xb_builder_reflow_text (const gchar *text, gssize text_len)
 	return g_string_free (tmp, FALSE);
 }
 
-typedef struct {
-	XbBuilder		*self;
-	XbBuilderNode		*current;
-	XbBuilderImportFlags	 flags;
-	const gchar * const	*locales;
-} XbBuilderImportHelper;
-
 static void
-xb_builder_import_start_element_cb (GMarkupParseContext *context,
-				    const gchar         *element_name,
-				    const gchar        **attr_names,
-				    const gchar        **attr_values,
-				    gpointer             user_data,
-				    GError             **error)
+xb_builder_compile_start_element_cb (GMarkupParseContext *context,
+				     const gchar         *element_name,
+				     const gchar        **attr_names,
+				     const gchar        **attr_values,
+				     gpointer             user_data,
+				     GError             **error)
 {
-	XbBuilderImportHelper *helper = (XbBuilderImportHelper *) user_data;
+	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *) user_data;
 	XbBuilderNode *bn = xb_builder_node_new (element_name);
 	XbBuilderNodeData *data = bn->data;
 	XbBuilderNodeData *data_parent = helper->current->data;
@@ -122,7 +122,7 @@ xb_builder_import_start_element_cb (GMarkupParseContext *context,
 
 	/* check if we should ignore the locale */
 	if (!data->is_cdata_ignore &&
-	    helper->flags & XB_BUILDER_IMPORT_FLAG_NATIVE_LANGS) {
+	    helper->flags & XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS) {
 		for (guint i = 0; attr_names[i] != NULL; i++) {
 			if (g_strcmp0 (attr_names[i], "xml:lang") == 0) {
 				const gchar *lang = attr_values[i];
@@ -141,23 +141,23 @@ xb_builder_import_start_element_cb (GMarkupParseContext *context,
 }
 
 static void
-xb_builder_import_end_element_cb (GMarkupParseContext *context,
+xb_builder_compile_end_element_cb (GMarkupParseContext *context,
 				  const gchar         *element_name,
 				  gpointer             user_data,
 				  GError             **error)
 {
-	XbBuilderImportHelper *helper = (XbBuilderImportHelper *) user_data;
+	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *) user_data;
 	helper->current = helper->current->parent;
 }
 
 static void
-xb_builder_import_text_cb (GMarkupParseContext *context,
+xb_builder_compile_text_cb (GMarkupParseContext *context,
 			   const gchar         *text,
 			   gsize                text_len,
 			   gpointer             user_data,
 			   GError             **error)
 {
-	XbBuilderImportHelper *helper = (XbBuilderImportHelper *) user_data;
+	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *) user_data;
 	XbBuilderNodeData *data = helper->current->data;
 	guint i;
 
@@ -178,18 +178,25 @@ xb_builder_import_text_cb (GMarkupParseContext *context,
 		return;
 
 	/* repair text unless we know it's valid */
-	if (helper->flags & XB_BUILDER_IMPORT_FLAG_LITERAL_TEXT) {
+	if (helper->flags & XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT) {
 		data->text = g_strndup (text, text_len);
 	} else {
 		data->text = xb_builder_reflow_text (text, text_len);
 	}
 }
 
+static void
+xb_builder_import_istream (XbBuilder *self, GInputStream *istream)
+{
+	g_return_if_fail (XB_IS_BUILDER (self));
+	g_return_if_fail (G_IS_INPUT_STREAM (istream));
+	g_ptr_array_add (self->istreams, g_object_ref (istream));
+}
+
 /**
- * xb_builder_import:
+ * xb_builder_import_xml:
  * @self: a #XbSilo
  * @xml: XML data
- * @flags: some #XbBuilderImportFlags, e.g. %XB_BUILDER_IMPORT_FLAG_LITERAL_TEXT
  * @error: the #GError, or %NULL
  *
  * Parses XML data and begins to build a #XbSilo.
@@ -199,42 +206,25 @@ xb_builder_import_text_cb (GMarkupParseContext *context,
  * Since: 0.1.0
  **/
 gboolean
-xb_builder_import (XbBuilder *self, const gchar *xml, XbBuilderImportFlags flags, GError **error)
+xb_builder_import_xml (XbBuilder *self, const gchar *xml, GError **error)
 {
+	g_autoptr(GBytes) blob = NULL;
 	g_autoptr(GChecksum) csum = g_checksum_new (G_CHECKSUM_SHA1);
-	g_autoptr(GMarkupParseContext) ctx = NULL;
-	XbBuilderImportHelper helper = {
-		.self = self,
-		.flags = flags,
-		.current = self->current,
-		.locales = g_get_language_names (),
-	};
-	const GMarkupParser parser = {
-		xb_builder_import_start_element_cb,
-		xb_builder_import_end_element_cb,
-		xb_builder_import_text_cb,
-		NULL, NULL };
+	g_autoptr(GInputStream) istream = NULL;
 
 	g_return_val_if_fail (XB_IS_BUILDER (self), FALSE);
-	g_return_val_if_fail (!self->used, FALSE);
-
-	/* parse the XML */
-	ctx = g_markup_parse_context_new (&parser, G_MARKUP_PREFIX_ERROR_POSITION, &helper, NULL);
-	if (!g_markup_parse_context_parse (ctx, xml, -1, error))
-		return FALSE;
+	g_return_val_if_fail (xml != NULL, FALSE);
 
 	/* add a GUID of the SHA1 hash of the entire string */
 	g_checksum_update (csum, (const guchar *) xml, -1);
 	xb_builder_append_guid (self, g_checksum_get_string (csum));
 
-	/* more opening than closing */
-	if (self->current != helper.current) {
-		g_set_error_literal (error,
-				     G_IO_ERROR,
-				     G_IO_ERROR_INVALID_DATA,
-				     "Mismatched XML");
+	/* create input stream */
+	blob = g_bytes_new (xml, strlen (xml));
+	istream = g_memory_input_stream_new_from_bytes (blob);
+	if (istream == NULL)
 		return FALSE;
-	}
+	xb_builder_import_istream (self, istream);
 
 	/* success */
 	return TRUE;
@@ -244,7 +234,6 @@ xb_builder_import (XbBuilder *self, const gchar *xml, XbBuilderImportFlags flags
  * xb_builder_import_dir:
  * @self: a #XbSilo
  * @path: a directory path
- * @flags: some #XbBuilderImportFlags, e.g. %XB_BUILDER_IMPORT_FLAG_LITERAL_TEXT
  * @error: the #GError, or %NULL
  * @cancellable: a #GCancellable, or %NULL
  *
@@ -257,7 +246,6 @@ xb_builder_import (XbBuilder *self, const gchar *xml, XbBuilderImportFlags flags
 gboolean
 xb_builder_import_dir (XbBuilder *self,
 		       const gchar *path,
-		       XbBuilderImportFlags flags,
 		       GCancellable *cancellable,
 		       GError **error)
 {
@@ -270,7 +258,7 @@ xb_builder_import_dir (XbBuilder *self,
 		    g_str_has_suffix (fn, ".xml.gz")) {
 			g_autofree gchar *filename = g_build_filename (path, fn, NULL);
 			g_autoptr(GFile) file = g_file_new_for_path (filename);
-			if (!xb_builder_import_file (self, file, flags, cancellable, error))
+			if (!xb_builder_import_file (self, file, cancellable, error))
 				return FALSE;
 		}
 	}
@@ -281,48 +269,36 @@ xb_builder_import_dir (XbBuilder *self,
  * xb_builder_import_file:
  * @self: a #XbSilo
  * @file: a #GFile
- * @flags: some #XbBuilderImportFlags, e.g. %XB_BUILDER_IMPORT_FLAG_LITERAL_TEXT
  * @error: the #GError, or %NULL
  * @cancellable: a #GCancellable, or %NULL
  *
- * Parses an optionally compressed XML file and begins to build a #XbSilo.
+ * Adds an optionally compressed XML file to build a #XbSilo.
  *
  * Returns: %TRUE for success, otherwise @error is set.
  *
  * Since: 0.1.0
  **/
 gboolean
-xb_builder_import_file (XbBuilder *self,
-			GFile *file,
-			XbBuilderImportFlags flags,
-			GCancellable *cancellable,
-			GError **error)
+xb_builder_import_file (XbBuilder *self, GFile *file, GCancellable *cancellable, GError **error)
 {
 	const gchar *content_type = NULL;
-	gsize chunk_size = 32 * 1024;
-	gssize len;
-	g_autofree gchar *data = NULL;
+	guint64 mtime;
 	g_autofree gchar *fn = NULL;
+	g_autofree gchar *guid = NULL;
 	g_autoptr(GConverter) conv = NULL;
 	g_autoptr(GFileInfo) info = NULL;
-	g_autoptr(GInputStream) file_stream = NULL;
-	g_autoptr(GInputStream) stream_data = NULL;
-	g_autoptr(GMarkupParseContext) ctx = NULL;
-	XbBuilderImportHelper helper = {
-		.self = self,
-		.flags = flags,
-		.current = self->current,
-		.locales = g_get_language_names (),
-	};
-	const GMarkupParser parser = {
-		xb_builder_import_start_element_cb,
-		xb_builder_import_end_element_cb,
-		xb_builder_import_text_cb,
-		NULL, NULL };
+	g_autoptr(GInputStream) istream = NULL;
+	g_autoptr(GInputStream) istream_xml = NULL;
+
+	/* create input stream */
+	istream = G_INPUT_STREAM (g_file_read (file, cancellable, error));
+	if (istream == NULL)
+		return FALSE;
 
 	/* what kind of file is this */
 	info = g_file_query_info (file,
-				  G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
+				  G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE ","
+				  G_FILE_ATTRIBUTE_TIME_MODIFIED,
 				  G_FILE_QUERY_INFO_NONE,
 				  cancellable,
 				  error);
@@ -331,20 +307,18 @@ xb_builder_import_file (XbBuilder *self,
 
 	/* add data to GUID */
 	fn = g_file_get_path (file);
-	xb_builder_append_guid (self, fn);
-	//xb_builder_append_guid (self, mtime_as_str); //FIXME
+	mtime = g_file_info_get_attribute_uint64 (info, G_FILE_ATTRIBUTE_TIME_MODIFIED);
+	guid = g_strdup_printf ("%s:%" G_GUINT64_FORMAT, fn, mtime);
+	xb_builder_append_guid (self, guid);
 
 	/* decompress if required */
-	file_stream = G_INPUT_STREAM (g_file_read (file, cancellable, error));
-	if (file_stream == NULL)
-		return FALSE;
 	content_type = g_file_info_get_attribute_string (info, G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE);
 	if (g_strcmp0 (content_type, "application/gzip") == 0 ||
 	    g_strcmp0 (content_type, "application/x-gzip") == 0) {
 		conv = G_CONVERTER (g_zlib_decompressor_new (G_ZLIB_COMPRESSOR_FORMAT_GZIP));
-		stream_data = g_converter_input_stream_new (file_stream, conv);
+		istream_xml = g_converter_input_stream_new (istream, conv);
 	} else if (g_strcmp0 (content_type, "application/xml") == 0) {
-		stream_data = g_object_ref (file_stream);
+		istream_xml = g_object_ref (istream);
 	} else {
 		g_set_error (error,
 			     G_IO_ERROR,
@@ -354,10 +328,31 @@ xb_builder_import_file (XbBuilder *self,
 		return FALSE;
 	}
 
+	/* success */
+	xb_builder_import_istream (self, istream_xml);
+	return TRUE;
+}
+
+static gboolean
+xb_builder_compile_istream (XbBuilderCompileHelper *helper,
+			    GInputStream *istream,
+			    GCancellable *cancellable,
+			    GError **error)
+{
+	gsize chunk_size = 32 * 1024;
+	gssize len;
+	g_autofree gchar *data = NULL;
+	g_autoptr(GMarkupParseContext) ctx = NULL;
+	const GMarkupParser parser = {
+		xb_builder_compile_start_element_cb,
+		xb_builder_compile_end_element_cb,
+		xb_builder_compile_text_cb,
+		NULL, NULL };
+
 	/* parse */
-	ctx = g_markup_parse_context_new (&parser, G_MARKUP_PREFIX_ERROR_POSITION, &helper, NULL);
+	ctx = g_markup_parse_context_new (&parser, G_MARKUP_PREFIX_ERROR_POSITION, helper, NULL);
 	data = g_malloc (chunk_size);
-	while ((len = g_input_stream_read (stream_data,
+	while ((len = g_input_stream_read (istream,
 					   data,
 					   chunk_size,
 					   cancellable,
@@ -368,15 +363,6 @@ xb_builder_import_file (XbBuilder *self,
 	if (len < 0)
 		return FALSE;
 
-	/* more opening than closing */
-	if (self->current != helper.current) {
-		g_set_error_literal (error,
-				     G_IO_ERROR,
-				     G_IO_ERROR_INVALID_DATA,
-				     "Mismatched XML");
-		return FALSE;
-	}
-
 	/* success */
 	return TRUE;
 }
@@ -384,7 +370,7 @@ xb_builder_import_file (XbBuilder *self,
 static gboolean
 xb_builder_strtab_element_names_cb (XbBuilderNode *n, gpointer user_data)
 {
-	XbBuilder *self = XB_BUILDER (user_data);
+	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *) user_data;
 	XbBuilderNodeData *data = n->data;
 
 	/* root node */
@@ -392,14 +378,14 @@ xb_builder_strtab_element_names_cb (XbBuilderNode *n, gpointer user_data)
 		return FALSE;
 	if (data->is_cdata_ignore)
 		return FALSE;
-	data->element_name_idx = xb_builder_import_add_to_strtab (self, data->element_name);
+	data->element_name_idx = xb_builder_compile_add_to_strtab (helper, data->element_name);
 	return FALSE;
 }
 
 static gboolean
 xb_builder_strtab_attr_name_cb (XbBuilderNode *n, gpointer user_data)
 {
-	XbBuilder *self = XB_BUILDER (user_data);
+	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *) user_data;
 	XbBuilderNodeData *data = n->data;
 
 	/* root node */
@@ -409,7 +395,7 @@ xb_builder_strtab_attr_name_cb (XbBuilderNode *n, gpointer user_data)
 		return FALSE;
 	for (guint i = 0; i < data->attrs->len; i++) {
 		XbBuilderNodeAttr *attr = g_ptr_array_index (data->attrs, i);
-		attr->name_idx = xb_builder_import_add_to_strtab (self, attr->name);
+		attr->name_idx = xb_builder_compile_add_to_strtab (helper, attr->name);
 	}
 	return FALSE;
 }
@@ -417,7 +403,7 @@ xb_builder_strtab_attr_name_cb (XbBuilderNode *n, gpointer user_data)
 static gboolean
 xb_builder_strtab_attr_value_cb (XbBuilderNode *n, gpointer user_data)
 {
-	XbBuilder *self = XB_BUILDER (user_data);
+	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *) user_data;
 	XbBuilderNodeData *data = n->data;
 
 	/* root node */
@@ -427,7 +413,7 @@ xb_builder_strtab_attr_value_cb (XbBuilderNode *n, gpointer user_data)
 		return FALSE;
 	for (guint i = 0; i < data->attrs->len; i++) {
 		XbBuilderNodeAttr *attr = g_ptr_array_index (data->attrs, i);
-		attr->value_idx = xb_builder_import_add_to_strtab (self, attr->value);
+		attr->value_idx = xb_builder_compile_add_to_strtab (helper, attr->value);
 	}
 	return FALSE;
 }
@@ -435,7 +421,7 @@ xb_builder_strtab_attr_value_cb (XbBuilderNode *n, gpointer user_data)
 static gboolean
 xb_builder_strtab_text_cb (XbBuilderNode *n, gpointer user_data)
 {
-	XbBuilder *self = XB_BUILDER (user_data);
+	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *) user_data;
 	XbBuilderNodeData *data = n->data;
 
 	/* root node */
@@ -445,7 +431,7 @@ xb_builder_strtab_text_cb (XbBuilderNode *n, gpointer user_data)
 		return FALSE;
 	if (data->text == NULL)
 		return FALSE;
-	data->text_idx = xb_builder_import_add_to_strtab (self, data->text);
+	data->text_idx = xb_builder_compile_add_to_strtab (helper, data->text);
 	return FALSE;
 }
 
@@ -588,24 +574,47 @@ xb_builder_nodetab_fix_cb (XbBuilderNode *bn, gpointer user_data)
 	return FALSE;
 }
 
+static gboolean
+xb_builder_destroy_node_cb (XbBuilderNode *bn, gpointer user_data)
+{
+	/* root node */
+	if (bn->data == NULL)
+		return FALSE;
+	xb_builder_node_free (bn);
+	return FALSE;
+}
+
+static void
+xb_builder_compile_helper_free (XbBuilderCompileHelper *helper)
+{
+	g_hash_table_unref (helper->strtab_hash);
+	g_string_free (helper->strtab, TRUE);
+	g_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
+			 xb_builder_destroy_node_cb, NULL);
+	g_node_destroy (helper->root);
+	g_free (helper);
+}
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(XbBuilderCompileHelper, xb_builder_compile_helper_free)
+
 /**
- * xb_builder_end:
+ * xb_builder_compile:
  * @self: a #XbSilo
+ * @flags: some #XbBuilderCompileFlags, e.g. %XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT
+ * @cancellable: a #GCancellable, or %NULL
  * @error: the #GError, or %NULL
  *
- * Finishes building a #XbSilo. Once this method then the caller can no longer
- * call xb_builder_import_file() or xb_builder_import() to add further data.
+ * Compiles a #XbSilo.
  *
  * Returns: (transfer full): a #XbSilo, or %NULL for error
  *
  * Since: 0.1.0
  **/
 XbSilo *
-xb_builder_end (XbBuilder *self, GError **error)
+xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *cancellable, GError **error)
 {
 	guint32 nodetabsz = sizeof(XbSiloHeader);
 	g_autoptr(GBytes) blob = NULL;
-	g_autoptr(XbSilo) data = NULL;
 	g_autoptr(GString) buf = NULL;
 	XbSiloHeader hdr = {
 		.magic		= XB_SILO_MAGIC_BYTES,
@@ -618,21 +627,47 @@ xb_builder_end (XbBuilder *self, GError **error)
 		.level = 0,
 		.buf = NULL,
 	};
+	g_autoptr(XbBuilderCompileHelper) helper = NULL;
+
+	/* create helper used for compiling */
+	helper = g_new0 (XbBuilderCompileHelper, 1);
+	helper->flags = helper->flags;
+	helper->root = g_node_new (NULL);
+	helper->locales = g_get_language_names ();
+	helper->current = helper->root;
+	helper->strtab = g_string_new (NULL);
+	helper->strtab_hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+
+	/* build node tree */
+	for (guint i = 0; i < self->istreams->len; i++) {
+		GInputStream *istream = g_ptr_array_index (self->istreams, i);
+		if (!xb_builder_compile_istream (helper, istream, cancellable, error))
+			return NULL;
+	}
+
+	/* more opening than closing */
+	if (helper->root != helper->current) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_INVALID_DATA,
+				     "Mismatched XML");
+		return NULL;
+	}
 
 	/* get the size of the nodetab */
-	g_node_traverse (self->current, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
+	g_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
 			 xb_builder_nodetab_size_cb, &nodetabsz);
 	buf = g_string_sized_new (nodetabsz);
 
 	/* add element names, attr name, attr value, then text to the strtab */
-	g_node_traverse (self->current, G_LEVEL_ORDER, G_TRAVERSE_ALL, -1,
-			 xb_builder_strtab_element_names_cb, self);
-	g_node_traverse (self->current, G_LEVEL_ORDER, G_TRAVERSE_ALL, -1,
-			 xb_builder_strtab_attr_name_cb, self);
-	g_node_traverse (self->current, G_LEVEL_ORDER, G_TRAVERSE_ALL, -1,
-			 xb_builder_strtab_attr_value_cb, self);
-	g_node_traverse (self->current, G_LEVEL_ORDER, G_TRAVERSE_ALL, -1,
-			 xb_builder_strtab_text_cb, self);
+	g_node_traverse (helper->root, G_LEVEL_ORDER, G_TRAVERSE_ALL, -1,
+			 xb_builder_strtab_element_names_cb, helper);
+	g_node_traverse (helper->root, G_LEVEL_ORDER, G_TRAVERSE_ALL, -1,
+			 xb_builder_strtab_attr_name_cb, helper);
+	g_node_traverse (helper->root, G_LEVEL_ORDER, G_TRAVERSE_ALL, -1,
+			 xb_builder_strtab_attr_value_cb, helper);
+	g_node_traverse (helper->root, G_LEVEL_ORDER, G_TRAVERSE_ALL, -1,
+			 xb_builder_strtab_text_cb, helper);
 
 	/* add the initial header */
 	hdr.strtab = nodetabsz;
@@ -648,7 +683,7 @@ xb_builder_end (XbBuilder *self, GError **error)
 
 	/* write nodes to the nodetab */
 	nodetab_helper.buf = buf;
-	g_node_traverse (self->current, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
+	g_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
 			 xb_builder_nodetab_write_cb, &nodetab_helper);
 	if (nodetab_helper.level > 0) {
 		for (guint i = nodetab_helper.level - 1; i > 0; i--)
@@ -656,23 +691,19 @@ xb_builder_end (XbBuilder *self, GError **error)
 	}
 
 	/* set all the ->next and ->parent offsets */
-	g_node_traverse (self->current, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
+	g_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
 			 xb_builder_nodetab_fix_cb, &nodetab_helper);
 
 	/* append the string table */
-	XB_SILO_APPENDBUF (buf, self->strtab->str, self->strtab->len);
+	XB_SILO_APPENDBUF (buf, helper->strtab->str, helper->strtab->len);
 
 	/* create data */
 	blob = g_bytes_new (buf->str, buf->len);
-	data = xb_silo_new ();
-	if (!xb_silo_load_from_bytes (data, blob, XB_SILO_LOAD_FLAG_NONE, error))
+	if (!xb_silo_load_from_bytes (self->silo, blob, XB_SILO_LOAD_FLAG_NONE, error))
 		return NULL;
 
-	/* can no longer import XML or add nodes */
-	self->used = TRUE;
-
 	/* success */
-	return g_steal_pointer (&data);
+	return g_object_ref (self->silo);
 }
 
 /**
@@ -692,26 +723,15 @@ xb_builder_append_guid (XbBuilder *self, const gchar *guid)
 	g_string_append (self->guid, guid);
 }
 
-static gboolean
-xb_builder_destroy_node_cb (XbBuilderNode *bn, gpointer user_data)
-{
-	/* root node */
-	if (bn->data == NULL)
-		return FALSE;
-	xb_builder_node_free (bn);
-	return FALSE;
-}
-
 static void
 xb_builder_finalize (GObject *obj)
 {
 	XbBuilder *self = XB_BUILDER (obj);
-	g_node_traverse (self->current, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
-			 xb_builder_destroy_node_cb, NULL);
-	g_node_destroy (self->current);
-	g_string_free (self->strtab, TRUE);
+
+	g_ptr_array_unref (self->istreams);
+	g_object_unref (self->silo);
 	g_string_free (self->guid, TRUE);
-	g_hash_table_unref (self->strtab_hash);
+
 	G_OBJECT_CLASS (xb_builder_parent_class)->finalize (obj);
 }
 
@@ -725,10 +745,9 @@ xb_builder_class_init (XbBuilderClass *klass)
 static void
 xb_builder_init (XbBuilder *self)
 {
+	self->istreams = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+	self->silo = xb_silo_new ();
 	self->guid = g_string_new (NULL);
-	self->strtab = g_string_new (NULL);
-	self->strtab_hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
-	self->current = g_node_new (NULL);
 }
 
 /**

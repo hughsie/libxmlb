@@ -331,6 +331,9 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (blob != NULL, FALSE);
 
+	/* no longer valid */
+	g_hash_table_remove_all (self->nodes);
+
 	/* refcount internally */
 	if (self->blob != NULL)
 		g_bytes_unref (self->blob);
@@ -457,10 +460,9 @@ xb_silo_new_from_xml (const gchar *xml, GError **error)
 {
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
 	g_return_val_if_fail (xml != NULL, NULL);
-	if (!xb_builder_import (builder, xml,
-				XB_BUILDER_IMPORT_FLAG_NONE, error))
+	if (!xb_builder_import_xml (builder, xml, error))
 		return NULL;
-	return xb_builder_end (builder, error);
+	return xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, error);
 }
 
 /* private */
