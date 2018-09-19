@@ -608,10 +608,20 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	for (guint i = 0; i < self->imports->len; i++) {
 		XbBuilderImport *import = g_ptr_array_index (self->imports, i);
 		GInputStream *istream = xb_builder_import_get_istream (import);
+		g_autoptr(GError) error_local = NULL;
+
 		g_debug ("compiling %s…", xb_builder_import_get_guid (import));
-		if (!xb_builder_compile_istream (helper, istream, cancellable, error)) {
-			g_prefix_error (error, "failed to compile %s: ",
-					xb_builder_import_get_guid (import));
+		if (!xb_builder_compile_istream (helper, istream, cancellable, &error_local)) {
+			if (flags & XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID) {
+				g_debug ("ignoring invalid file %s: %s",
+					 xb_builder_import_get_guid (import),
+					 error_local->message);
+				continue;
+			}
+			g_propagate_prefixed_error (error,
+						    g_steal_pointer (&error_local),
+						    "failed to compile %s: ",
+						    xb_builder_import_get_guid (import));
 			return NULL;
 		}
 	}
