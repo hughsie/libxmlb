@@ -253,7 +253,6 @@ GPtrArray *
 xb_node_query (XbNode *self, const gchar *xpath, guint limit, GError **error)
 {
 	g_autofree gchar *xpath2 = NULL;
-	g_autoptr(GPtrArray) results = NULL;
 
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (xpath != NULL, NULL);
