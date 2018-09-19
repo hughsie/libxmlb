@@ -292,7 +292,7 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 		g_set_error_literal (error,
 				     G_IO_ERROR,
 				     G_IO_ERROR_NOT_FOUND,
-				     "no data to export");
+				     "no data to query");
 		return NULL;
 	}
 
@@ -305,10 +305,11 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 
 	/* nothing found */
 	if (results->len == 0) {
-		g_set_error_literal (error,
-				     G_IO_ERROR,
-				     G_IO_ERROR_NOT_FOUND,
-				     "could not find path");
+		g_set_error (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_NOT_FOUND,
+			     "no results for XPath query '%s'",
+			     xpath);
 		return NULL;
 	}
 
