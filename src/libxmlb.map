@@ -4,6 +4,7 @@ LIBXMLB_0.1.0 {
   global:
     xb_builder_append_guid;
     xb_builder_compile;
+    xb_builder_ensure;
     xb_builder_get_type;
     xb_builder_import_dir;
     xb_builder_import_file;
@@ -27,6 +28,7 @@ LIBXMLB_0.1.0 {
     xb_node_query_text_as_uint;
     xb_silo_export;
     xb_silo_get_bytes;
+    xb_silo_get_guid;
     xb_silo_get_root;
     xb_silo_get_size;
     xb_silo_get_type;

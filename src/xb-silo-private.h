@@ -7,6 +7,8 @@
 #ifndef __XB_SILO_PRIVATE_H__
 #define __XB_SILO_PRIVATE_H__
 
+#include <uuid.h>
+
 #include "xb-node.h"
 #include "xb-silo.h"
 
@@ -14,7 +16,7 @@
 typedef struct __attribute__ ((packed)) {
 	guint32		magic;
 	guint32		version;
-	guint8		guid[16];
+	uuid_t		guid;
 	guint8		padding1[4];
 	guint32		strtab;
 } XbSiloHeader;

@@ -37,6 +37,7 @@ libxmlb = shared_library(
   version : lt_version,
   dependencies : [
     gio,
+    uuid,
   ],
   include_directories : include_directories('..'),
   link_args : vflag,
@@ -54,7 +55,6 @@ xb_tool = executable(
   ],
   dependencies : [
     gio,
-#    libm,
   ],
   link_with : [
     libxmlb,

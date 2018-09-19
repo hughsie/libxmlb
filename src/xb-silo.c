@@ -19,6 +19,7 @@ struct _XbSilo
 {
 	GObject			 parent_instance;
 	GMappedFile		*mmap;
+	gchar			*guid;
 	GBytes			*blob;
 	const guint8		*data;	/* pointers into ->blob */
 	guint32			 datasz;
@@ -170,7 +171,7 @@ xb_silo_to_string (XbSilo *self, GError **error)
 	g_return_val_if_fail (XB_IS_SILO (self), NULL);
 
 	g_string_append_printf (str, "magic:        %08x\n", (guint) hdr->magic);
-	g_string_append_printf (str, "guid:         %u\n", hdr->guid[0]);
+	g_string_append_printf (str, "guid:         %s\n", self->guid);
 	g_string_append_printf (str, "strtab:       @%" G_GUINT32_FORMAT "\n", self->strtab);
 	while (off < self->strtab) {
 		XbSiloNode *n = xb_silo_get_node (self, off);
@@ -310,6 +311,23 @@ xb_silo_get_bytes (XbSilo *self)
 }
 
 /**
+ * xb_silo_get_guid:
+ * @self: a #XbSilo
+ *
+ * Gets the GUID used to identify this silo.
+ *
+ * Returns: a string, otherwise %NULL
+ *
+ * Since: 0.1.0
+ **/
+const gchar *
+xb_silo_get_guid (XbSilo *self)
+{
+	g_return_val_if_fail (XB_IS_SILO (self), NULL);
+	return self->guid;
+}
+
+/**
  * xb_silo_load_from_bytes:
  * @self: a #XbSilo
  * @blob: a #GBytes
@@ -327,12 +345,14 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 {
 	XbSiloHeader *hdr = (XbSiloHeader *) self->data;
 	gsize sz = 0;
+	gchar guid[UUID_STR_LEN] = { '\0' };
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (blob != NULL, FALSE);
 
 	/* no longer valid */
 	g_hash_table_remove_all (self->nodes);
+	g_clear_pointer (&self->guid, g_free);
 
 	/* refcount internally */
 	if (self->blob != NULL)
@@ -370,6 +390,10 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 			return FALSE;
 		}
 	}
+
+	/* get GUID */
+	uuid_unparse (hdr->guid, guid);
+	self->guid = g_strdup (guid);
 
 	/* check strtab */
 	self->strtab = hdr->strtab;
@@ -493,6 +517,7 @@ static void
 xb_silo_finalize (GObject *obj)
 {
 	XbSilo *self = XB_SILO (obj);
+	g_free (self->guid);
 	g_hash_table_unref (self->nodes);
 	if (self->mmap != NULL)
 		g_mapped_file_unref (self->mmap);

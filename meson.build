@@ -104,6 +104,7 @@ prefix = get_option('prefix')
 bindir = join_paths(prefix, get_option('bindir'))
 
 gio = dependency('gio-2.0', version : '>= 2.45.8')
+uuid = dependency('uuid')
 
 gnome = import('gnome')
 

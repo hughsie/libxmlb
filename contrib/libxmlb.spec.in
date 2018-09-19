@@ -16,7 +16,7 @@ BuildRequires: valgrind
 BuildRequires: valgrind-devel
 %endif
 BuildRequires: gtk-doc
-#BuildRequires: libuuid-devel
+BuildRequires: libuuid-devel
 BuildRequires: meson
 
 Requires: glib2%{?_isa} >= %{glib2_version}

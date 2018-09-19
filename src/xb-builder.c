@@ -672,12 +672,9 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	/* add the initial header */
 	hdr.strtab = nodetabsz;
 	if (self->guid->len > 0) {
-		guint8 buf2[20];
-		gsize buflen = sizeof(buf2);
-		g_autoptr(GChecksum) csum = g_checksum_new (G_CHECKSUM_SHA1);
-		g_checksum_update (csum, (const guchar *) self->guid->str, self->guid->len);
-		g_checksum_get_digest (csum, buf2, &buflen);
-		memcpy (&hdr.guid, buf2, 16);
+		uuid_t ns;
+		uuid_clear (ns);
+		uuid_generate_sha1 (hdr.guid, ns, self->guid->str, self->guid->len);
 	}
 	XB_SILO_APPENDBUF (buf, &hdr, sizeof(XbSiloHeader));
 

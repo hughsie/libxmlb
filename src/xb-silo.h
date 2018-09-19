@@ -48,6 +48,7 @@ gboolean	 xb_silo_save_to_file			(XbSilo		*self,
 gchar		*xb_silo_to_string			(XbSilo		*self,
 							 GError		**error);
 guint		 xb_silo_get_size			(XbSilo		*self);
+const gchar	*xb_silo_get_guid			(XbSilo		*self);
 XbNode		*xb_silo_get_root			(XbSilo		*self);
 
 G_END_DECLS
