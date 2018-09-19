@@ -412,7 +412,7 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 /**
  * xb_silo_load_from_file:
  * @self: a #XbSilo
- * @fn: an absolute filename
+ * @file: a #GFile
  * @flags: #XbSiloLoadFlags, e.g. %XB_SILO_LOAD_FLAG_NONE
  * @error: the #GError, or %NULL
  *
@@ -423,13 +423,15 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
  * Since: 0.1.0
  **/
 gboolean
-xb_silo_load_from_file (XbSilo *self, const gchar *fn, XbSiloLoadFlags flags, GError **error)
+xb_silo_load_from_file (XbSilo *self, GFile *file, XbSiloLoadFlags flags, GError **error)
 {
+	g_autofree gchar *fn = NULL;
 	g_autoptr(GBytes) blob = NULL;
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
-	g_return_val_if_fail (fn != NULL, FALSE);
+	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
+	fn = g_file_get_path (file);
 	self->mmap = g_mapped_file_new (fn, FALSE, error);
 	if (self->mmap == NULL)
 		return FALSE;
@@ -440,7 +442,7 @@ xb_silo_load_from_file (XbSilo *self, const gchar *fn, XbSiloLoadFlags flags, GE
 /**
  * xb_silo_save_to_file:
  * @self: a #XbSilo
- * @fn: a filename
+ * @file: a #GFile
  * @error: the #GError, or %NULL
  *
  * Saves a silo to a file.
@@ -450,10 +452,10 @@ xb_silo_load_from_file (XbSilo *self, const gchar *fn, XbSiloLoadFlags flags, GE
  * Since: 0.1.0
  **/
 gboolean
-xb_silo_save_to_file (XbSilo *self, const gchar *fn, GError **error)
+xb_silo_save_to_file (XbSilo *self, GFile *file, GError **error)
 {
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
-	g_return_val_if_fail (fn != NULL, FALSE);
+	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
 	/* invalid */
 	if (self->data == NULL) {
@@ -465,7 +467,10 @@ xb_silo_save_to_file (XbSilo *self, const gchar *fn, GError **error)
 	}
 
 	/* save and then rename */
-	return g_file_set_contents (fn, (const gchar *) self->data, (gsize) self->datasz, error);
+	return g_file_replace_contents (file,
+					(const gchar *) self->data,
+					(gsize) self->datasz, NULL, FALSE,
+					G_FILE_CREATE_NONE, NULL, NULL, error);
 }
 
 /**

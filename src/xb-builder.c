@@ -597,6 +597,19 @@ xb_builder_compile_helper_free (XbBuilderCompileHelper *helper)
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(XbBuilderCompileHelper, xb_builder_compile_helper_free)
 
+static gchar *
+xb_builder_generate_guid (XbBuilder *self)
+{
+	uuid_t ns;
+	uuid_t guid;
+	gchar guid_tmp[UUID_STR_LEN] = { '\0' };
+
+	uuid_clear (ns);
+	uuid_generate_sha1 (guid, ns, self->guid->str, self->guid->len);
+	uuid_unparse (guid, guid_tmp);
+	return g_strdup (guid_tmp);
+}
+
 /**
  * xb_builder_compile:
  * @self: a #XbSilo
@@ -628,6 +641,8 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 		.buf = NULL,
 	};
 	g_autoptr(XbBuilderCompileHelper) helper = NULL;
+
+	g_return_val_if_fail (XB_IS_BUILDER (self), NULL);
 
 	/* create helper used for compiling */
 	helper = g_new0 (XbBuilderCompileHelper, 1);
@@ -701,6 +716,68 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 
 	/* success */
 	return g_object_ref (self->silo);
+}
+
+/**
+ * xb_builder_ensure:
+ * @self: a #XbSilo
+ * @file: a #GFile
+ * @flags: some #XbBuilderCompileFlags, e.g. %XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT
+ * @cancellable: a #GCancellable, or %NULL
+ * @error: the #GError, or %NULL
+ *
+ * Ensures @file is up to date, and returns a compiled #XbSilo.
+ *
+ * If @silo is being used by a query (e.g. in another thread) then all node
+ * data is immediately invalid.
+ *
+ * Returns: (transfer full): a #XbSilo, or %NULL for error
+ *
+ * Since: 0.1.0
+ **/
+XbSilo *
+xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
+		   GCancellable *cancellable, GError **error)
+{
+	g_autoptr(XbSilo) silo_tmp = xb_silo_new ();
+	g_autoptr(XbSilo) silo_new = NULL;
+	g_autoptr(GError) error_local = NULL;
+
+	g_return_val_if_fail (XB_IS_BUILDER (self), NULL);
+	g_return_val_if_fail (G_IS_FILE (file), NULL);
+
+	/* load the file and peek at the GUIDs */
+	if (!xb_silo_load_from_file (silo_tmp, file, XB_SILO_LOAD_FLAG_NONE, &error_local)) {
+		g_debug ("failed to load silo: %s", error_local->message);
+	} else {
+		g_autofree gchar *guid = xb_builder_generate_guid (self);
+		g_debug ("file: %s, current:%s, cached: %s",
+			 xb_silo_get_guid (silo_tmp), guid,
+			 xb_silo_get_guid (self->silo));
+
+		/* GUIDs match exactly with the thing that's already loaded */
+		if (g_strcmp0 (xb_silo_get_guid (silo_tmp),
+			       xb_silo_get_guid (self->silo)) == 0) {
+			g_debug ("returning unchanged silo");
+			return g_object_ref (self->silo);
+		}
+
+		/* reload the cached silo with the new file data */
+		if (g_strcmp0 (xb_silo_get_guid (silo_tmp), guid) == 0) {
+			g_autoptr(GBytes) blob = xb_silo_get_bytes (silo_tmp);
+			g_debug ("loading silo with file contents");
+			if (!xb_silo_load_from_bytes (self->silo, blob,
+						      XB_SILO_LOAD_FLAG_NONE, error))
+				return NULL;
+			return g_object_ref (self->silo);
+		}
+	}
+
+	/* fallback to just creating a new file */
+	silo_new = xb_builder_compile (self, flags, cancellable, error);
+	if (!xb_silo_save_to_file (silo_new, file, error))
+		return NULL;
+	return g_steal_pointer (&silo_new);
 }
 
 /**

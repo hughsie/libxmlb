@@ -175,8 +175,9 @@ xb_tool_dump (XbToolPrivate *priv, gchar **values, GError **error)
 	/* load blobs */
 	for (guint i = 0; values[i] != NULL; i++) {
 		g_autofree gchar *str = NULL;
+		g_autoptr(GFile) file = g_file_new_for_path (values[0]);
 		g_autoptr(XbSilo) silo = xb_silo_new ();
-		if (!xb_silo_load_from_file (silo, values[0], flags, error))
+		if (!xb_silo_load_from_file (silo, file, flags, error))
 			return FALSE;
 		str = xb_silo_to_string (silo, error);
 		if (str == NULL)
@@ -189,8 +190,9 @@ xb_tool_dump (XbToolPrivate *priv, gchar **values, GError **error)
 static gboolean
 xb_tool_query (XbToolPrivate *priv, gchar **values, GError **error)
 {
+	g_autoptr(GFile) file = NULL;
+	g_autoptr(XbNode) n = NULL;
 	g_autoptr(XbSilo) silo = xb_silo_new ();
-	XbNode *n;
 
 	/* check args */
 	if (g_strv_length (values) != 2) {
@@ -204,7 +206,8 @@ xb_tool_query (XbToolPrivate *priv, gchar **values, GError **error)
 	}
 
 	/* load blob */
-	if (!xb_silo_load_from_file (silo, values[0], XB_SILO_LOAD_FLAG_NONE, error))
+	file = g_file_new_for_path (values[0]);
+	if (!xb_silo_load_from_file (silo, file, XB_SILO_LOAD_FLAG_NONE, error))
 		return FALSE;
 
 	/* query */
@@ -217,14 +220,14 @@ xb_tool_query (XbToolPrivate *priv, gchar **values, GError **error)
 }
 
 static gboolean
-xb_tool_convert (XbToolPrivate *priv, gchar **values, GError **error)
+xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 {
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
 	g_autoptr(XbSilo) silo = NULL;
-	g_autoptr(GFile) file = NULL;
+	g_autoptr(GFile) file_dst = NULL;
 
 	/* check args */
-	if (g_strv_length (values) != 2) {
+	if (g_strv_length (values) < 2) {
 		g_set_error_literal (error,
 				     G_IO_ERROR,
 				     G_IO_ERROR_FAILED,
@@ -235,18 +238,21 @@ xb_tool_convert (XbToolPrivate *priv, gchar **values, GError **error)
 	}
 
 	/* load file */
-	file = g_file_new_for_path (values[0]);
-	if (!xb_builder_import_file (builder, file, NULL, error))
-		return FALSE;
-	silo = xb_builder_compile (builder,
-				   XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT |
-				   XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS,
-				   NULL, error);
+	for (guint i = 1; values[i] != NULL; i++) {
+		g_autoptr(GFile) file = g_file_new_for_path (values[i]);
+		if (!xb_builder_import_file (builder, file, NULL, error))
+			return FALSE;
+	}
+	file_dst = g_file_new_for_path (values[0]);
+	silo = xb_builder_ensure (builder, file_dst,
+				  XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT |
+				  XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS,
+				  NULL, error);
 	if (silo == NULL)
 		return FALSE;
 
-	/* save file */
-	return xb_silo_save_to_file (silo, values[1], error);
+	/* success */
+	return TRUE;
 }
 
 int
@@ -281,11 +287,11 @@ main (int argc, char *argv[])
 		     "Queries a XMLb file",
 		     xb_tool_query);
 	xb_tool_add (priv->cmd_array,
-		     "convert",
+		     "compile",
 		     "FILENAME-FROM FILENAME-TO",
 		     /* TRANSLATORS: command description */
-		     "Converts XML to XMLb",
-		     xb_tool_convert);
+		     "Compile XML to XMLb",
+		     xb_tool_compile);
 
 	/* sort by command name */
 	g_ptr_array_sort (priv->cmd_array,

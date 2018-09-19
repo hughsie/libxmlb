@@ -66,6 +66,91 @@ xb_builder_func (void)
 }
 
 static void
+xb_builder_ensure_func (void)
+{
+	gboolean ret;
+	g_autoptr(GBytes) bytes1 = NULL;
+	g_autoptr(GBytes) bytes2 = NULL;
+	g_autoptr(GBytes) bytes3 = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(GFile) file = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbSilo) silo = NULL;
+	const gchar *xml =
+		"<components origin=\"lvfs\">\n"
+		"  <header type=\"&lt;&amp;&gt;\">\n"
+		"    <csum type=\"sha1\">dead</csum>\n"
+		"  </header>\n"
+		"  <component type=\"desktop\" attr=\"value\">\n"
+		"    <id>gimp.desktop</id>\n"
+		"    <name>GIMP &amp; Friends</name>\n"
+		"    <id>org.gnome.Gimp.desktop</id>\n"
+		"  </component>\n"
+		"  <component type=\"desktop\">\n"
+		"    <id>gnome-software.desktop</id>\n"
+		"  </component>\n"
+		"  <component type=\"firmware\">\n"
+		"    <id>org.hughski.ColorHug2.firmware</id>\n"
+		"    <requires>\n"
+		"      <bootloader>1.2.3</bootloader>\n"
+		"    </requires>\n"
+		"  </component>\n"
+		"</components>\n";
+
+	/* import some XML */
+	ret = xb_builder_import_xml (builder, xml, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+
+	/* create file if it does not exist */
+	file = g_file_new_for_path ("/tmp/temp.xmlb");
+	g_file_delete (file, NULL, NULL);
+	silo = xb_builder_ensure (builder, file,
+				  XB_BUILDER_COMPILE_FLAG_NONE,
+				  NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+	bytes1 = xb_silo_get_bytes (silo);
+	g_clear_object (&silo);
+
+	/* recreate file if it is invalid */
+	ret = g_file_replace_contents (file, "dave", 4, NULL, FALSE,
+				       G_FILE_CREATE_NONE, NULL, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	silo = xb_builder_ensure (builder, file,
+				  XB_BUILDER_COMPILE_FLAG_NONE,
+				  NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+	bytes2 = xb_silo_get_bytes (silo);
+	g_assert (bytes1 != bytes2);
+	g_clear_object (&silo);
+
+	/* don't recreate file if perfectly valid */
+	silo = xb_builder_ensure (builder, file,
+				  XB_BUILDER_COMPILE_FLAG_NONE,
+				  NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+	bytes3 = xb_silo_get_bytes (silo);
+	g_assert (bytes2 == bytes3);
+	g_clear_object (&silo);
+	g_clear_object (&builder);
+
+	/* don't re-create for a new builder with the same XML added */
+	builder = xb_builder_new ();
+	ret = xb_builder_import_xml (builder, xml, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	silo = xb_builder_ensure (builder, file,
+				  XB_BUILDER_COMPILE_FLAG_NONE,
+				  NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+}
+
+static void
 xb_builder_empty_func (void)
 {
 	gboolean ret;
@@ -360,6 +445,7 @@ xb_speed_func (void)
 	guint n_components = 10000;
 	g_autofree gchar *xpath1 = NULL;
 	g_autoptr(GError) error = NULL;
+	g_autoptr(GFile) file = NULL;
 	g_autoptr(GPtrArray) results = NULL;
 	g_autoptr(GString) xml = g_string_new (NULL);
 	g_autoptr(GTimer) timer = g_timer_new ();
@@ -398,7 +484,8 @@ xb_speed_func (void)
 	silo = xb_silo_new_from_xml (xml->str, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);
-	ret = xb_silo_save_to_file (silo, fn, &error);
+	file = g_file_new_for_path (fn);
+	ret = xb_silo_save_to_file (silo, file, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
 	g_clear_object (&silo);
@@ -407,7 +494,7 @@ xb_speed_func (void)
 
 	/* load from file */
 	silo = xb_silo_new ();
-	ret = xb_silo_load_from_file (silo, fn, XB_SILO_LOAD_FLAG_NONE, &error);
+	ret = xb_silo_load_from_file (silo, file, XB_SILO_LOAD_FLAG_NONE, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
 	g_print ("mmap load: %.3fms\n", g_timer_elapsed (timer, NULL) * 1000);
@@ -462,6 +549,7 @@ main (int argc, char **argv)
 	/* tests go here */
 	g_test_add_func ("/libxmlb/builder", xb_builder_func);
 	g_test_add_func ("/libxmlb/builder{empty}", xb_builder_empty_func);
+	g_test_add_func ("/libxmlb/builder{ensure}", xb_builder_ensure_func);
 	g_test_add_func ("/libxmlb/xpath", xb_xpath_func);
 	g_test_add_func ("/libxmlb/xpath-parent", xb_xpath_parent_func);
 	g_test_add_func ("/libxmlb/xpath-glob", xb_xpath_glob_func);

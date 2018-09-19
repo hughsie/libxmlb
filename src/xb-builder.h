@@ -43,6 +43,11 @@ XbSilo		*xb_builder_compile		(XbBuilder		*self,
 						 XbBuilderCompileFlags	 flags,
 						 GCancellable		*cancellable,
 						 GError			**error);
+XbSilo		*xb_builder_ensure		(XbBuilder		*self,
+						 GFile			*file,
+						 XbBuilderCompileFlags	 flags,
+						 GCancellable		*cancellable,
+						 GError			**error);
 
 G_END_DECLS
 

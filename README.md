@@ -34,10 +34,11 @@ Additionally, the only thing that the query can return are nodes.
 
 For example:
 
-    $ xb-tool convert fedora.xml.gz fedora.xmlb
+    $ xb-tool compile fedora.xmlb fedora.xml.gz
 
-    $ du -h fedora.xmlb
+    $ du -h fedora.xml*
     12M         fedora.xmlb
+    3.6M        fedora.xml.gz
 
     $ xb-tool query fedora.xmlb "components/component[@type=desktop]/id[firefox.desktop]"
     RESULT: firefox.desktop
@@ -47,10 +48,6 @@ For example:
 
 TODO
 ----
-
-* Some kind of load-or-generate functionality:
-
-    XbSilo *xb_cache_load_or_generate (const gchar *fn_bin, const gchar *fn_xml, GError **error);
 
 * Supporting more of the XPath specification
 
