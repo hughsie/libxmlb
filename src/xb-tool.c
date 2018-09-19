@@ -188,6 +188,46 @@ xb_tool_dump (XbToolPrivate *priv, gchar **values, GError **error)
 }
 
 static gboolean
+xb_tool_export (XbToolPrivate *priv, gchar **values, GError **error)
+{
+	XbSiloLoadFlags flags = XB_SILO_LOAD_FLAG_NONE;
+
+	/* check args */
+	if (g_strv_length (values) < 1) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_FAILED,
+				     "Invalid arguments, expected "
+				     "FILENAME"
+				     " -- e.g. `example.xmlb`");
+		return FALSE;
+	}
+
+	/* don't check the magic to make fuzzing easier */
+	if (priv->force)
+		flags |= XB_SILO_LOAD_FLAG_NO_MAGIC;
+
+	/* load blobs */
+	for (guint i = 0; values[i] != NULL; i++) {
+		g_autofree gchar *str = NULL;
+		g_autoptr(GFile) file = g_file_new_for_path (values[0]);
+		g_autoptr(XbSilo) silo = xb_silo_new ();
+		if (!xb_silo_load_from_file (silo, file, flags, error))
+			return FALSE;
+		str = xb_silo_export (silo,
+				      XB_NODE_EXPORT_FLAG_ADD_HEADER |
+				      XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE |
+				      XB_NODE_EXPORT_FLAG_FORMAT_INDENT |
+				      XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS,
+				      error);
+		if (str == NULL)
+			return FALSE;
+		g_print ("%s", str);
+	}
+	return TRUE;
+}
+
+static gboolean
 xb_tool_query (XbToolPrivate *priv, gchar **values, GError **error)
 {
 	g_autoptr(GFile) file = NULL;
@@ -280,6 +320,12 @@ main (int argc, char *argv[])
 		     /* TRANSLATORS: command description */
 		     "Dumps a XMLb file",
 		     xb_tool_dump);
+	xb_tool_add (priv->cmd_array,
+		     "export",
+		     "FILENAME",
+		     /* TRANSLATORS: command description */
+		     "Exports a XMLb file",
+		     xb_tool_export);
 	xb_tool_add (priv->cmd_array,
 		     "query",
 		     "FILENAME",
