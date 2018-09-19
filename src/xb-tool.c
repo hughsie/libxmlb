@@ -287,8 +287,8 @@ xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 				     G_IO_ERROR,
 				     G_IO_ERROR_FAILED,
 				     "Invalid arguments, expected "
-				     "FILE-IN FILE-OUT"
-				     " -- e.g. `example.xml example.xmlb`");
+				     "FILE-OUT FILE [FILE]"
+				     " -- e.g. `example.xmlb example.xml`");
 		return FALSE;
 	}
 
@@ -349,7 +349,7 @@ main (int argc, char *argv[])
 		     xb_tool_query);
 	xb_tool_add (priv->cmd_array,
 		     "compile",
-		     "FILENAME-FROM FILENAME-TO",
+		     "FILE-OUT FILE [FILE]",
 		     /* TRANSLATORS: command description */
 		     "Compile XML to XMLb",
 		     xb_tool_compile);
