@@ -1,0 +1,14 @@
+FROM debian:unstable
+
+RUN apt-get update -qq
+RUN apt-get install -yq --no-install-recommends \
+	gobject-introspection \
+	gtk-doc-tools \
+	libgirepository1.0-dev \
+	libglib2.0-dev \
+	uuid-dev \
+	meson \
+	pkg-config \
+	valgrind
+RUN mkdir /build
+WORKDIR /build

@@ -1,0 +1,14 @@
+language: c
+sudo: required
+dist: trusty
+
+services:
+  - docker
+
+before_script:
+  - docker build -t libxmlb-fedora -f contrib/ci/Dockerfile-fedora .
+  - docker build -t libxmlb-debian -f contrib/ci/Dockerfile-debian .
+
+script:
+  - docker run -t -v `pwd`:/build libxmlb-fedora ./contrib/ci/build_and_test.sh
+  - docker run -t -v `pwd`:/build libxmlb-debian ./contrib/ci/build_and_test.sh

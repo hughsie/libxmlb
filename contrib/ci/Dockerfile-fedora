@@ -1,0 +1,13 @@
+FROM fedora:28
+
+RUN dnf -y update
+RUN dnf -y install \
+	glib2-devel \
+	gobject-introspection-devel \
+	gtk-doc \
+	libuuid-devel \
+	meson \
+	redhat-rpm-config
+
+RUN mkdir /build
+WORKDIR /build
