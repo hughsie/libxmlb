@@ -739,14 +739,18 @@ XbSilo *
 xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 		   GCancellable *cancellable, GError **error)
 {
+	g_autofree gchar *fn = NULL;
 	g_autoptr(XbSilo) silo_tmp = xb_silo_new ();
 	g_autoptr(XbSilo) silo_new = NULL;
 	g_autoptr(GError) error_local = NULL;
+	g_autoptr(GFile) file_parent = NULL;
 
 	g_return_val_if_fail (XB_IS_BUILDER (self), NULL);
 	g_return_val_if_fail (G_IS_FILE (file), NULL);
 
 	/* load the file and peek at the GUIDs */
+	fn = g_file_get_path (file);
+	g_debug ("attempting to load %s", fn);
 	if (!xb_silo_load_from_file (silo_tmp, file, XB_SILO_LOAD_FLAG_NONE, &error_local)) {
 		g_debug ("failed to load silo: %s", error_local->message);
 	} else {
@@ -773,8 +777,20 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 		}
 	}
 
+	/* ensure parent directories exist */
+	file_parent = g_file_get_parent (file);
+	if (file_parent != NULL &&
+	    !g_file_query_exists (file_parent, cancellable)) {
+		if (!g_file_make_directory_with_parents (file_parent,
+							 cancellable,
+							 error))
+			return NULL;
+	}
+
 	/* fallback to just creating a new file */
 	silo_new = xb_builder_compile (self, flags, cancellable, error);
+	if (silo_new == NULL)
+		return NULL;
 	if (!xb_silo_save_to_file (silo_new, file, error))
 		return NULL;
 	return g_steal_pointer (&silo_new);
