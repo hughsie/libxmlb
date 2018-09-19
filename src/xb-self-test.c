@@ -198,6 +198,42 @@ xb_builder_empty_func (void)
 }
 
 static void
+xb_xpath_node_func (void)
+{
+	g_autoptr(GError) error = NULL;
+	g_autoptr(GPtrArray) results = NULL;
+	g_autoptr(XbNode) n = NULL;
+	g_autoptr(XbSilo) silo = NULL;
+	const gchar *xml =
+	"<components origin=\"lvfs\">\n"
+	"  <component type=\"desktop\">\n"
+	"    <id>gimp.desktop</id>\n"
+	"    <id>org.gnome.Gimp.desktop</id>\n"
+	"  </component>\n"
+	"  <component type=\"firmware\">\n"
+	"    <id>org.hughski.ColorHug2.firmware</id>\n"
+	"  </component>\n"
+	"</components>\n";
+
+	/* import from XML */
+	silo = xb_silo_new_from_xml (xml, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* get node */
+	n = xb_silo_query_first (silo, "components/component", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_attr (n, "type"), ==, "desktop");
+
+	/* query with text predicate */
+	results = xb_node_query (n, "id", 0, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (results);
+	g_assert_cmpint (results->len, ==, 2);
+}
+
+static void
 xb_xpath_func (void)
 {
 	XbNode *n;
@@ -553,6 +589,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/xpath", xb_xpath_func);
 	g_test_add_func ("/libxmlb/xpath-parent", xb_xpath_parent_func);
 	g_test_add_func ("/libxmlb/xpath-glob", xb_xpath_glob_func);
+	g_test_add_func ("/libxmlb/xpath-node", xb_xpath_node_func);
 	g_test_add_func ("/libxmlb/multiple-roots", xb_builder_multiple_roots_func);
 	g_test_add_func ("/libxmlb/speed", xb_speed_func);
 	return g_test_run ();

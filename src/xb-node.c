@@ -292,14 +292,20 @@ xb_node_get_depth (XbNode *self)
 GPtrArray *
 xb_node_query (XbNode *self, const gchar *xpath, guint limit, GError **error)
 {
-	g_autofree gchar *xpath2 = NULL;
+	g_autoptr(XbNode) child = xb_node_get_child (self);
 
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (xpath != NULL, NULL);
 
 	/* nodes don't have to include themselves as part of the query */
-	xpath2 = g_strjoin ("/", xb_node_get_element (self), xpath, NULL);
-	return xb_silo_query_with_root (xb_node_get_silo (self), self, xpath2, limit, error);
+	if (child == NULL) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_NOT_FOUND,
+				     "no child to query");
+		return NULL;
+	}
+	return xb_silo_query_with_root (xb_node_get_silo (self), child, xpath, limit, error);
 }
 
 /**
@@ -319,14 +325,21 @@ xb_node_query (XbNode *self, const gchar *xpath, guint limit, GError **error)
 XbNode *
 xb_node_query_first (XbNode *self, const gchar *xpath, GError **error)
 {
-	g_autofree gchar *xpath2 = NULL;
 	g_autoptr(GPtrArray) results = NULL;
+	g_autoptr(XbNode) child = xb_node_get_child (self);
 
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (xpath != NULL, NULL);
 
-	xpath2 = g_strjoin ("/", xb_node_get_element (self), xpath, NULL);
-	results = xb_silo_query_with_root (xb_node_get_silo (self), self, xpath2, 1, error);
+	/* nodes don't have to include themselves as part of the query */
+	if (child == NULL) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_NOT_FOUND,
+				     "no child to query");
+		return NULL;
+	}
+	results = xb_silo_query_with_root (xb_node_get_silo (self), child, xpath, 1, error);
 	if (results == NULL)
 		return NULL;
 	return g_object_ref (g_ptr_array_index (results, 0));
