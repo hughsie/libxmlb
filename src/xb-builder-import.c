@@ -16,6 +16,7 @@ struct _XbBuilderImport {
 	GObject			 parent_instance;
 	GInputStream		*istream;
 	gchar			*guid;
+	gchar			*key;
 };
 
 G_DEFINE_TYPE (XbBuilderImport, xb_builder_import, G_TYPE_OBJECT)
@@ -25,8 +26,6 @@ xb_builder_import_new_file (GFile *file, GCancellable *cancellable, GError **err
 {
 	const gchar *content_type = NULL;
 	guint64 mtime;
-	g_autofree gchar *fn = NULL;
-	g_autofree gchar *guid = NULL;
 	g_autoptr(GConverter) conv = NULL;
 	g_autoptr(GFileInfo) info = NULL;
 	g_autoptr(GInputStream) istream = NULL;
@@ -48,9 +47,9 @@ xb_builder_import_new_file (GFile *file, GCancellable *cancellable, GError **err
 		return FALSE;
 
 	/* add data to GUID */
-	fn = g_file_get_path (file);
+	self->key = g_file_get_path (file);
 	mtime = g_file_info_get_attribute_uint64 (info, G_FILE_ATTRIBUTE_TIME_MODIFIED);
-	self->guid = g_strdup_printf ("%s:%" G_GUINT64_FORMAT, fn, mtime);
+	self->guid = g_strdup_printf ("%s:%" G_GUINT64_FORMAT, self->key, mtime);
 
 	/* decompress if required */
 	content_type = g_file_info_get_attribute_string (info, G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE);
@@ -101,6 +100,13 @@ xb_builder_import_get_guid (XbBuilderImport *self)
 	return self->guid;
 }
 
+const gchar *
+xb_builder_import_get_key (XbBuilderImport *self)
+{
+	g_return_val_if_fail (XB_IS_BUILDER_IMPORT (self), NULL);
+	return self->key;
+}
+
 GInputStream *
 xb_builder_import_get_istream (XbBuilderImport *self)
 {
@@ -115,6 +121,7 @@ xb_builder_import_finalize (GObject *obj)
 
 	g_object_unref (self->istream);
 	g_free (self->guid);
+	g_free (self->key);
 
 	G_OBJECT_CLASS (xb_builder_import_parent_class)->finalize (obj);
 }

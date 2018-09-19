@@ -17,11 +17,22 @@ G_BEGIN_DECLS
 
 G_DECLARE_FINAL_TYPE (XbBuilder, xb_builder, XB, BUILDER, GObject)
 
+/**
+ * XbBuilderCompileFlags:
+ * @XB_BUILDER_COMPILE_FLAG_NONE:		No extra flags to use
+ * @XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT:	Do not attempt to repair XML whitespace
+ * @XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS:	Only load native languages
+ * @XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID:	Ignore invalid files without an error
+ * @XB_BUILDER_COMPILE_FLAG_ADD_IMPORT_KEY:	Add an import key to the silo
+ *
+ * The flags for converting to XML.
+ **/
 typedef enum {
 	XB_BUILDER_COMPILE_FLAG_NONE		= 0,
 	XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT	= 1 << 0,
 	XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS	= 1 << 1,
 	XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID	= 1 << 2,
+	XB_BUILDER_COMPILE_FLAG_ADD_IMPORT_KEY	= 1 << 3,
 	/*< private >*/
 	XB_BUILDER_COMPILE_FLAG_LAST
 } XbBuilderCompileFlags;

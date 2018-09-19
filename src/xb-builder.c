@@ -33,6 +33,7 @@ typedef struct {
 	XbBuilderCompileFlags	 flags;
 	GHashTable		*strtab_hash;
 	GString			*strtab;
+	const gchar		*import_key;
 	const gchar * const	*locales;
 } XbBuilderCompileHelper;
 
@@ -116,6 +117,14 @@ xb_builder_compile_start_element_cb (GMarkupParseContext *context,
 	XbBuilderNode *bn = xb_builder_node_new (element_name);
 	XbBuilderNodeData *data = bn->data;
 	XbBuilderNodeData *data_parent = helper->current->data;
+
+	/* add importkey to root element to allow querying later */
+	if ((helper->flags & XB_BUILDER_COMPILE_FLAG_ADD_IMPORT_KEY) > 0 &&
+	    helper->current == helper->root &&
+	    helper->import_key != NULL) {
+		xb_builder_node_add_attribute (bn, "XMLb::ImportKey",
+					       helper->import_key);
+	}
 
 	/* parent node is being ignored */
 	if (data_parent != NULL && data_parent->is_cdata_ignore)
@@ -285,11 +294,12 @@ xb_builder_import_file (XbBuilder *self, GFile *file, GCancellable *cancellable,
 }
 
 static gboolean
-xb_builder_compile_istream (XbBuilderCompileHelper *helper,
-			    GInputStream *istream,
-			    GCancellable *cancellable,
-			    GError **error)
+xb_builder_compile_import (XbBuilderCompileHelper *helper,
+			   XbBuilderImport *import,
+			   GCancellable *cancellable,
+			   GError **error)
 {
+	GInputStream *istream = xb_builder_import_get_istream (import);
 	gsize chunk_size = 32 * 1024;
 	gssize len;
 	g_autofree gchar *data = NULL;
@@ -299,6 +309,9 @@ xb_builder_compile_istream (XbBuilderCompileHelper *helper,
 		xb_builder_compile_end_element_cb,
 		xb_builder_compile_text_cb,
 		NULL, NULL };
+
+	/* this is something we can query with later */
+	helper->import_key = xb_builder_import_get_key (import);
 
 	/* parse */
 	ctx = g_markup_parse_context_new (&parser, G_MARKUP_PREFIX_ERROR_POSITION, helper, NULL);
@@ -607,11 +620,10 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	/* build node tree */
 	for (guint i = 0; i < self->imports->len; i++) {
 		XbBuilderImport *import = g_ptr_array_index (self->imports, i);
-		GInputStream *istream = xb_builder_import_get_istream (import);
 		g_autoptr(GError) error_local = NULL;
 
 		g_debug ("compiling %s…", xb_builder_import_get_guid (import));
-		if (!xb_builder_compile_istream (helper, istream, cancellable, &error_local)) {
+		if (!xb_builder_compile_import (helper, import, cancellable, &error_local)) {
 			if (flags & XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID) {
 				g_debug ("ignoring invalid file %s: %s",
 					 xb_builder_import_get_guid (import),

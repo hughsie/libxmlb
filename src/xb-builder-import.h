@@ -20,6 +20,7 @@ XbBuilderImport	*xb_builder_import_new_file	(GFile			*file,
 						 GError			**error);
 XbBuilderImport	*xb_builder_import_new_xml	(const gchar		*xml,
 						 GError			**error);
+const gchar	*xb_builder_import_get_key	(XbBuilderImport	*self);
 const gchar	*xb_builder_import_get_guid	(XbBuilderImport	*self);
 GInputStream	*xb_builder_import_get_istream	(XbBuilderImport	*self);
 
