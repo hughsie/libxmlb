@@ -6,6 +6,8 @@
 
 #include "config.h"
 
+#include <stdlib.h>
+#include <string.h>
 #include <gio/gio.h>
 
 #include "xb-builder.h"

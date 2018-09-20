@@ -570,6 +570,21 @@ xb_builder_compile_helper_free (XbBuilderCompileHelper *helper)
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(XbBuilderCompileHelper, xb_builder_compile_helper_free)
 
+static void
+_uuid_generate_sha1 (uuid_t out, const uuid_t ns, const char *name, size_t len)
+{
+#ifdef HAVE_UUID_GENERATE_SHA1
+	uuid_generate_sha1 (out, ns, name, len);
+#else
+	guint8 buf[20];
+	gsize bufsz = sizeof(buf);
+	g_autoptr(GChecksum) csum = g_checksum_new (G_CHECKSUM_SHA1);
+	g_checksum_update (csum, (const guchar *) name, (gssize) len);
+	g_checksum_get_digest (csum, buf, &bufsz);
+	memcpy (out, buf, sizeof(uuid_t));
+#endif
+}
+
 static gchar *
 xb_builder_generate_guid (XbBuilder *self)
 {
@@ -578,7 +593,7 @@ xb_builder_generate_guid (XbBuilder *self)
 	gchar guid_tmp[UUID_STR_LEN] = { '\0' };
 
 	uuid_clear (ns);
-	uuid_generate_sha1 (guid, ns, self->guid->str, self->guid->len);
+	_uuid_generate_sha1 (guid, ns, self->guid->str, self->guid->len);
 	uuid_unparse (guid, guid_tmp);
 	return g_strdup (guid_tmp);
 }
@@ -669,7 +684,7 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	if (self->guid->len > 0) {
 		uuid_t ns;
 		uuid_clear (ns);
-		uuid_generate_sha1 (hdr.guid, ns, self->guid->str, self->guid->len);
+		_uuid_generate_sha1 (hdr.guid, ns, self->guid->str, self->guid->len);
 	}
 	XB_SILO_APPENDBUF (buf, &hdr, sizeof(XbSiloHeader));
 
