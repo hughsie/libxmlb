@@ -15,6 +15,11 @@
 #include "xb-node-private.h"
 #include "xb-silo-private.h"
 
+/* for old versions of libuuid */
+#ifndef UUID_STR_LEN
+#define UUID_STR_LEN	37
+#endif
+
 struct _XbSilo
 {
 	GObject			 parent_instance;
