@@ -23,6 +23,8 @@ lt_revision = '0'
 lt_age = '0'
 lt_version = '@0@.@1@.@2@'.format(lt_current, lt_age, lt_revision)
 
+configinc = include_directories('.')
+
 # get suported warning flags
 warning_flags = [
   '-fstack-protector-strong',

@@ -1,3 +1,27 @@
+libxmlbstatic = static_library(
+  'xmlbstatic',
+  sources : [
+    'xb-common.c',
+    'xb-builder.c',
+    'xb-builder-import.c',
+    'xb-builder-node.c',
+    'xb-node.c',
+    'xb-silo.c',
+    'xb-silo-export.c',
+    'xb-silo-query.c',
+  ],
+  include_directories : [
+    configinc,
+  ],
+  dependencies : [
+    gio,
+    uuid,
+  ],
+)
+
+# this seems redundant, but it allows us to use libxmlb as a subproject
+if meson.project_name() == 'libxmlb'
+
 libxmlb_version_h = configure_file(
   input : 'xb-version.h.in',
   output : 'xb-version.h',
@@ -36,11 +60,13 @@ libxmlb = shared_library(
   ],
   soversion : lt_current,
   version : lt_version,
+  include_directories : [
+    configinc,
+  ],
   dependencies : [
     gio,
     uuid,
   ],
-  include_directories : include_directories('..'),
   link_args : vflag,
   link_depends : mapfile,
   install : true
@@ -52,7 +78,7 @@ xb_tool = executable(
     'xb-tool.c',
   ],
   include_directories : [
-    include_directories('..'),
+    configinc,
   ],
   dependencies : [
     gio,
@@ -133,6 +159,8 @@ if get_option('introspection')
       )
 endif
 
+endif # meson.project_name() == 'libxmlb'
+
 if get_option('tests')
   testdatadir = join_paths(meson.source_root(), 'data')
   e = executable(
@@ -141,12 +169,12 @@ if get_option('tests')
       'xb-self-test.c'
     ],
     include_directories : [
-      include_directories('..'),
+      configinc,
     ],
     dependencies : [
       gio,
     ],
-    link_with : libxmlb,
+    link_with : libxmlbstatic,
   )
   test('xb-self-test', e)
 endif
