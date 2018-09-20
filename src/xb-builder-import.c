@@ -119,7 +119,8 @@ xb_builder_import_finalize (GObject *obj)
 {
 	XbBuilderImport *self = XB_BUILDER_IMPORT (obj);
 
-	g_object_unref (self->istream);
+	if (self->istream != NULL)
+		g_object_unref (self->istream);
 	g_free (self->guid);
 	g_free (self->key);
 
