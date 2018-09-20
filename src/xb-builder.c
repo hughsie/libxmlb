@@ -327,6 +327,15 @@ xb_builder_compile_import (XbBuilderCompileHelper *helper,
 	if (len < 0)
 		return FALSE;
 
+	/* more opening than closing */
+	if (helper->root != helper->current) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_INVALID_DATA,
+				     "Mismatched XML");
+		return FALSE;
+	}
+
 	/* success */
 	return TRUE;
 }
@@ -613,7 +622,6 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	helper->flags = helper->flags;
 	helper->root = g_node_new (NULL);
 	helper->locales = g_get_language_names ();
-	helper->current = helper->root;
 	helper->strtab = g_string_new (NULL);
 	helper->strtab_hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 
@@ -621,6 +629,9 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	for (guint i = 0; i < self->imports->len; i++) {
 		XbBuilderImport *import = g_ptr_array_index (self->imports, i);
 		g_autoptr(GError) error_local = NULL;
+
+		/* don't allow damaged XML files to ruin all the next ones */
+		helper->current = helper->root;
 
 		g_debug ("compiling %s…", xb_builder_import_get_guid (import));
 		if (!xb_builder_compile_import (helper, import, cancellable, &error_local)) {
@@ -636,15 +647,6 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 						    xb_builder_import_get_guid (import));
 			return NULL;
 		}
-	}
-
-	/* more opening than closing */
-	if (helper->root != helper->current) {
-		g_set_error_literal (error,
-				     G_IO_ERROR,
-				     G_IO_ERROR_INVALID_DATA,
-				     "Mismatched XML");
-		return NULL;
 	}
 
 	/* get the size of the nodetab */

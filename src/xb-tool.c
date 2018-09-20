@@ -301,6 +301,7 @@ xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 	file_dst = g_file_new_for_path (values[0]);
 	silo = xb_builder_ensure (builder, file_dst,
 				  XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT |
+				  XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID |
 				  XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS,
 				  NULL, error);
 	if (silo == NULL)
