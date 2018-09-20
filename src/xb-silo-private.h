@@ -12,6 +12,11 @@
 #include "xb-node.h"
 #include "xb-silo.h"
 
+/* for old versions of libuuid */
+#ifndef UUID_STR_LEN
+#define UUID_STR_LEN	37
+#endif
+
 /* 32 bytes, native byte order */
 typedef struct __attribute__ ((packed)) {
 	guint32		magic;
