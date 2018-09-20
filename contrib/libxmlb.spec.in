@@ -20,6 +20,7 @@ BuildRequires: libuuid-devel
 BuildRequires: meson
 
 Requires: glib2%{?_isa} >= %{glib2_version}
+Requires: shared-mime-info
 
 %description
 libxmlb is a library to create or query compressed XML files.
