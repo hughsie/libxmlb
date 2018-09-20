@@ -234,6 +234,39 @@ xb_xpath_node_func (void)
 }
 
 static void
+xb_xpath_helpers_func (void)
+{
+	const gchar *tmp;
+	guint64 val;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbNode) n = NULL;
+	g_autoptr(XbSilo) silo = NULL;
+
+	/* import from XML */
+	silo = xb_silo_new_from_xml ("<release><checksum size=\"123\">456</checksum></release>", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* as char */
+	n = xb_silo_get_root (silo);
+	g_assert_nonnull (n);
+	tmp = xb_node_query_text (n, "checksum", &error);
+	g_assert_no_error (error);
+	g_assert_cmpstr (tmp, ==, "456");
+	tmp = xb_node_query_attr (n, "checksum", "size", &error);
+	g_assert_no_error (error);
+	g_assert_cmpstr (tmp, ==, "123");
+
+	/* as uint64 */
+	val = xb_node_query_text_as_uint (n, "checksum", &error);
+	g_assert_no_error (error);
+	g_assert_cmpint (val, ==, 456);
+	val = xb_node_query_attr_as_uint (n, "checksum", "size", &error);
+	g_assert_no_error (error);
+	g_assert_cmpint (val, ==, 123);
+}
+
+static void
 xb_xpath_func (void)
 {
 	XbNode *n;
@@ -587,6 +620,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/builder{empty}", xb_builder_empty_func);
 	g_test_add_func ("/libxmlb/builder{ensure}", xb_builder_ensure_func);
 	g_test_add_func ("/libxmlb/xpath", xb_xpath_func);
+	g_test_add_func ("/libxmlb/xpath{helpers}", xb_xpath_helpers_func);
 	g_test_add_func ("/libxmlb/xpath-parent", xb_xpath_parent_func);
 	g_test_add_func ("/libxmlb/xpath-glob", xb_xpath_glob_func);
 	g_test_add_func ("/libxmlb/xpath-node", xb_xpath_node_func);

@@ -383,6 +383,44 @@ xb_node_query_text (XbNode *self, const gchar *xpath, GError **error)
 }
 
 /**
+ * xb_node_query_attr:
+ * @self: a #XbNode
+ * @xpath: An XPath, e.g. `/components/component[@type=desktop]/id[abe.desktop]`
+ * @name: an attribute name, e.g. `type`
+ * @error: the #GError, or %NULL
+ *
+ * Searches the node using an XPath query, returning up to one result.
+ *
+ * Please note: Only a tiny subset of XPath 1.0 is supported.
+ *
+ * Returns: (transfer none): a string, or %NULL if unfound
+ *
+ * Since: 0.1.0
+ **/
+const gchar *
+xb_node_query_attr (XbNode *self, const gchar *xpath, const gchar *name, GError **error)
+{
+	const gchar *tmp;
+	g_autoptr(XbNode) n = NULL;
+
+	g_return_val_if_fail (XB_IS_NODE (self), NULL);
+	g_return_val_if_fail (xpath != NULL, NULL);
+
+	n = xb_node_query_first (self, xpath, error);
+	if (n == NULL)
+		return NULL;
+	tmp = xb_node_get_attr (n, name);
+	if (tmp == NULL) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_NOT_FOUND,
+				     "no text data");
+		return NULL;
+	}
+	return tmp;
+}
+
+/**
  * xb_node_query_export:
  * @self: a #XbNode
  * @xpath: An XPath, e.g. `/components/component[@type=desktop]/id[abe.desktop]`
@@ -438,6 +476,46 @@ xb_node_query_text_as_uint (XbNode *self, const gchar *xpath, GError **error)
 	if (n == NULL)
 		return G_MAXUINT64;
 	tmp = xb_node_get_text (n);
+	if (tmp == NULL) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_NOT_FOUND,
+				     "no text data");
+		return G_MAXUINT64;
+	}
+	if (g_str_has_prefix (tmp, "0x"))
+		return g_ascii_strtoull (tmp + 2, NULL, 16);
+	return g_ascii_strtoull (tmp, NULL, 10);
+}
+
+/**
+ * xb_node_query_attr_as_uint:
+ * @self: a #XbNode
+ * @xpath: An XPath, e.g. `/components/component[@type=desktop]/id[abe.desktop]`
+ * @name: an attribute name, e.g. `type`
+ * @error: the #GError, or %NULL
+ *
+ * Searches the node using an XPath query, returning up to one result.
+ *
+ * Please note: Only a tiny subset of XPath 1.0 is supported.
+ *
+ * Returns: a guint64, or %G_MAXUINT64 if unfound
+ *
+ * Since: 0.1.0
+ **/
+guint64
+xb_node_query_attr_as_uint (XbNode *self, const gchar *xpath, const gchar *name, GError **error)
+{
+	const gchar *tmp;
+	g_autoptr(XbNode) n = NULL;
+
+	g_return_val_if_fail (XB_IS_NODE (self), G_MAXUINT64);
+	g_return_val_if_fail (xpath != NULL, G_MAXUINT64);
+
+	n = xb_node_query_first (self, xpath, error);
+	if (n == NULL)
+		return G_MAXUINT64;
+	tmp = xb_node_get_attr (n, name);
 	if (tmp == NULL) {
 		g_set_error_literal (error,
 				     G_IO_ERROR,

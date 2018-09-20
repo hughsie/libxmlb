@@ -47,6 +47,14 @@ const gchar	*xb_node_query_text		(XbNode		*self,
 guint64		 xb_node_query_text_as_uint	(XbNode		*self,
 						 const gchar	*xpath,
 						 GError		**error);
+const gchar	*xb_node_query_attr		(XbNode		*self,
+						 const gchar	*xpath,
+						 const gchar	*name,
+						 GError		**error);
+guint64		 xb_node_query_attr_as_uint	(XbNode		*self,
+						 const gchar	*xpath,
+						 const gchar	*name,
+						 GError		**error);
 gchar		*xb_node_query_export		(XbNode		*self,
 						 const gchar	*xpath,
 						 GError		**error);
