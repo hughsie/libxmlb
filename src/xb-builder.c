@@ -632,7 +632,7 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 
 	/* create helper used for compiling */
 	helper = g_new0 (XbBuilderCompileHelper, 1);
-	helper->flags = helper->flags;
+	helper->flags = flags;
 	helper->root = g_node_new (NULL);
 	helper->locales = g_get_language_names ();
 	helper->strtab = g_string_new (NULL);
