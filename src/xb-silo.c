@@ -209,9 +209,6 @@ xb_silo_to_string (XbSilo *self, GError **error)
 const gchar *
 xb_silo_node_get_text (XbSilo *self, XbSiloNode *n)
 {
-	g_return_val_if_fail (XB_IS_SILO (self), NULL);
-	g_return_val_if_fail (n != NULL, NULL);
-	g_return_val_if_fail (n->is_node, NULL);
 	if (!n->has_text)
 		return NULL;
 	return xb_silo_from_strtab (self, n->text);
@@ -221,9 +218,6 @@ xb_silo_node_get_text (XbSilo *self, XbSiloNode *n)
 const gchar *
 xb_silo_node_get_element (XbSilo *self, XbSiloNode *n)
 {
-	g_return_val_if_fail (XB_IS_SILO (self), NULL);
-	g_return_val_if_fail (n != NULL, NULL);
-	g_return_val_if_fail (n->is_node, NULL);
 	return xb_silo_from_strtab (self, n->element_name);
 }
 
@@ -279,9 +273,6 @@ guint
 xb_silo_node_get_depth (XbSilo *self, XbSiloNode *n)
 {
 	guint depth = 0;
-
-	g_return_val_if_fail (n != NULL, 0);
-
 	while (n->parent != 0) {
 		depth++;
 		n = xb_silo_get_node (self, n->parent);
