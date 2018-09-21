@@ -274,6 +274,7 @@ xb_xpath_func (void)
 	g_autofree gchar *str = NULL;
 	g_autofree gchar *xml_sub1 = NULL;
 	g_autofree gchar *xml_sub2 = NULL;
+	g_autofree gchar *xml_sub3 = NULL;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GPtrArray) results = NULL;
 	g_autoptr(XbNode) n3 = NULL;
@@ -377,6 +378,12 @@ xb_xpath_func (void)
 	g_assert_no_error (error);
 	g_assert_nonnull (xml_sub2);
 	g_assert_cmpstr (xml_sub2, ==, "<component type=\"firmware\"><id>org.hughski.ColorHug2.firmware</id></component>");
+
+	/* only children of parent */
+	xml_sub3 = xb_node_export (n3, XB_NODE_EXPORT_FLAG_ONLY_CHILDREN, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (xml_sub3);
+	g_assert_cmpstr (xml_sub3, ==, "<id>org.hughski.ColorHug2.firmware</id>");
 }
 
 static void

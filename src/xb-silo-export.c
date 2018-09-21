@@ -118,8 +118,18 @@ xb_silo_export_with_root (XbSilo *self, XbNode *root, XbNodeExportFlags flags, G
 
 	g_return_val_if_fail (XB_IS_SILO (self), NULL);
 
+	/* this implies the other */
+	if (flags & XB_NODE_EXPORT_FLAG_ONLY_CHILDREN)
+		flags |= XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS;
+
 	/* optional subtree export */
-	sn = root != NULL ? xb_node_get_sn (root) : xb_silo_get_sroot (self);
+	if (root != NULL) {
+		sn = xb_node_get_sn (root);
+		if (sn != NULL && flags & XB_NODE_EXPORT_FLAG_ONLY_CHILDREN)
+			sn = xb_silo_node_get_child (self, sn);
+	} else {
+		sn = xb_silo_get_sroot (self);
+	}
 
 	/* no root */
 	if (sn == NULL) {

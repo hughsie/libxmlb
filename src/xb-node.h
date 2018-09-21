@@ -21,6 +21,7 @@ G_DECLARE_FINAL_TYPE (XbNode, xb_node, XB, NODE, GObject)
  * @XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE:	Split up children with a newline
  * @XB_NODE_EXPORT_FLAG_FORMAT_INDENT:		Indent the XML by child depth
  * @XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS:	Include the siblings when converting
+ * @XB_NODE_EXPORT_FLAG_ONLY_CHILDREN:		Only export the children of the node
  *
  * The flags for converting to XML.
  **/
@@ -30,6 +31,7 @@ typedef enum {
 	XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE	= 1 << 1,
 	XB_NODE_EXPORT_FLAG_FORMAT_INDENT	= 1 << 2,
 	XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS	= 1 << 3,
+	XB_NODE_EXPORT_FLAG_ONLY_CHILDREN	= 1 << 4,
 	/*< private >*/
 	XB_NODE_EXPORT_FLAG_LAST
 } XbNodeExportFlags;
