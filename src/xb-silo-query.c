@@ -82,10 +82,8 @@ xb_silo_query_section_free (XbSiloQuerySection *section)
 static XbSiloQuerySection *
 xb_silo_query_parse_section (XbSilo *self, const gchar *xpath, GError **error)
 {
-	XbSiloQuerySection *section;
+	XbSiloQuerySection *section = g_slice_new0 (XbSiloQuerySection);
 	guint start = 0;
-
-	section = g_slice_new0 (XbSiloQuerySection);
 
 	/* common XPath parts */
 	if (g_strcmp0 (xpath, "parent::") == 0 ||
@@ -125,6 +123,7 @@ xb_silo_query_parse_section (XbSilo *self, const gchar *xpath, GError **error)
 			     G_IO_ERROR_NOT_FOUND,
 			     "element name %s is unknown in silo",
 			     section->element);
+		xb_silo_query_section_free (section);
 		return NULL;
 	}
 	return section;
