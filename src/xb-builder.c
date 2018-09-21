@@ -621,7 +621,8 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 		.magic		= XB_SILO_MAGIC_BYTES,
 		.version	= XB_SILO_VERSION,
 		.strtab		= 0,
-		.padding1	= { 0x0 },
+		.strtab_ntags	= 0,
+		.padding	= { 0x0 },
 		.guid		= { 0x0 },
 	};
 	XbBuilderNodetabHelper nodetab_helper = {
@@ -672,6 +673,7 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	/* add element names, attr name, attr value, then text to the strtab */
 	g_node_traverse (helper->root, G_LEVEL_ORDER, G_TRAVERSE_ALL, -1,
 			 xb_builder_strtab_element_names_cb, helper);
+	hdr.strtab_ntags = g_hash_table_size (helper->strtab_hash);
 	g_node_traverse (helper->root, G_LEVEL_ORDER, G_TRAVERSE_ALL, -1,
 			 xb_builder_strtab_attr_name_cb, helper);
 	g_node_traverse (helper->root, G_LEVEL_ORDER, G_TRAVERSE_ALL, -1,

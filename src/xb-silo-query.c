@@ -80,13 +80,12 @@ xb_silo_query_section_free (XbSiloQuerySection *section)
 }
 
 static XbSiloQuerySection *
-xb_silo_query_parse_section (const gchar *xpath, GError **error)
+xb_silo_query_parse_section (XbSilo *self, const gchar *xpath, GError **error)
 {
 	XbSiloQuerySection *section;
 	guint start = 0;
 
 	section = g_slice_new0 (XbSiloQuerySection);
-	section->element_idx = XB_SILO_UNSET;
 
 	/* common XPath parts */
 	if (g_strcmp0 (xpath, "parent::") == 0 ||
@@ -119,11 +118,20 @@ xb_silo_query_parse_section (const gchar *xpath, GError **error)
 	}
 	if (section->element == NULL)
 		section->element = g_strdup (xpath);
+	section->element_idx = xb_silo_get_strtab_idx (self, section->element);
+	if (section->element_idx == XB_SILO_UNSET) {
+		g_set_error (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_NOT_FOUND,
+			     "element name %s is unknown in silo",
+			     section->element);
+		return NULL;
+	}
 	return section;
 }
 
 static GPtrArray *
-xb_silo_query_parse_sections (const gchar *xpath, GError **error)
+xb_silo_query_parse_sections (XbSilo *self, const gchar *xpath, GError **error)
 {
 	g_autoptr(GPtrArray) sections = NULL;
 	g_auto(GStrv) split = NULL;
@@ -132,7 +140,7 @@ xb_silo_query_parse_sections (const gchar *xpath, GError **error)
 	sections = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_silo_query_section_free);
 	split = g_strsplit (xpath, "/", -1);
 	for (guint i = 0; split[i] != NULL; i++) {
-		XbSiloQuerySection *section = xb_silo_query_parse_section (split[i], error);
+		XbSiloQuerySection *section = xb_silo_query_parse_section (self, split[i], error);
 		if (section == NULL)
 			return NULL;
 		g_ptr_array_add (sections, section);
@@ -147,20 +155,9 @@ xb_silo_query_node_matches (XbSilo *self, XbSiloNode *sn, XbSiloQuerySection *se
 	if (section->kind == XB_SILO_QUERY_KIND_WILDCARD)
 		return TRUE;
 
-	/* check element name */
-	if (section->element_idx != XB_SILO_UNSET) {
-		/* we have an index into the string table */
-		if (section->element_idx != sn->element_name)
-			return FALSE;
-	} else {
-		const gchar *tmp = xb_silo_from_strtab (self, sn->element_name);
-//		g_debug ("sn->element_name=%s, section->element=%s", tmp, section->element);
-		if (g_strcmp0 (tmp, section->element) != 0)
-			return FALSE;
-	}
-
-	/* we now have an index into the strtab for future matches */
-	section->element_idx = sn->element_name;
+	/* we have an index into the string table */
+	if (section->element_idx != sn->element_name)
+		return FALSE;
 
 	/* check predicates */
 	if (section->predicates != NULL)
@@ -258,7 +255,7 @@ xb_silo_query_part (XbSilo *self,
 	};
 
 	/* handle each section */
-	sections = xb_silo_query_parse_sections (xpath, error);
+	sections = xb_silo_query_parse_sections (self, xpath, error);
 	if (sections == NULL)
 		return FALSE;
 

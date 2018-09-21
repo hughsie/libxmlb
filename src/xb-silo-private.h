@@ -22,12 +22,13 @@ typedef struct __attribute__ ((packed)) {
 	guint32		magic;
 	guint32		version;
 	uuid_t		guid;
-	guint8		padding1[4];
+	guint16		strtab_ntags;
+	guint8		padding[2];
 	guint32		strtab;
 } XbSiloHeader;
 
 #define XB_SILO_MAGIC_BYTES		0x624c4d58
-#define XB_SILO_VERSION			0x00000002
+#define XB_SILO_VERSION			0x00000003
 #define XB_SILO_UNSET			0xffffffff
 
 typedef struct __attribute__ ((packed)) {
@@ -53,6 +54,8 @@ XbSiloAttr	*xb_silo_get_attr		(XbSilo		*self,
 						 guint32	 off,
 						 guint8		 idx);
 guint32		 xb_silo_get_strtab		(XbSilo		*self);
+guint32		 xb_silo_get_strtab_idx		(XbSilo		*self,
+						 const gchar	*element);
 guint32		 xb_silo_get_offset_for_node	(XbSilo		*self,
 						 XbSiloNode	*n);
 guint8		 xb_silo_node_get_size		(XbSiloNode	*n);

@@ -8,6 +8,7 @@
 
 #include "config.h"
 
+#include <string.h>
 #include <glib-object.h>
 #include <gio/gio.h>
 
@@ -24,6 +25,7 @@ struct _XbSilo
 	const guint8		*data;	/* pointers into ->blob */
 	guint32			 datasz;
 	guint32			 strtab;
+	GHashTable		*strtab_tags;
 	GHashTable		*nodes;
 };
 
@@ -149,6 +151,16 @@ xb_silo_get_root (XbSilo *self)
 	return xb_silo_node_create (self, xb_silo_get_sroot (self));
 }
 
+/* private */
+guint32
+xb_silo_get_strtab_idx (XbSilo *self, const gchar *element)
+{
+	gpointer value = NULL;
+	if (!g_hash_table_lookup_extended (self->strtab_tags, element, NULL, &value))
+		return XB_SILO_UNSET;
+	return GPOINTER_TO_UINT (value);
+}
+
 /**
  * xb_silo_to_string:
  * @self: a #XbSilo
@@ -172,7 +184,8 @@ xb_silo_to_string (XbSilo *self, GError **error)
 
 	g_string_append_printf (str, "magic:        %08x\n", (guint) hdr->magic);
 	g_string_append_printf (str, "guid:         %s\n", self->guid);
-	g_string_append_printf (str, "strtab:       @%" G_GUINT32_FORMAT "\n", self->strtab);
+	g_string_append_printf (str, "strtab:       @%" G_GUINT32_FORMAT "\n", hdr->strtab);
+	g_string_append_printf (str, "strtab_ntags: %" G_GUINT16_FORMAT "\n", hdr->strtab_ntags);
 	while (off < self->strtab) {
 		XbSiloNode *n = xb_silo_get_node (self, off);
 		if (n->is_node) {
@@ -337,12 +350,14 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 	XbSiloHeader *hdr = (XbSiloHeader *) self->data;
 	gsize sz = 0;
 	gchar guid[UUID_STR_LEN] = { '\0' };
+	guint32 off = 0;
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (blob != NULL, FALSE);
 
 	/* no longer valid */
 	g_hash_table_remove_all (self->nodes);
+	g_hash_table_remove_all (self->strtab_tags);
 	g_clear_pointer (&self->guid, g_free);
 
 	/* refcount internally */
@@ -394,6 +409,22 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 				     G_IO_ERROR_INVALID_DATA,
 				     "strtab incorrect");
 		return FALSE;
+	}
+
+	/* load strtab_tags */
+	for (guint16 i = 0; i < hdr->strtab_ntags; i++) {
+		const gchar *tmp = xb_silo_from_strtab (self, off);
+		if (tmp == NULL) {
+			g_set_error_literal (error,
+					     G_IO_ERROR,
+					     G_IO_ERROR_INVALID_DATA,
+					     "strtab_ntags incorrect");
+			return FALSE;
+		}
+		g_hash_table_insert (self->strtab_tags,
+				     (gpointer) tmp,
+				     GUINT_TO_POINTER (off));
+		off += strlen (tmp) + 1;
 	}
 
 	/* success */
@@ -507,6 +538,7 @@ xb_silo_init (XbSilo *self)
 {
 	self->nodes = g_hash_table_new_full (g_direct_hash, g_direct_equal,
 					     NULL, (GDestroyNotify) g_object_unref);
+	self->strtab_tags = g_hash_table_new (g_str_hash, g_str_equal);
 }
 
 static void
@@ -515,6 +547,7 @@ xb_silo_finalize (GObject *obj)
 	XbSilo *self = XB_SILO (obj);
 	g_free (self->guid);
 	g_hash_table_unref (self->nodes);
+	g_hash_table_unref (self->strtab_tags);
 	if (self->mmap != NULL)
 		g_mapped_file_unref (self->mmap);
 	if (self->blob != NULL)
