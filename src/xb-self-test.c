@@ -181,7 +181,7 @@ xb_builder_empty_func (void)
 	/* try to export */
 	xml = xb_silo_export (silo, XB_NODE_EXPORT_FLAG_NONE, &error);
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND);
-	g_assert_null (results);
+	g_assert_null (xml);
 	g_clear_error (&error);
 
 	/* try to query empty silo */

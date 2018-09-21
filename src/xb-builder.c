@@ -483,7 +483,7 @@ xb_builder_nodetab_write_cb (XbBuilderNode *bn, gpointer user_data)
 {
 	XbBuilderNodetabHelper *helper = (XbBuilderNodetabHelper *) user_data;
 	XbBuilderNodeData *data = bn->data;
-	guint depth = g_node_depth (bn);
+	guint depth;
 
 	/* root node */
 	if (data == NULL)
@@ -492,9 +492,6 @@ xb_builder_nodetab_write_cb (XbBuilderNode *bn, gpointer user_data)
 		return FALSE;
 
 	depth = g_node_depth (bn);
-	if (depth == 1)
-		return FALSE;
-
 	for (guint i = helper->level; i >= depth; i--)
 		xb_builder_nodetab_write_sentinel (helper);
 	xb_builder_nodetab_write_node (helper, bn);

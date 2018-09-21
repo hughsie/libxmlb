@@ -347,7 +347,7 @@ xb_silo_get_guid (XbSilo *self)
 gboolean
 xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GError **error)
 {
-	XbSiloHeader *hdr = (XbSiloHeader *) self->data;
+	XbSiloHeader *hdr;
 	gsize sz = 0;
 	gchar guid[UUID_STR_LEN] = { '\0' };
 	guint32 off = 0;
