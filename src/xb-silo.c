@@ -43,7 +43,7 @@ xb_silo_from_strtab (XbSilo *self, guint32 offset)
 }
 
 /* private */
-XbSiloNode *
+inline XbSiloNode *
 xb_silo_get_node (XbSilo *self, guint32 off)
 {
 	return (XbSiloNode *) (self->data + off);
