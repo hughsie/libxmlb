@@ -35,6 +35,7 @@ install_headers(
 
 install_headers([
     'xb-builder.h',
+    'xb-builder-node.h',
     'xb-node.h',
     'xb-silo-export.h',
     'xb-silo.h',
@@ -106,6 +107,8 @@ if get_option('introspection')
     sources : [
       'xb-builder.c',
       'xb-builder.h',
+      'xb-builder-node.c',
+      'xb-builder-node.h',
       'xb-node.c',
       'xb-node.h',
       'xb-silo.c',
@@ -127,6 +130,9 @@ if get_option('introspection')
     includes : [
       'Gio-2.0',
       'GObject-2.0',
+    ],
+    link_with : [
+      libxmlbstatic,
     ],
     install : true
   )

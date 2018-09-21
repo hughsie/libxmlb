@@ -51,6 +51,4 @@ TODO
 
 * Supporting more of the XPath specification
 
-* Adding XbNode objects to a XbBuilder
-
 * Only store the best language -- not any found in langs

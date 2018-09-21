@@ -9,6 +9,7 @@
 #include <gio/gio.h>
 
 #include "xb-builder.h"
+#include "xb-builder-node.h"
 #include "xb-silo-export.h"
 #include "xb-silo-query.h"
 
@@ -513,6 +514,45 @@ xb_builder_multiple_roots_func (void)
 }
 
 static void
+xb_builder_node_func (void)
+{
+	g_autofree gchar *xml = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbBuilderNode) component = NULL;
+	g_autoptr(XbBuilderNode) components = NULL;
+	g_autoptr(XbBuilderNode) id = NULL;
+	g_autoptr(XbSilo) silo = NULL;
+
+	/* create a simple document */
+	components = xb_builder_node_insert (NULL, "components",
+					     "origin", "lvfs",
+					     NULL);
+	component = xb_builder_node_insert (components, "component", NULL);
+	xb_builder_node_add_attribute (component, "type", "desktop");
+	id = xb_builder_node_new ("id");
+	xb_builder_node_add_child (component, id);
+	xb_builder_node_set_text (id, "gimp.desktop", -1);
+
+	/* import the doc */
+	xb_builder_import_node (builder, components);
+	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* check the XML */
+	xml = xb_silo_export (silo, XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (xml);
+	g_print ("%s", xml);
+	g_assert_cmpstr ("<components origin=\"lvfs\">"
+			 "<component type=\"desktop\">"
+			 "<id>gimp.desktop</id>"
+			 "</component>"
+			 "</components>", ==, xml);
+}
+
+static void
 xb_speed_func (void)
 {
 	XbNode *n;
@@ -626,6 +666,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/builder", xb_builder_func);
 	g_test_add_func ("/libxmlb/builder{empty}", xb_builder_empty_func);
 	g_test_add_func ("/libxmlb/builder{ensure}", xb_builder_ensure_func);
+	g_test_add_func ("/libxmlb/builder-node", xb_builder_node_func);
 	g_test_add_func ("/libxmlb/xpath", xb_xpath_func);
 	g_test_add_func ("/libxmlb/xpath{helpers}", xb_xpath_helpers_func);
 	g_test_add_func ("/libxmlb/xpath-parent", xb_xpath_parent_func);

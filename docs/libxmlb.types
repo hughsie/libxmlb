@@ -1,2 +1,4 @@
 xb_silo_get_type
 xb_node_get_type
+xb_builder_get_type
+xb_builder_node_get_type

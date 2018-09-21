@@ -9,6 +9,7 @@
 
 #include <gio/gio.h>
 
+#include "xb-builder-node.h"
 #include "xb-silo.h"
 
 G_BEGIN_DECLS
@@ -40,6 +41,8 @@ typedef enum {
 XbBuilder	*xb_builder_new			(void);
 void		 xb_builder_append_guid		(XbBuilder		*self,
 						 const gchar		*guid);
+void		 xb_builder_import_node		(XbBuilder		*self,
+						 XbBuilderNode		*bn);
 gboolean	 xb_builder_import_xml		(XbBuilder		*self,
 						 const gchar		*xml,
 						 GError			**error);
