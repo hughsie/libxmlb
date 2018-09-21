@@ -54,37 +54,52 @@ xb_silo_query_check_predicates (XbSilo *self, XbSiloNode *sn, GPtrArray *predica
 	return TRUE;
 }
 
+typedef enum {
+	XB_SILO_QUERY_KIND_UNKNOWN,
+	XB_SILO_QUERY_KIND_WILDCARD,
+	XB_SILO_QUERY_KIND_PARENT,
+	XB_SILO_QUERY_KIND_LAST
+} XbSiloQueryKind;
+
 typedef struct {
 	gchar		*element;
 	guint32		 element_idx;
 	GPtrArray	*predicates;
 	gboolean	 is_wildcard;
+	gboolean	 is_parent;
+	XbSiloQueryKind	 kind;
 } XbSiloQuerySection;
 
 static void
 xb_silo_query_section_free (XbSiloQuerySection *section)
 {
+	if (section->predicates != NULL)
+		g_ptr_array_unref (section->predicates);
 	g_free (section->element);
-	g_ptr_array_unref (section->predicates);
-	g_free (section);
-}
-
-static const gchar *
-xb_silo_query_convert_axis (const gchar *element)
-{
-	if (g_str_has_prefix (element, "parent::"))
-		return "..";
-	return element;
+	g_slice_free (XbSiloQuerySection, section);
 }
 
 static XbSiloQuerySection *
 xb_silo_query_parse_section (const gchar *xpath, GError **error)
 {
-	XbSiloQuerySection *section = g_new0 (XbSiloQuerySection, 1);
+	XbSiloQuerySection *section;
 	guint start = 0;
 
+	section = g_slice_new0 (XbSiloQuerySection);
+	section->element_idx = XB_SILO_UNSET;
+
+	/* common XPath parts */
+	if (g_strcmp0 (xpath, "parent::") == 0 ||
+	    g_strcmp0 (xpath, "..") == 0) {
+		section->kind = XB_SILO_QUERY_KIND_PARENT;
+		return section;
+	}
+	if (g_strcmp0 (xpath, "*") == 0) {
+		section->kind = XB_SILO_QUERY_KIND_WILDCARD;
+		return section;
+	}
+
 	/* parse element and predicate */
-	section->predicates = g_ptr_array_new_with_free_func (g_free);
 	for (guint i = 0; xpath[i] != '\0'; i++) {
 		if (start == 0 && xpath[i] == '[') {
 			if (section->element == NULL)
@@ -93,6 +108,8 @@ xb_silo_query_parse_section (const gchar *xpath, GError **error)
 			continue;
 		}
 		if (start > 0 && xpath[i] == ']') {
+			if (section->predicates == NULL)
+				section->predicates = g_ptr_array_new_with_free_func (g_free);
 			g_ptr_array_add (section->predicates,
 					 g_strndup (xpath + start + 1,
 						    i - start - 1));
@@ -100,12 +117,8 @@ xb_silo_query_parse_section (const gchar *xpath, GError **error)
 			continue;
 		}
 	}
-
-	/* no predicates */
 	if (section->element == NULL)
-		section->element = g_strdup (xb_silo_query_convert_axis (xpath));
-	section->is_wildcard = g_strcmp0 (section->element, "*") == 0;
-	section->element_idx = XB_SILO_UNSET;
+		section->element = g_strdup (xpath);
 	return section;
 }
 
@@ -131,7 +144,7 @@ static gboolean
 xb_silo_query_node_matches (XbSilo *self, XbSiloNode *sn, XbSiloQuerySection *section)
 {
 	/* wildcard */
-	if (section->is_wildcard)
+	if (section->kind == XB_SILO_QUERY_KIND_WILDCARD)
 		return TRUE;
 
 	/* check element name */
@@ -150,7 +163,11 @@ xb_silo_query_node_matches (XbSilo *self, XbSiloNode *sn, XbSiloQuerySection *se
 	section->element_idx = sn->element_name;
 
 	/* check predicates */
-	return xb_silo_query_check_predicates (self, sn, section->predicates);
+	if (section->predicates != NULL)
+		return xb_silo_query_check_predicates (self, sn, section->predicates);
+
+	/* success */
+	return TRUE;
 }
 
 typedef struct {
@@ -173,7 +190,7 @@ xb_silo_query_section_root (XbSilo *self, XbSiloNode *sn, guint i, XbSiloQueryHe
 	XbSiloQuerySection *section = g_ptr_array_index (helper->sections, i);
 
 	/* handle parent */
-	if (g_strcmp0 (section->element, "..") == 0) {
+	if (section->kind == XB_SILO_QUERY_KIND_PARENT) {
 		XbSiloNode *parent = xb_silo_node_get_parent (self, helper->root);
 		if (parent == NULL) {
 			g_set_error (error,
