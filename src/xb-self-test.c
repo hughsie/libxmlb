@@ -10,8 +10,100 @@
 
 #include "xb-builder.h"
 #include "xb-builder-node.h"
+#include "xb-predicate.h"
 #include "xb-silo-export.h"
 #include "xb-silo-query.h"
+
+static void
+xb_predicate_func (void)
+{
+	struct {
+		const gchar		*str;
+		XbPredicateKind		 kind;
+		XbPredicateQuirk	 quirk;
+		const gchar		*lhs;
+		const gchar		*rhs;
+	} tests[] = {
+		{ "a=b",
+		  XB_PREDICATE_KIND_EQ,
+		  XB_PREDICATE_QUIRK_NONE,
+		  "a", "b" },
+		{ "@a=b",
+		  XB_PREDICATE_KIND_EQ,
+		  XB_PREDICATE_QUIRK_IS_ATTR,
+		  "@a", "b" },
+		{ "@a==b",
+		  XB_PREDICATE_KIND_EQ,
+		  XB_PREDICATE_QUIRK_IS_ATTR,
+		  "@a", "b" },
+		{ "a<b",
+		  XB_PREDICATE_KIND_LT,
+		  XB_PREDICATE_QUIRK_NONE,
+		  "a", "b" },
+		{ "a>=b",
+		  XB_PREDICATE_KIND_GE,
+		  XB_PREDICATE_QUIRK_NONE,
+		  "a", "b" },
+		{ "@a",
+		  XB_PREDICATE_KIND_EQ,
+		  XB_PREDICATE_QUIRK_IS_ATTR,
+		  "@a", NULL },
+		{ "a=",
+		  XB_PREDICATE_KIND_EQ,
+		  XB_PREDICATE_QUIRK_NONE,
+		  "a", "" },
+		{ "=b",
+		  XB_PREDICATE_KIND_EQ,
+		  XB_PREDICATE_QUIRK_NONE,
+		  "", "b" },
+		{ "a=\'b\'",
+		  XB_PREDICATE_KIND_EQ,
+		  XB_PREDICATE_QUIRK_NONE,
+		  "a", "b" },
+		{ "text()=\'b\'",
+		  XB_PREDICATE_KIND_EQ,
+		  XB_PREDICATE_QUIRK_IS_TEXT,
+		  "text()", "b" },
+		{ "last()",
+		  XB_PREDICATE_KIND_EQ,
+		  XB_PREDICATE_QUIRK_IS_POSITION |
+		  XB_PREDICATE_QUIRK_IS_FN_LAST,
+		  "last()", NULL },
+		/* sentinel */
+		{ NULL,
+		  XB_PREDICATE_KIND_NONE,
+		  XB_PREDICATE_QUIRK_NONE,
+		  NULL, NULL }
+	};
+	const gchar *invalid[] = {
+		"a",
+		"=",
+		NULL
+	};
+	for (guint i = 0; tests[i].str != NULL; i++) {
+		g_autoptr(GError) error = NULL;
+		g_autoptr(XbPredicate) predicate = NULL;
+
+		g_debug ("testing %s", tests[i].str);
+		predicate = xb_predicate_new (tests[i].str, -1, &error);
+		g_assert_no_error (error);
+		g_assert_nonnull (predicate);
+		g_assert_cmpint (predicate->quirk, ==, tests[i].quirk);
+		g_assert_cmpint (predicate->kind, ==, tests[i].kind);
+		g_assert_cmpstr (predicate->lhs, ==, tests[i].lhs);
+		g_assert_cmpstr (predicate->rhs, ==, tests[i].rhs);
+	}
+	for (guint i = 0; invalid[i] != NULL; i++) {
+		g_autoptr(GError) error = NULL;
+		g_autoptr(XbPredicate) predicate = NULL;
+		predicate = xb_predicate_new (invalid[i], -1, &error);
+		g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
+		g_assert_null (predicate);
+	}
+	g_assert_true (xb_predicate_query (XB_PREDICATE_KIND_EQ, 0));
+	g_assert_true (xb_predicate_query (XB_PREDICATE_KIND_NE, 999));
+	g_assert_true (xb_predicate_query (XB_PREDICATE_KIND_LT, -1));
+}
 
 static void
 xb_builder_func (void)
@@ -330,10 +422,17 @@ xb_xpath_func (void)
 	g_clear_error (&error);
 	g_clear_object (&n);
 
-	n = xb_silo_query_first (silo, "components/component/id[dave]", &error);
+	n = xb_silo_query_first (silo, "components/component/id[text()=dave]", &error);
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND);
 	g_assert_null (n);
 	g_clear_error (&error);
+	g_clear_object (&n);
+
+	/* query with attr predicate */
+	n = xb_silo_query_first (silo, "components/component[@type!=firmware]/id", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "gimp.desktop");
 	g_clear_object (&n);
 
 	/* query with attr predicate */
@@ -343,8 +442,36 @@ xb_xpath_func (void)
 	g_assert_cmpstr (xb_node_get_text (n), ==, "org.hughski.ColorHug2.firmware");
 	g_clear_object (&n);
 
+	/* query with attr predicate with quotes */
+	n = xb_silo_query_first (silo, "components/component[@type='firmware']/id", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "org.hughski.ColorHug2.firmware");
+	g_clear_object (&n);
+
+	/* query with position */
+	n = xb_silo_query_first (silo, "components/component[2]/id", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "org.hughski.ColorHug2.firmware");
+	g_clear_object (&n);
+
+	/* last() with position */
+	n = xb_silo_query_first (silo, "components/component[last()]/id", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "org.hughski.ColorHug2.firmware");
+	g_clear_object (&n);
+
+	/* query with attr predicate that exists */
+	n = xb_silo_query_first (silo, "components/component[@type]/id", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "gimp.desktop");
+	g_clear_object (&n);
+
 	/* query with text predicate */
-	n = xb_silo_query_first (silo, "components/header/csum[dead]", &error);
+	n = xb_silo_query_first (silo, "components/header/csum[text()=dead]", &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (n);
 	g_assert_cmpstr (xb_node_get_attr (n, "type"), ==, "sha1");
@@ -352,7 +479,7 @@ xb_xpath_func (void)
 
 	/* query with backtrack */
 	g_debug ("\n%s", xml);
-	n = xb_silo_query_first (silo, "components/component[@type=firmware]/id[org.hughski.ColorHug2.firmware]", &error);
+	n = xb_silo_query_first (silo, "components/component[@type=firmware]/id[text()=org.hughski.ColorHug2.firmware]", &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (n);
 	g_assert_cmpstr (xb_node_get_text (n), ==, "org.hughski.ColorHug2.firmware");
@@ -617,7 +744,7 @@ xb_speed_func (void)
 	g_timer_reset (timer);
 
 	/* query best case */
-	n = xb_silo_query_first (silo, "components/component/id[000000.firmware]", &error);
+	n = xb_silo_query_first (silo, "components/component/id[text()=000000.firmware]", &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (n);
 	g_print ("query[first]: %.3fms\n", g_timer_elapsed (timer, NULL) * 1000);
@@ -625,7 +752,7 @@ xb_speed_func (void)
 	g_clear_object (&n);
 
 	/* query worst case */
-	xpath1 = g_strdup_printf ("components/component/id[%06u.firmware]", n_components - 1);
+	xpath1 = g_strdup_printf ("components/component/id[text()=%06u.firmware]", n_components - 1);
 	n = xb_silo_query_first (silo, xpath1, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (n);
@@ -644,7 +771,7 @@ xb_speed_func (void)
 	/* factorial search */
 	for (guint i = 0; i < n_components; i += 20) {
 		g_autofree gchar *xpath2 = NULL;
-		xpath2 = g_strdup_printf ("components/component/id[%06u.firmware]", i);
+		xpath2 = g_strdup_printf ("components/component/id[text()=%06u.firmware]", i);
 		n = xb_silo_query_first (silo, xpath2, &error);
 		g_assert_no_error (error);
 		g_assert_nonnull (n);
@@ -663,6 +790,7 @@ main (int argc, char **argv)
 	g_setenv ("G_MESSAGES_DEBUG", "all", TRUE);
 
 	/* tests go here */
+	g_test_add_func ("/libxmlb/predicate", xb_predicate_func);
 	g_test_add_func ("/libxmlb/builder", xb_builder_func);
 	g_test_add_func ("/libxmlb/builder{empty}", xb_builder_empty_func);
 	g_test_add_func ("/libxmlb/builder{ensure}", xb_builder_ensure_func);

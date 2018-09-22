@@ -8,47 +8,68 @@
 
 #include "config.h"
 
+#include <string.h>
 #include <gio/gio.h>
 
 #include "xb-node-private.h"
+#include "xb-predicate.h"
 #include "xb-silo-private.h"
 #include "xb-silo-query-private.h"
 
-static gboolean
-xb_silo_query_check_predicate_attr (XbSilo *self,
-				    XbSiloNode *sn,
-				    const gchar *key,
-				    const gchar *val)
-{
-	return g_strcmp0 (xb_silo_node_get_attr (self, sn, key), val) == 0;
-}
+typedef struct {
+	guint		 position;
+} XbSiloQueryLevel;
 
 static gboolean
-xb_silo_query_check_predicate_text (XbSilo *self, XbSiloNode *sn, const gchar *val)
+xb_silo_query_check_predicate (XbSilo *self, XbSiloNode *sn, XbPredicate *predicate, XbSiloQueryLevel *level)
 {
-	return g_strcmp0 (xb_silo_node_get_text (self, sn), val) == 0;
-}
-
-static gboolean
-xb_silo_query_check_predicate (XbSilo *self, XbSiloNode *sn, const gchar *predicate)
-{
-	if (g_str_has_prefix (predicate, "@")) {
-		g_auto(GStrv) split = g_strsplit (predicate + 1, "=", -1);
-		if (g_strv_length (split) != 2) {
-			g_warning ("failed to parse predicate %s", predicate);
-			return FALSE;
+	/* @attr */
+	if (predicate->quirk & XB_PREDICATE_QUIRK_IS_ATTR) {
+		gint rc;
+		if (predicate->rhs == NULL) {
+			rc = xb_silo_node_get_attr (self, sn, predicate->lhs + 1) != 0 ? 0 : 1;
+		} else {
+			rc = g_strcmp0 (xb_silo_node_get_attr (self, sn, predicate->lhs + 1),
+					predicate->rhs);
 		}
-		return xb_silo_query_check_predicate_attr (self, sn, split[0], split[1]);
+		return xb_predicate_query (predicate->kind, rc);
 	}
-	return xb_silo_query_check_predicate_text (self, sn, predicate);
+
+	/* text() */
+	if (predicate->quirk & XB_PREDICATE_QUIRK_IS_TEXT) {
+		gint rc = g_strcmp0 (xb_silo_node_get_text (self, sn), predicate->rhs);
+		return xb_predicate_query (predicate->kind, rc);
+	}
+
+	/* position */
+	if (predicate->quirk & XB_PREDICATE_QUIRK_IS_POSITION) {
+		/* [1] */
+		if (predicate->position > 0) {
+//			g_debug ("for %s, wanted predicate position %u, got %u",
+//				 xb_silo_node_get_element (self, sn),
+//				 predicate->position,
+//				 level->position);
+			return predicate->position == level->position;
+		}
+		/* [last()[ */
+		if (predicate->quirk & XB_PREDICATE_QUIRK_IS_FN_LAST)
+			return sn->next == 0;
+	}
+
+	// FIXME
+	g_warning ("could not handle complex predicate");
+	return FALSE;
 }
 
 static gboolean
-xb_silo_query_check_predicates (XbSilo *self, XbSiloNode *sn, GPtrArray *predicates)
+xb_silo_query_check_predicates (XbSilo *self,
+				XbSiloNode *sn,
+				GPtrArray *predicates,
+				XbSiloQueryLevel *level)
 {
 	for (guint i = 0; i < predicates->len; i++) {
-		const gchar *predicate = g_ptr_array_index (predicates, i);
-		if (!xb_silo_query_check_predicate (self, sn, predicate))
+		XbPredicate *predicate = g_ptr_array_index (predicates, i);
+		if (!xb_silo_query_check_predicate (self, sn, predicate, level))
 			return FALSE;
 	}
 	return TRUE;
@@ -79,6 +100,26 @@ xb_silo_query_section_free (XbSiloQuerySection *section)
 	g_slice_free (XbSiloQuerySection, section);
 }
 
+static gboolean
+xb_silo_query_parse_predicate (XbSiloQuerySection *section,
+			       const gchar *text,
+			       gssize text_len,
+			       GError **error)
+{
+	XbPredicate *predicate;
+
+	/* parse */
+	predicate = xb_predicate_new (text, text_len, error);
+	if (predicate == NULL)
+		return FALSE;
+
+	/* create array if it does not exist */
+	if (section->predicates == NULL)
+		section->predicates = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_predicate_free);
+	g_ptr_array_add (section->predicates, predicate);
+	return TRUE;
+}
+
 static XbSiloQuerySection *
 xb_silo_query_parse_section (XbSilo *self, const gchar *xpath, GError **error)
 {
@@ -86,12 +127,13 @@ xb_silo_query_parse_section (XbSilo *self, const gchar *xpath, GError **error)
 	guint start = 0;
 
 	/* common XPath parts */
-	if (g_strcmp0 (xpath, "parent::") == 0 ||
+	if (g_strcmp0 (xpath, "parent::*") == 0 ||
 	    g_strcmp0 (xpath, "..") == 0) {
 		section->kind = XB_SILO_QUERY_KIND_PARENT;
 		return section;
 	}
-	if (g_strcmp0 (xpath, "*") == 0) {
+	if (g_strcmp0 (xpath, "child::*") == 0 ||
+	    g_strcmp0 (xpath, "*") == 0) {
 		section->kind = XB_SILO_QUERY_KIND_WILDCARD;
 		return section;
 	}
@@ -105,11 +147,13 @@ xb_silo_query_parse_section (XbSilo *self, const gchar *xpath, GError **error)
 			continue;
 		}
 		if (start > 0 && xpath[i] == ']') {
-			if (section->predicates == NULL)
-				section->predicates = g_ptr_array_new_with_free_func (g_free);
-			g_ptr_array_add (section->predicates,
-					 g_strndup (xpath + start + 1,
-						    i - start - 1));
+			if (!xb_silo_query_parse_predicate (section,
+							    xpath + start + 1,
+							    i - start - 1,
+							    error)) {
+				xb_silo_query_section_free (section);
+				return NULL;
+			}
 			start = 0;
 			continue;
 		}
@@ -148,7 +192,10 @@ xb_silo_query_parse_sections (XbSilo *self, const gchar *xpath, GError **error)
 }
 
 static gboolean
-xb_silo_query_node_matches (XbSilo *self, XbSiloNode *sn, XbSiloQuerySection *section)
+xb_silo_query_node_matches (XbSilo *self,
+			    XbSiloNode *sn,
+			    XbSiloQuerySection *section,
+			    XbSiloQueryLevel *level)
 {
 	/* wildcard */
 	if (section->kind == XB_SILO_QUERY_KIND_WILDCARD)
@@ -158,9 +205,16 @@ xb_silo_query_node_matches (XbSilo *self, XbSiloNode *sn, XbSiloQuerySection *se
 	if (section->element_idx != sn->element_name)
 		return FALSE;
 
+	/* for section */
+	level->position += 1;
+
 	/* check predicates */
-	if (section->predicates != NULL)
-		return xb_silo_query_check_predicates (self, sn, section->predicates);
+	if (section->predicates != NULL) {
+		return xb_silo_query_check_predicates (self,
+						       sn,
+						       section->predicates,
+						       level);
+	}
 
 	/* success */
 	return TRUE;
@@ -181,9 +235,16 @@ xb_silo_query_section_add_result (XbSilo *self, XbSiloQueryHelper *helper, XbSil
 }
 
 static gboolean
-xb_silo_query_section_root (XbSilo *self, XbSiloNode *sn, guint i, XbSiloQueryHelper *helper, GError **error)
+xb_silo_query_section_root (XbSilo *self,
+			    XbSiloNode *sn,
+			    guint i,
+			    XbSiloQueryHelper *helper,
+			    GError **error)
 {
 	XbSiloQuerySection *section = g_ptr_array_index (helper->sections, i);
+	XbSiloQueryLevel level = {
+		.position	= 0,
+	};
 
 	/* handle parent */
 	if (section->kind == XB_SILO_QUERY_KIND_PARENT) {
@@ -217,7 +278,7 @@ xb_silo_query_section_root (XbSilo *self, XbSiloNode *sn, guint i, XbSiloQueryHe
 	/* save the parent so we can support ".." */
 	helper->root = sn;
 	do {
-		if (xb_silo_query_node_matches (self, sn, section)) {
+		if (xb_silo_query_node_matches (self, sn, section, &level)) {
 			if (i == helper->sections->len - 1) {
 //				g_debug ("add result %u",
 //					 xb_silo_get_offset_for_node (self, sn));
@@ -289,17 +350,22 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 	g_return_val_if_fail (XB_IS_SILO (self), NULL);
 	g_return_val_if_fail (xpath != NULL, NULL);
 
-	/* invalid */
-	if (xpath[0] == '/') {
-		g_set_error_literal (error,
-				     G_IO_ERROR,
-				     G_IO_ERROR_NOT_SUPPORTED,
-				     "XPath root query not supported");
-		return NULL;
-	}
-
 	/* subtree query */
-	sn = n != NULL ? xb_node_get_sn (n) :xb_silo_get_sroot (self);
+	if (n != NULL) {
+		sn = xb_node_get_sn (n);
+		if (xpath[0] == '/') {
+			g_set_error_literal (error,
+					     G_IO_ERROR,
+					     G_IO_ERROR_NOT_SUPPORTED,
+					     "XPath node query not supported");
+			return NULL;
+		}
+	} else {
+		sn = xb_silo_get_sroot (self);
+		/* assume it's just a root query */
+		if (xpath[0] == '/')
+			xpath++;
+	}
 
 	/* no root */
 	if (sn == NULL) {

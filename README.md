@@ -25,13 +25,6 @@ on-disk size. If you want to compress your XML, this library probably isn't for
 you -- just use gzip -- its gives you an almost a perfect compression ratio for
 data like this.
 
-XPath
------
-
-This library only implements a tiny subset of XPath. See the examples for the
-full list, but it's basically restricted to element_name, attributes and text.
-Additionally, the only thing that the query can return are nodes.
-
 For example:
 
     $ xb-tool compile fedora.xmlb fedora.xml.gz
@@ -40,15 +33,73 @@ For example:
     12M         fedora.xmlb
     3.6M        fedora.xml.gz
 
-    $ xb-tool query fedora.xmlb "components/component[@type=desktop]/id[firefox.desktop]"
+    $ xb-tool query fedora.xmlb "components/component[@type=desktop]/id[text()=firefox.desktop]"
     RESULT: firefox.desktop
     real        0m0.011s
     user        0m0.010s
     sys         0m0.001s
 
-TODO
-----
+XPath
+=====
 
-* Supporting more of the XPath specification
+This library only implements a tiny subset of XPath. See the examples for the
+full list, but it's basically restricted to element_name, attributes and text.
+
+We will use the following XML document in the examples below.
+
+    <?xml version="1.0" encoding="UTF-8"?>
+    <bookstore>
+      <book>
+        <title lang="en">Harry Potter</title>
+        <price>29.99</price>
+      </book>
+      <book>
+        <title lang="en">Learning XML</title>
+        <price>39.95</price>
+      </book>
+    </bookstore>
+
+Selecting Nodes
+---------------
+
+XPath uses path expressions to select nodes in an XML document. The only thing
+that libxmlb can return are nodes.
+
+| Example | Description | Supported |
+| --- | --- | --- |
+| `/bookstore` | Returns the root bookstore element | ✔ |
+| `/bookstore/book` | Returns all `book` elements | ✔ |
+| `//book` | Returns books no matter where they are | ✖ |
+| `bookstore//book` | Returns books that are descendant of `bookstore` | ✖ |
+| `@lang` | Returns attributes that are named `lang` | ✖ |
+| `/bookstore/.` | Returns the `bookstore` node | ✖ |
+| `/bookstore/book/*` | Returns all `title` and `price` nodes of each `book` node | ✔ |
+| `/bookstore/book/child::*` | Returns all `title` and `price` nodes of each `book` node | ✔ |
+| `/bookstore/book/title/..` | Returns the `book` nodes with a title | ✔ |
+| `/bookstore/book/parent::*` | Returns `bookstore`, the parent of `book` | ✔ |
+| `/bookstore/book/parent::bookstore` | Returns the parent `bookstore` of `book` | ✖ |
+
+Predicates
+----------
+
+Predicates are used to find a specific node or a node that contains a specific
+value. Predicates are always embedded in square brackets.
+
+| Example | Description | Supported |
+| --- | --- | --- |
+| `/bookstore/book[1]` | Returns the first book element | ✔ |
+| `/bookstore/book[last()]` | Returns the last book element | ✔ |
+| `/bookstore/book[last()-1]` | Returns the last but one book element | ✖ |
+| `/bookstore/book[position()<3]` | Returns the first two books | ✖ |
+| `/bookstore/book/title[@lang]` | Returns titles with an attribute named `lang` | ✔ |
+| `/bookstore/book/title[@lang='en']` | Returns titles that have a `lang`equal `en` | ✔ |
+| `/bookstore/book/title[@lang!='en']` | Returns titles that have a `lang` not equal `en` | ✔ |
+| `/bookstore/book/title[@lang<='zz_ZZ']` | Returns titles that `lang` <= `zz_ZZ` | ✔ |
+| `/bookstore/book[price>35.00]` | Returns the books with a price greater than 35 | ✖ |
+| `/bookstore/book[price>35.00]/title` | Returns the titles that have a price greater than 35 | ✖ |
+| `/bookstore/book/title[text()='Learning XML']` | Returns the book node with matching content | ✔ |
+
+TODO
+====
 
 * Only store the best language -- not any found in langs
