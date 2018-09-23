@@ -232,7 +232,7 @@ xb_tool_export (XbToolPrivate *priv, gchar **values, GError **error)
 static gboolean
 xb_tool_query (XbToolPrivate *priv, gchar **values, GError **error)
 {
-	guint limit = 1;
+	guint limit = 0;
 	g_autoptr(GFile) file = NULL;
 	g_autoptr(GPtrArray) results = NULL;
 	g_autoptr(XbSilo) silo = xb_silo_new ();
