@@ -561,10 +561,24 @@ xb_xpath_parent_func (void)
 	g_assert_cmpstr (xb_node_get_element (n), ==, "components");
 	g_clear_object (&n);
 
+	/* descend, ascend, descend */
+	n = xb_silo_query_first (silo, "components/component[@type=firmware]/id/../id", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_element (n), ==, "id");
+	g_clear_object (&n);
+
 	/* get node, too many parents */
 	n = xb_silo_query_first (silo, "components/component[@type=firmware]/id/../../..", &error);
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT);
 	g_assert_null (n);
+	g_clear_error (&error);
+
+	/* can't go lower than root */
+	n = xb_silo_query_first (silo, "..", &error);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT);
+	g_assert_null (n);
+	g_clear_error (&error);
 }
 
 static void

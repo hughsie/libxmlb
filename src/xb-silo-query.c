@@ -223,7 +223,6 @@ xb_silo_query_node_matches (XbSilo *self,
 typedef struct {
 	GPtrArray	*sections;
 	GPtrArray	*results;
-	XbSiloNode	*root;
 	guint		 limit;
 } XbSiloQueryHelper;
 
@@ -234,9 +233,13 @@ xb_silo_query_section_add_result (XbSilo *self, XbSiloQueryHelper *helper, XbSil
 	return helper->results->len == helper->limit;
 }
 
+/*
+ * @parent: (allow-none)
+ */
 static gboolean
 xb_silo_query_section_root (XbSilo *self,
 			    XbSiloNode *sn,
+			    XbSiloNode *parent,
 			    guint i,
 			    XbSiloQueryHelper *helper,
 			    GError **error)
@@ -248,21 +251,31 @@ xb_silo_query_section_root (XbSilo *self,
 
 	/* handle parent */
 	if (section->kind == XB_SILO_QUERY_KIND_PARENT) {
-		XbSiloNode *parent = xb_silo_node_get_parent (self, helper->root);
+		XbSiloNode *grandparent;
 		if (parent == NULL) {
 			g_set_error (error,
 				     G_IO_ERROR,
 				     G_IO_ERROR_INVALID_ARGUMENT,
-				     "no parent for %s",
+				     "no parent set for %s",
 				     xb_silo_node_get_element (self, sn));
 			return FALSE;
 		}
+		grandparent = xb_silo_node_get_parent (self, parent);
 		if (i == helper->sections->len - 1) {
-			xb_silo_query_section_add_result (self, helper, parent);
+			if (grandparent == NULL) {
+				g_set_error (error,
+					     G_IO_ERROR,
+					     G_IO_ERROR_INVALID_ARGUMENT,
+					     "no parent for %s",
+					     xb_silo_node_get_element (self, sn));
+				return FALSE;
+			}
+			xb_silo_query_section_add_result (self, helper, grandparent);
 			return TRUE;
 		}
-		helper->root = parent;
-		return xb_silo_query_section_root (self, parent, i + 1, helper, error);
+//		g_debug ("PARENT @%u",
+//			 xb_silo_get_offset_for_node (self, parent));
+		return xb_silo_query_section_root (self, parent, grandparent, i + 1, helper, error);
 	}
 
 	/* no child to process */
@@ -276,7 +289,6 @@ xb_silo_query_section_root (XbSilo *self,
 	}
 
 	/* save the parent so we can support ".." */
-	helper->root = sn;
 	do {
 		if (xb_silo_query_node_matches (self, sn, section, &level)) {
 			if (i == helper->sections->len - 1) {
@@ -288,7 +300,7 @@ xb_silo_query_section_root (XbSilo *self,
 				XbSiloNode *c = xb_silo_node_get_child (self, sn);
 //				g_debug ("MATCH @%u, deeper",
 //					 xb_silo_get_offset_for_node (self, sn));
-				if (!xb_silo_query_section_root (self, c, i + 1, helper, error))
+				if (!xb_silo_query_section_root (self, c, sn, i + 1, helper, error))
 					return FALSE;
 				if (helper->results->len > 0 &&
 				    helper->results->len == helper->limit)
@@ -321,7 +333,7 @@ xb_silo_query_part (XbSilo *self,
 
 	/* find each section */
 	helper.sections = sections;
-	return xb_silo_query_section_root (self, sroot, 0, &helper, error);
+	return xb_silo_query_section_root (self, sroot, NULL, 0, &helper, error);
 }
 
 /**
