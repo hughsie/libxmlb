@@ -9,6 +9,8 @@
 
 #include <gio/gio.h>
 
+#include "xb-builder-node.h"
+
 G_BEGIN_DECLS
 
 #define XB_TYPE_BUILDER_IMPORT (xb_builder_import_get_type ())
@@ -16,11 +18,12 @@ G_BEGIN_DECLS
 G_DECLARE_FINAL_TYPE (XbBuilderImport, xb_builder_import, XB, BUILDER_IMPORT, GObject)
 
 XbBuilderImport	*xb_builder_import_new_file	(GFile			*file,
+						 XbBuilderNode		*info,
 						 GCancellable		*cancellable,
 						 GError			**error);
 XbBuilderImport	*xb_builder_import_new_xml	(const gchar		*xml,
 						 GError			**error);
-const gchar	*xb_builder_import_get_key	(XbBuilderImport	*self);
+XbBuilderNode	*xb_builder_import_get_info	(XbBuilderImport	*self);
 const gchar	*xb_builder_import_get_guid	(XbBuilderImport	*self);
 GInputStream	*xb_builder_import_get_istream	(XbBuilderImport	*self);
 

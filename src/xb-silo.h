@@ -24,8 +24,8 @@ G_DECLARE_FINAL_TYPE (XbSilo, xb_silo, XB, SILO, GObject)
  * The flags for loading a silo.
  **/
 typedef enum {
-	XB_SILO_LOAD_FLAG_NONE		= 0,
-	XB_SILO_LOAD_FLAG_NO_MAGIC	= 1 << 0,
+	XB_SILO_LOAD_FLAG_NONE		= 0,			/* Since: 0.1.0 */
+	XB_SILO_LOAD_FLAG_NO_MAGIC	= 1 << 0,		/* Since: 0.1.0 */
 	/*< private >*/
 	XB_SILO_LOAD_FLAG_LAST
 } XbSiloLoadFlags;

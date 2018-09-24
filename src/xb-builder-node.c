@@ -389,10 +389,10 @@ xb_builder_node_insert (XbBuilderNode *parent, const gchar *element, ...)
  * xb_builder_node_insert_text: (skip)
  * @parent: A XbBuilderNode, or %NULL
  * @element: An element name, e.g. "id"
- * @text: node text, e.g. "gimp.desktop"
+ * @text: (allow-none): node text, e.g. "gimp.desktop"
  * @...: any attributes to add to the node, terminated by %NULL
  *
- * Creates a new builder node with node text.
+ * Creates a new builder node with optional node text.
  *
  * Since: 0.1.0
  **/
@@ -408,11 +408,11 @@ xb_builder_node_insert_text (XbBuilderNode *parent,
 	const gchar *value;
 
 	g_return_if_fail (parent != NULL);
-	g_return_if_fail (text != NULL);
 
 	/* add this node to the parent */
 	xb_builder_node_add_child (parent, self);
-	xb_builder_node_set_text (self, text, -1);
+	if (text != NULL)
+		xb_builder_node_set_text (self, text, -1);
 
 	/* process the attrs valist */
 	va_start (args, text);

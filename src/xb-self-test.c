@@ -696,6 +696,65 @@ xb_builder_node_func (void)
 }
 
 static void
+xb_builder_node_info_func (void)
+{
+	const gchar *fn = "/tmp/xb-self-test.xml";
+	gboolean ret;
+	g_autofree gchar *xml = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbNode) n = NULL;
+	g_autoptr(XbBuilderNode) info1 = NULL;
+	g_autoptr(XbBuilderNode) info2 = NULL;
+	g_autoptr(XbSilo) silo = NULL;
+	g_autoptr(GFile) file = NULL;
+
+	/* create a simple document with some info */
+	ret = g_file_set_contents (fn, "<component><id type=\"desktop\">dave</id></component>", -1, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	info1 = xb_builder_node_insert (NULL, "info", NULL);
+	xb_builder_node_insert_text (info1, "scope", "user", NULL);
+	info2 = xb_builder_node_insert (NULL, "info", NULL);
+	xb_builder_node_insert_text (info2, "scope", "system", NULL);
+
+	/* import the doc */
+	file = g_file_new_for_path (fn);
+	ret = xb_builder_import_file (builder, file, info1, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	ret = xb_builder_import_file (builder, file, info2, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* get info */
+	n = xb_silo_query_first (silo, "component/id[text()='dave'/../info/scope", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "user");
+
+	/* check the XML */
+	xml = xb_silo_export (silo, XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (xml);
+	g_assert_cmpstr ("<component>"
+			 "<id type=\"desktop\">dave</id>"
+			 "<info>"
+			 "<scope>user</scope>"
+			 "</info>"
+			 "</component>"
+			 "<component>"
+			 "<id type=\"desktop\">dave</id>"
+			 "<info>"
+			 "<scope>system</scope>"
+			 "</info>"
+			 "</component>", ==, xml);
+}
+
+static void
 xb_speed_func (void)
 {
 	XbNode *n;
@@ -811,6 +870,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/builder{empty}", xb_builder_empty_func);
 	g_test_add_func ("/libxmlb/builder{ensure}", xb_builder_ensure_func);
 	g_test_add_func ("/libxmlb/builder-node", xb_builder_node_func);
+	g_test_add_func ("/libxmlb/builder-node{info}", xb_builder_node_info_func);
 	g_test_add_func ("/libxmlb/xpath", xb_xpath_func);
 	g_test_add_func ("/libxmlb/xpath{helpers}", xb_xpath_helpers_func);
 	g_test_add_func ("/libxmlb/xpath-parent", xb_xpath_parent_func);

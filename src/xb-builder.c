@@ -34,7 +34,7 @@ typedef struct {
 	XbBuilderCompileFlags	 flags;
 	GHashTable		*strtab_hash;
 	GString			*strtab;
-	const gchar		*import_key;
+	XbBuilderNode		*info;
 	const gchar * const	*locales;
 } XbBuilderCompileHelper;
 
@@ -56,6 +56,17 @@ xb_builder_compile_add_to_strtab (XbBuilderCompileHelper *helper, const gchar *s
 }
 
 static void
+xb_builder_compile_node_tree (GNode *parent, XbBuilderNode *bn)
+{
+	GNode *n = g_node_append_data (parent, g_object_ref (bn));
+	GPtrArray *children = xb_builder_node_get_children (bn);
+	for (guint i = 0; i < children->len; i++) {
+		XbBuilderNode *bn2 = g_ptr_array_index (children, i);
+		xb_builder_compile_node_tree (n, bn2);
+	}
+}
+
+static void
 xb_builder_compile_start_element_cb (GMarkupParseContext *context,
 				     const gchar         *element_name,
 				     const gchar        **attr_names,
@@ -66,14 +77,6 @@ xb_builder_compile_start_element_cb (GMarkupParseContext *context,
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *) user_data;
 	XbBuilderNode *bn = xb_builder_node_new (element_name);
 	XbBuilderNode *parent = helper->current->data;
-
-	/* add importkey to root element to allow querying later */
-	if ((helper->flags & XB_BUILDER_COMPILE_FLAG_ADD_IMPORT_KEY) > 0 &&
-	    helper->current == helper->root &&
-	    helper->import_key != NULL) {
-		xb_builder_node_add_attribute (bn, "XMLb::ImportKey",
-					       helper->import_key);
-	}
 
 	/* parent node is being ignored */
 	if (parent != NULL &&
@@ -107,6 +110,13 @@ xb_builder_compile_end_element_cb (GMarkupParseContext *context,
 				  GError             **error)
 {
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *) user_data;
+
+	/* add info to root element to allow querying later */
+	if (helper->current->parent == helper->root && helper->info != NULL) {
+		g_debug ("adding info to root node");
+		xb_builder_compile_node_tree (helper->current, helper->info);
+	}
+
 	helper->current = helper->current->parent;
 }
 
@@ -178,8 +188,9 @@ xb_builder_import_xml (XbBuilder *self, const gchar *xml, GError **error)
  * xb_builder_import_dir:
  * @self: a #XbSilo
  * @path: a directory path
- * @error: the #GError, or %NULL
+ * @info: (allow-none): a #XbBuilderNode
  * @cancellable: a #GCancellable, or %NULL
+ * @error: the #GError, or %NULL
  *
  * Parses a directory, parsing any .xml or xml.gz paths into a #XbSilo.
  *
@@ -190,6 +201,7 @@ xb_builder_import_xml (XbBuilder *self, const gchar *xml, GError **error)
 gboolean
 xb_builder_import_dir (XbBuilder *self,
 		       const gchar *path,
+		       XbBuilderNode *info,
 		       GCancellable *cancellable,
 		       GError **error)
 {
@@ -202,7 +214,7 @@ xb_builder_import_dir (XbBuilder *self,
 		    g_str_has_suffix (fn, ".xml.gz")) {
 			g_autofree gchar *filename = g_build_filename (path, fn, NULL);
 			g_autoptr(GFile) file = g_file_new_for_path (filename);
-			if (!xb_builder_import_file (self, file, cancellable, error))
+			if (!xb_builder_import_file (self, file, info, cancellable, error))
 				return FALSE;
 		}
 	}
@@ -213,8 +225,9 @@ xb_builder_import_dir (XbBuilder *self,
  * xb_builder_import_file:
  * @self: a #XbSilo
  * @file: a #GFile
- * @error: the #GError, or %NULL
+ * @info: (allow-none): a #XbBuilderNode
  * @cancellable: a #GCancellable, or %NULL
+ * @error: the #GError, or %NULL
  *
  * Adds an optionally compressed XML file to build a #XbSilo.
  *
@@ -223,7 +236,11 @@ xb_builder_import_dir (XbBuilder *self,
  * Since: 0.1.0
  **/
 gboolean
-xb_builder_import_file (XbBuilder *self, GFile *file, GCancellable *cancellable, GError **error)
+xb_builder_import_file (XbBuilder *self,
+			GFile *file,
+			XbBuilderNode *info,
+			GCancellable *cancellable,
+			GError **error)
 {
 	XbBuilderImport *import;
 
@@ -231,7 +248,7 @@ xb_builder_import_file (XbBuilder *self, GFile *file, GCancellable *cancellable,
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
 	/* add import */
-	import = xb_builder_import_new_file (file, cancellable, error);
+	import = xb_builder_import_new_file (file, info, cancellable, error);
 	if (import == NULL)
 		return FALSE;
 
@@ -259,7 +276,7 @@ xb_builder_compile_import (XbBuilderCompileHelper *helper,
 		NULL, NULL };
 
 	/* this is something we can query with later */
-	helper->import_key = xb_builder_import_get_key (import);
+	helper->info = xb_builder_import_get_info (import);
 
 	/* parse */
 	ctx = g_markup_parse_context_new (&parser, G_MARKUP_PREFIX_ERROR_POSITION, helper, NULL);
@@ -565,17 +582,6 @@ xb_builder_import_node (XbBuilder *self, XbBuilderNode *bn)
 	g_return_if_fail (XB_IS_BUILDER (self));
 	g_return_if_fail (XB_IS_BUILDER_NODE (bn));
 	g_ptr_array_add (self->nodes, g_object_ref (bn));
-}
-
-static void
-xb_builder_compile_node_tree (GNode *parent, XbBuilderNode *bn)
-{
-	GNode *n = g_node_append_data (parent, g_object_ref (bn));
-	GPtrArray *children = xb_builder_node_get_children (bn);
-	for (guint i = 0; i < children->len; i++) {
-		XbBuilderNode *bn2 = g_ptr_array_index (children, i);
-		xb_builder_compile_node_tree (n, bn2);
-	}
 }
 
 /**

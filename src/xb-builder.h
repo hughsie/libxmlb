@@ -24,16 +24,14 @@ G_DECLARE_FINAL_TYPE (XbBuilder, xb_builder, XB, BUILDER, GObject)
  * @XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT:	Do not attempt to repair XML whitespace
  * @XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS:	Only load native languages
  * @XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID:	Ignore invalid files without an error
- * @XB_BUILDER_COMPILE_FLAG_ADD_IMPORT_KEY:	Add an import key to the silo
  *
  * The flags for converting to XML.
  **/
 typedef enum {
-	XB_BUILDER_COMPILE_FLAG_NONE		= 0,
-	XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT	= 1 << 0,
-	XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS	= 1 << 1,
-	XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID	= 1 << 2,
-	XB_BUILDER_COMPILE_FLAG_ADD_IMPORT_KEY	= 1 << 3,
+	XB_BUILDER_COMPILE_FLAG_NONE		= 0,		/* Since: 0.1.0 */
+	XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT	= 1 << 0,	/* Since: 0.1.0 */
+	XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS	= 1 << 1,	/* Since: 0.1.0 */
+	XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID	= 1 << 2,	/* Since: 0.1.0 */
 	/*< private >*/
 	XB_BUILDER_COMPILE_FLAG_LAST
 } XbBuilderCompileFlags;
@@ -48,10 +46,12 @@ gboolean	 xb_builder_import_xml		(XbBuilder		*self,
 						 GError			**error);
 gboolean	 xb_builder_import_dir		(XbBuilder		*self,
 						 const gchar		*path,
+						 XbBuilderNode		*info,
 						 GCancellable		*cancellable,
 						 GError			**error);
 gboolean	 xb_builder_import_file		(XbBuilder		*self,
 						 GFile			*file,
+						 XbBuilderNode		*info,
 						 GCancellable		*cancellable,
 						 GError			**error);
 XbSilo		*xb_builder_compile		(XbBuilder		*self,

@@ -16,19 +16,23 @@
 struct _XbBuilderImport {
 	GObject			 parent_instance;
 	GInputStream		*istream;
+	XbBuilderNode		*info;
 	gchar			*guid;
-	gchar			*key;
 };
 
 G_DEFINE_TYPE (XbBuilderImport, xb_builder_import, G_TYPE_OBJECT)
 
 XbBuilderImport *
-xb_builder_import_new_file (GFile *file, GCancellable *cancellable, GError **error)
+xb_builder_import_new_file (GFile *file,
+			    XbBuilderNode *info,
+			    GCancellable *cancellable,
+			    GError **error)
 {
 	const gchar *content_type = NULL;
 	guint64 mtime;
+	g_autofree gchar *fn = NULL;
 	g_autoptr(GConverter) conv = NULL;
-	g_autoptr(GFileInfo) info = NULL;
+	g_autoptr(GFileInfo) fileinfo = NULL;
 	g_autoptr(GInputStream) istream = NULL;
 	g_autoptr(XbBuilderImport) self = g_object_new (XB_TYPE_BUILDER_IMPORT, NULL);
 
@@ -38,22 +42,26 @@ xb_builder_import_new_file (GFile *file, GCancellable *cancellable, GError **err
 		return FALSE;
 
 	/* what kind of file is this */
-	info = g_file_query_info (file,
-				  G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE ","
-				  G_FILE_ATTRIBUTE_TIME_MODIFIED,
-				  G_FILE_QUERY_INFO_NONE,
-				  cancellable,
-				  error);
-	if (info == NULL)
+	fileinfo = g_file_query_info (file,
+				      G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE ","
+				      G_FILE_ATTRIBUTE_TIME_MODIFIED,
+				      G_FILE_QUERY_INFO_NONE,
+				      cancellable,
+				      error);
+	if (fileinfo == NULL)
 		return FALSE;
 
+	/* store info */
+	if (info != NULL)
+		self->info = g_object_ref (info);
+
 	/* add data to GUID */
-	self->key = g_file_get_path (file);
-	mtime = g_file_info_get_attribute_uint64 (info, G_FILE_ATTRIBUTE_TIME_MODIFIED);
-	self->guid = g_strdup_printf ("%s:%" G_GUINT64_FORMAT, self->key, mtime);
+	fn = g_file_get_path (file);
+	mtime = g_file_info_get_attribute_uint64 (fileinfo, G_FILE_ATTRIBUTE_TIME_MODIFIED);
+	self->guid = g_strdup_printf ("%s:%" G_GUINT64_FORMAT, fn, mtime);
 
 	/* decompress if required */
-	content_type = g_file_info_get_attribute_string (info, G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE);
+	content_type = g_file_info_get_attribute_string (fileinfo, G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE);
 	if (g_strcmp0 (content_type, "application/gzip") == 0 ||
 	    g_strcmp0 (content_type, "application/x-gzip") == 0) {
 		conv = G_CONVERTER (g_zlib_decompressor_new (G_ZLIB_COMPRESSOR_FORMAT_GZIP));
@@ -101,11 +109,11 @@ xb_builder_import_get_guid (XbBuilderImport *self)
 	return self->guid;
 }
 
-const gchar *
-xb_builder_import_get_key (XbBuilderImport *self)
+XbBuilderNode *
+xb_builder_import_get_info (XbBuilderImport *self)
 {
 	g_return_val_if_fail (XB_IS_BUILDER_IMPORT (self), NULL);
-	return self->key;
+	return self->info;
 }
 
 GInputStream *
@@ -122,8 +130,9 @@ xb_builder_import_finalize (GObject *obj)
 
 	if (self->istream != NULL)
 		g_object_unref (self->istream);
+	if (self->info != NULL)
+		g_object_unref (self->info);
 	g_free (self->guid);
-	g_free (self->key);
 
 	G_OBJECT_CLASS (xb_builder_import_parent_class)->finalize (obj);
 }

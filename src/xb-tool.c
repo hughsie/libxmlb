@@ -297,7 +297,7 @@ xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 	/* load file */
 	for (guint i = 1; values[i] != NULL; i++) {
 		g_autoptr(GFile) file = g_file_new_for_path (values[i]);
-		if (!xb_builder_import_file (builder, file, NULL, error))
+		if (!xb_builder_import_file (builder, file, NULL, NULL, error))
 			return FALSE;
 	}
 	file_dst = g_file_new_for_path (values[0]);
