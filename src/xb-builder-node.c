@@ -362,8 +362,8 @@ xb_builder_node_insert (XbBuilderNode *parent, const gchar *element, ...)
 {
 	XbBuilderNode *self = xb_builder_node_new (element);
 	va_list args;
-		const gchar *key;
-		const gchar *value;
+	const gchar *key;
+	const gchar *value;
 
 	/* add this node to the parent */
 	if (parent != NULL)
@@ -383,4 +383,47 @@ xb_builder_node_insert (XbBuilderNode *parent, const gchar *element, ...)
 	va_end (args);
 
 	return self;
+}
+
+/**
+ * xb_builder_node_insert_text: (skip)
+ * @parent: A XbBuilderNode, or %NULL
+ * @element: An element name, e.g. "id"
+ * @text: node text, e.g. "gimp.desktop"
+ * @...: any attributes to add to the node, terminated by %NULL
+ *
+ * Creates a new builder node with node text.
+ *
+ * Since: 0.1.0
+ **/
+void
+xb_builder_node_insert_text (XbBuilderNode *parent,
+			     const gchar *element,
+			     const gchar *text,
+			     ...)
+{
+	g_autoptr(XbBuilderNode) self = xb_builder_node_new (element);
+	va_list args;
+	const gchar *key;
+	const gchar *value;
+
+	g_return_if_fail (parent != NULL);
+	g_return_if_fail (text != NULL);
+
+	/* add this node to the parent */
+	xb_builder_node_add_child (parent, self);
+	xb_builder_node_set_text (self, text, -1);
+
+	/* process the attrs valist */
+	va_start (args, text);
+	for (guint i = 0;; i++) {
+		key = va_arg (args, const gchar *);
+		if (key == NULL)
+			break;
+		value = va_arg (args, const gchar *);
+		if (value == NULL)
+			break;
+		xb_builder_node_add_attribute (self, key, value);
+	}
+	va_end (args);
 }

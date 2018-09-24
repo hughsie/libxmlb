@@ -674,6 +674,7 @@ xb_builder_node_func (void)
 	id = xb_builder_node_new ("id");
 	xb_builder_node_add_child (component, id);
 	xb_builder_node_set_text (id, "gimp.desktop", -1);
+	xb_builder_node_insert_text (component, "icon", "dave", "type", "stock", NULL);
 
 	/* import the doc */
 	xb_builder_import_node (builder, components);
@@ -689,6 +690,7 @@ xb_builder_node_func (void)
 	g_assert_cmpstr ("<components origin=\"lvfs\">"
 			 "<component type=\"desktop\">"
 			 "<id>gimp.desktop</id>"
+			 "<icon type=\"stock\">dave</icon>"
 			 "</component>"
 			 "</components>", ==, xml);
 }

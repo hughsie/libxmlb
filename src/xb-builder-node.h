@@ -34,6 +34,10 @@ XbBuilderNode	*xb_builder_node_new		(const gchar		*element);
 XbBuilderNode	*xb_builder_node_insert		(XbBuilderNode		*parent,
 						 const gchar		*element,
 						 ...) G_GNUC_NULL_TERMINATED;
+void		 xb_builder_node_insert_text	(XbBuilderNode		*parent,
+						 const gchar		*element,
+						 const gchar		*text,
+						 ...) G_GNUC_NULL_TERMINATED;
 
 gboolean	 xb_builder_node_has_flag	(XbBuilderNode		*self,
 						 XbBuilderNodeFlags	 flag);
