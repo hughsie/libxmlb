@@ -732,7 +732,6 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 	g_autoptr(XbSilo) silo_tmp = xb_silo_new ();
 	g_autoptr(XbSilo) silo_new = NULL;
 	g_autoptr(GError) error_local = NULL;
-	g_autoptr(GFile) file_parent = NULL;
 
 	g_return_val_if_fail (XB_IS_BUILDER (self), NULL);
 	g_return_val_if_fail (G_IS_FILE (file), NULL);
@@ -767,16 +766,6 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 				return NULL;
 			return g_object_ref (self->silo);
 		}
-	}
-
-	/* ensure parent directories exist */
-	file_parent = g_file_get_parent (file);
-	if (file_parent != NULL &&
-	    !g_file_query_exists (file_parent, cancellable)) {
-		if (!g_file_make_directory_with_parents (file_parent,
-							 cancellable,
-							 error))
-			return NULL;
 	}
 
 	/* fallback to just creating a new file */

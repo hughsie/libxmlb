@@ -485,6 +485,8 @@ xb_silo_save_to_file (XbSilo *self,
 		      GCancellable *cancellable,
 		      GError **error)
 {
+	g_autoptr(GFile) file_parent = NULL;
+
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
@@ -495,6 +497,16 @@ xb_silo_save_to_file (XbSilo *self,
 				     G_IO_ERROR_NOT_INITIALIZED,
 				     "no data to save");
 		return FALSE;
+	}
+
+	/* ensure parent directories exist */
+	file_parent = g_file_get_parent (file);
+	if (file_parent != NULL &&
+	    !g_file_query_exists (file_parent, cancellable)) {
+		if (!g_file_make_directory_with_parents (file_parent,
+							 cancellable,
+							 error))
+			return FALSE;
 	}
 
 	/* save and then rename */
