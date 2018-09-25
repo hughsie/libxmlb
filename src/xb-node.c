@@ -222,6 +222,31 @@ xb_node_get_text (XbNode *self)
 }
 
 /**
+ * xb_node_get_text_as_uint:
+ * @self: a #XbNode
+ *
+ * Gets some attribute text data for a specific node.
+ *
+ * Returns: a guint64, or %G_MAXUINT64 if unfound
+ *
+ * Since: 0.1.0
+ **/
+guint64
+xb_node_get_text_as_uint (XbNode *self)
+{
+	const gchar *tmp;
+
+	g_return_val_if_fail (XB_IS_NODE (self), G_MAXUINT64);
+
+	tmp = xb_silo_node_get_text (self->silo, self->sn);;
+	if (tmp == NULL)
+		return G_MAXUINT64;
+	if (g_str_has_prefix (tmp, "0x"))
+		return g_ascii_strtoull (tmp + 2, NULL, 16);
+	return g_ascii_strtoull (tmp, NULL, 10);
+}
+
+/**
  * xb_node_get_element:
  * @self: a #XbNode
  *
@@ -243,7 +268,7 @@ xb_node_get_element (XbNode *self)
  * @self: a #XbNode
  * @name: an attribute name, e.g. "type"
  *
- * Gets some attaribute text data for a specific node.
+ * Gets some attribute text data for a specific node.
  *
  * Returns: a string, or %NULL for unset
  *
@@ -255,6 +280,33 @@ xb_node_get_attr (XbNode *self, const gchar *name)
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (name != NULL, NULL);
 	return xb_silo_node_get_attr (self->silo, self->sn, name);
+}
+
+/**
+ * xb_node_get_attr_as_uint:
+ * @self: a #XbNode
+ * @name: an attribute name, e.g. `type`
+ *
+ * Gets some attribute text data for a specific node.
+ *
+ * Returns: a guint64, or %G_MAXUINT64 if unfound
+ *
+ * Since: 0.1.0
+ **/
+guint64
+xb_node_get_attr_as_uint (XbNode *self, const gchar *name)
+{
+	const gchar *tmp;
+
+	g_return_val_if_fail (XB_IS_NODE (self), G_MAXUINT64);
+	g_return_val_if_fail (name != NULL, G_MAXUINT64);
+
+	tmp = xb_silo_node_get_attr (self->silo, self->sn, name);
+	if (tmp == NULL)
+		return G_MAXUINT64;
+	if (g_str_has_prefix (tmp, "0x"))
+		return g_ascii_strtoull (tmp + 2, NULL, 16);
+	return g_ascii_strtoull (tmp, NULL, 10);
 }
 
 /**
@@ -466,7 +518,6 @@ xb_node_query_export (XbNode *self, const gchar *xpath, GError **error)
 guint64
 xb_node_query_text_as_uint (XbNode *self, const gchar *xpath, GError **error)
 {
-	const gchar *tmp;
 	g_autoptr(XbNode) n = NULL;
 
 	g_return_val_if_fail (XB_IS_NODE (self), G_MAXUINT64);
@@ -475,17 +526,7 @@ xb_node_query_text_as_uint (XbNode *self, const gchar *xpath, GError **error)
 	n = xb_node_query_first (self, xpath, error);
 	if (n == NULL)
 		return G_MAXUINT64;
-	tmp = xb_node_get_text (n);
-	if (tmp == NULL) {
-		g_set_error_literal (error,
-				     G_IO_ERROR,
-				     G_IO_ERROR_NOT_FOUND,
-				     "no text data");
-		return G_MAXUINT64;
-	}
-	if (g_str_has_prefix (tmp, "0x"))
-		return g_ascii_strtoull (tmp + 2, NULL, 16);
-	return g_ascii_strtoull (tmp, NULL, 10);
+	return xb_node_get_text_as_uint (n);
 }
 
 /**
@@ -506,7 +547,6 @@ xb_node_query_text_as_uint (XbNode *self, const gchar *xpath, GError **error)
 guint64
 xb_node_query_attr_as_uint (XbNode *self, const gchar *xpath, const gchar *name, GError **error)
 {
-	const gchar *tmp;
 	g_autoptr(XbNode) n = NULL;
 
 	g_return_val_if_fail (XB_IS_NODE (self), G_MAXUINT64);
@@ -515,17 +555,7 @@ xb_node_query_attr_as_uint (XbNode *self, const gchar *xpath, const gchar *name,
 	n = xb_node_query_first (self, xpath, error);
 	if (n == NULL)
 		return G_MAXUINT64;
-	tmp = xb_node_get_attr (n, name);
-	if (tmp == NULL) {
-		g_set_error_literal (error,
-				     G_IO_ERROR,
-				     G_IO_ERROR_NOT_FOUND,
-				     "no text data");
-		return G_MAXUINT64;
-	}
-	if (g_str_has_prefix (tmp, "0x"))
-		return g_ascii_strtoull (tmp + 2, NULL, 16);
-	return g_ascii_strtoull (tmp, NULL, 10);
+	return xb_node_get_attr_as_uint (n, name);
 }
 
 /**
