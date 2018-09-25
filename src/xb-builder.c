@@ -740,7 +740,10 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 	/* load the file and peek at the GUIDs */
 	fn = g_file_get_path (file);
 	g_debug ("attempting to load %s", fn);
-	if (!xb_silo_load_from_file (silo_tmp, file, XB_SILO_LOAD_FLAG_NONE, &error_local)) {
+	if (!xb_silo_load_from_file (silo_tmp, file,
+				     XB_SILO_LOAD_FLAG_NONE,
+				     cancellable,
+				     &error_local)) {
 		g_debug ("failed to load silo: %s", error_local->message);
 	} else {
 		g_autofree gchar *guid = xb_builder_generate_guid (self);
@@ -780,7 +783,7 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 	silo_new = xb_builder_compile (self, flags, cancellable, error);
 	if (silo_new == NULL)
 		return NULL;
-	if (!xb_silo_save_to_file (silo_new, file, error))
+	if (!xb_silo_save_to_file (silo_new, file, NULL, error))
 		return NULL;
 	return g_steal_pointer (&silo_new);
 }

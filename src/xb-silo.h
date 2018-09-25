@@ -41,9 +41,11 @@ gboolean	 xb_silo_load_from_bytes		(XbSilo		*self,
 gboolean	 xb_silo_load_from_file			(XbSilo		*self,
 							 GFile		*file,
 							 XbSiloLoadFlags flags,
+							 GCancellable	*cancellable,
 							 GError		**error);
 gboolean	 xb_silo_save_to_file			(XbSilo		*self,
 							 GFile		*file,
+							 GCancellable	*cancellable,
 							 GError		**error);
 gchar		*xb_silo_to_string			(XbSilo		*self,
 							 GError		**error);

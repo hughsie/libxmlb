@@ -436,6 +436,7 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
  * @self: a #XbSilo
  * @file: a #GFile
  * @flags: #XbSiloLoadFlags, e.g. %XB_SILO_LOAD_FLAG_NONE
+ * @cancellable: a #GCancellable, or %NULL
  * @error: the #GError, or %NULL
  *
  * Loads a silo from file.
@@ -445,7 +446,11 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
  * Since: 0.1.0
  **/
 gboolean
-xb_silo_load_from_file (XbSilo *self, GFile *file, XbSiloLoadFlags flags, GError **error)
+xb_silo_load_from_file (XbSilo *self,
+			GFile *file,
+			XbSiloLoadFlags flags,
+			GCancellable *cancellable,
+			GError **error)
 {
 	g_autofree gchar *fn = NULL;
 	g_autoptr(GBytes) blob = NULL;
@@ -465,6 +470,7 @@ xb_silo_load_from_file (XbSilo *self, GFile *file, XbSiloLoadFlags flags, GError
  * xb_silo_save_to_file:
  * @self: a #XbSilo
  * @file: a #GFile
+ * @cancellable: a #GCancellable, or %NULL
  * @error: the #GError, or %NULL
  *
  * Saves a silo to a file.
@@ -474,7 +480,10 @@ xb_silo_load_from_file (XbSilo *self, GFile *file, XbSiloLoadFlags flags, GError
  * Since: 0.1.0
  **/
 gboolean
-xb_silo_save_to_file (XbSilo *self, GFile *file, GError **error)
+xb_silo_save_to_file (XbSilo *self,
+		      GFile *file,
+		      GCancellable *cancellable,
+		      GError **error)
 {
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
@@ -492,7 +501,8 @@ xb_silo_save_to_file (XbSilo *self, GFile *file, GError **error)
 	return g_file_replace_contents (file,
 					(const gchar *) self->data,
 					(gsize) self->datasz, NULL, FALSE,
-					G_FILE_CREATE_NONE, NULL, NULL, error);
+					G_FILE_CREATE_NONE, NULL,
+					cancellable, error);
 }
 
 /**

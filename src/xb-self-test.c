@@ -803,7 +803,7 @@ xb_speed_func (void)
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);
 	file = g_file_new_for_path (fn);
-	ret = xb_silo_save_to_file (silo, file, &error);
+	ret = xb_silo_save_to_file (silo, file, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
 	g_clear_object (&silo);
@@ -812,7 +812,7 @@ xb_speed_func (void)
 
 	/* load from file */
 	silo = xb_silo_new ();
-	ret = xb_silo_load_from_file (silo, file, XB_SILO_LOAD_FLAG_NONE, &error);
+	ret = xb_silo_load_from_file (silo, file, XB_SILO_LOAD_FLAG_NONE, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
 	g_print ("mmap load: %.3fms\n", g_timer_elapsed (timer, NULL) * 1000);
