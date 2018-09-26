@@ -277,6 +277,57 @@ xb_tool_query (XbToolPrivate *priv, gchar **values, GError **error)
 }
 
 static gboolean
+xb_tool_query_file (XbToolPrivate *priv, gchar **values, GError **error)
+{
+	g_autoptr(GFile) file = NULL;
+	g_autoptr(XbSilo) silo = xb_silo_new ();
+
+	/* check args */
+	if (g_strv_length (values) < 2) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_FAILED,
+				     "Invalid arguments, expected "
+				     "FILENAME FILENAME");
+		return FALSE;
+	}
+
+	/* load blob */
+	file = g_file_new_for_path (values[0]);
+	if (!xb_silo_load_from_file (silo, file, XB_SILO_LOAD_FLAG_NONE, NULL, error))
+		return FALSE;
+
+	/* optionally load file */
+	for (guint i = 1; values[i] != NULL; i++) {
+		g_autofree gchar *xpath = NULL;
+		g_autoptr(GPtrArray) results = NULL;
+		g_autoptr(GError) error_local = NULL;
+
+		/* load XPath from file */
+		if (!g_file_get_contents (values[i], &xpath, NULL, error))
+			return FALSE;
+		g_strdelimit (xpath, "\n", '\0');
+
+		/* query */
+		results = xb_silo_query (silo, xpath, 0, &error_local);
+		if (results == NULL) {
+			g_print ("FAILED: %s\n", error_local->message);
+			continue;
+		}
+		for (guint j = 0; j < results->len; j++) {
+			XbNode *n = g_ptr_array_index (results, j);
+			g_autofree gchar *xml = NULL;
+			xml = xb_node_export (n, XB_NODE_EXPORT_FLAG_NONE, error);
+			if (xml == NULL)
+				return FALSE;
+			g_print ("RESULT: %s\n", xml);
+		}
+	}
+
+	return TRUE;
+}
+
+static gboolean
 xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 {
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
@@ -334,25 +385,31 @@ main (int argc, char *argv[])
 	priv->cmd_array = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_tool_item_free);
 	xb_tool_add (priv->cmd_array,
 		     "dump",
-		     "FILENAME",
+		     "XMLBFILE",
 		     /* TRANSLATORS: command description */
 		     "Dumps a XMLb file",
 		     xb_tool_dump);
 	xb_tool_add (priv->cmd_array,
 		     "export",
-		     "FILENAME",
+		     "XMLFILE",
 		     /* TRANSLATORS: command description */
 		     "Exports a XMLb file",
 		     xb_tool_export);
 	xb_tool_add (priv->cmd_array,
 		     "query",
-		     "FILENAME [LIMIT]",
+		     "XMLBFILE XPATH [LIMIT]",
 		     /* TRANSLATORS: command description */
 		     "Queries a XMLb file",
 		     xb_tool_query);
 	xb_tool_add (priv->cmd_array,
+		     "query-file",
+		     "XMLBFILE [FILE] [FILE]",
+		     /* TRANSLATORS: command description */
+		     "Queries a XMLb file using an external XPath query",
+		     xb_tool_query_file);
+	xb_tool_add (priv->cmd_array,
 		     "compile",
-		     "FILE-OUT FILE [FILE]",
+		     "XMLBFILE XMLFILE [XMLFILE]",
 		     /* TRANSLATORS: command description */
 		     "Compile XML to XMLb",
 		     xb_tool_compile);
