@@ -294,6 +294,14 @@ xb_silo_query_section_root (XbSilo *self,
 			return FALSE;
 		}
 		grandparent = xb_silo_node_get_parent (self, parent);
+		if (grandparent == NULL) {
+			g_set_error (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_INVALID_ARGUMENT,
+				     "no grandparent set for %s",
+				     xb_silo_node_get_element (self, parent));
+			return FALSE;
+		}
 		if (i == helper->sections->len - 1) {
 			if (grandparent == NULL) {
 				g_set_error (error,

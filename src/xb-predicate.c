@@ -67,9 +67,16 @@ xb_predicate_new (const gchar *text, gssize text_len, GError **error)
 	/* assume NUL terminated */
 	if (text_len < 0)
 		text_len = strlen (text);
+	if (text_len == 0) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_INVALID_DATA,
+				     "predicate string was zero size");
+		return NULL;
+	}
 
 	/* parse */
-	for (gsize i = 0; text[i] != '\0' && self->kind == XB_PREDICATE_KIND_NONE; i++) {
+	for (gssize i = 0; i < text_len && self->kind == XB_PREDICATE_KIND_NONE; i++) {
 		for (guint j = 0; kinds[j].kind; j++) {
 			if (strncmp (text + i, kinds[j].str, kinds[j].len) == 0) {
 				self->kind = kinds[j].kind;
