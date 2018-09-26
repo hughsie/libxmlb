@@ -330,6 +330,14 @@ xb_silo_query_part (XbSilo *self,
 	sections = xb_silo_query_parse_sections (self, xpath, error);
 	if (sections == NULL)
 		return FALSE;
+	if (sections->len == 0) {
+		g_set_error (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_NOT_SUPPORTED,
+			     "No query sections for '%s'",
+			     xpath);
+		return FALSE;
+	}
 
 	/* find each section */
 	helper.sections = sections;
