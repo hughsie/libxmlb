@@ -578,10 +578,17 @@ xb_xpath_parent_func (void)
 	g_clear_object (&n);
 
 	/* descend, ascend, descend */
-	n = xb_silo_query_first (silo, "components/component[@type=firmware]/id/../id", &error);
+	n = xb_silo_query_first (silo, "components/component[@type=firmware]/pkgname/../id", &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (n);
-	g_assert_cmpstr (xb_node_get_element (n), ==, "id");
+	g_assert_cmpstr (xb_node_get_text (n), ==, "org.hughski.ColorHug2.firmware");
+	g_clear_object (&n);
+
+	/* descend, ascend, descend */
+	n = xb_silo_query_first (silo, "components/component/pkgname[text()<=='colorhug']/../id", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "org.hughski.ColorHug2.firmware");
 	g_clear_object (&n);
 
 	/* get node, too many parents */

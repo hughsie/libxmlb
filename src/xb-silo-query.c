@@ -307,6 +307,17 @@ xb_silo_query_section_root (XbSilo *self,
 			xb_silo_query_section_add_result (self, helper, grandparent);
 			return TRUE;
 		}
+
+		/* go back up to the first child of the grandparent */
+		parent = xb_silo_node_get_child (self, grandparent);
+		if (parent == NULL) {
+			g_set_error (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_INVALID_ARGUMENT,
+				     "no parent set for %s",
+				     xb_silo_node_get_element (self, grandparent));
+			return FALSE;
+		}
 //		g_debug ("PARENT @%u",
 //			 xb_silo_get_offset_for_node (self, parent));
 		return xb_silo_query_section_root (self, parent, grandparent, i + 1, helper, error);
