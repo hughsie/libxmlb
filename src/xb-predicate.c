@@ -28,7 +28,7 @@ xb_predicate_query (XbPredicateKind kind, gint rc)
 		return rc <= 0;
 	if (kind == XB_PREDICATE_KIND_GE)
 		return rc >= 0;
-	g_critical ("predicate %i unknown", rc);
+	g_critical ("predicate %u unknown", kind);
 	return FALSE;
 }
 
@@ -53,6 +53,7 @@ xb_predicate_new (const gchar *text, gssize text_len, GError **error)
 		gsize		 len;
 		const gchar	*str;
 	} kinds[] = {
+		{ XB_PREDICATE_KIND_SEARCH,	3,	"<==" },
 		{ XB_PREDICATE_KIND_NE,		2,	"!=" },	/* has to be ordered by strlen */
 		{ XB_PREDICATE_KIND_LE,		2,	"<=" },
 		{ XB_PREDICATE_KIND_GE,		2,	">=" },
@@ -104,7 +105,7 @@ xb_predicate_new (const gchar *text, gssize text_len, GError **error)
 		self->quirk |= XB_PREDICATE_QUIRK_IS_FN_LAST;
 	}
 
-	/* [1] */
+	/* [n] -> [position()=n] */
 	if (self->kind == XB_PREDICATE_KIND_NONE &&
 	    self->quirk == XB_PREDICATE_QUIRK_NONE) {
 		g_autofree gchar *tmp = g_strndup (text, text_len);
@@ -117,6 +118,8 @@ xb_predicate_new (const gchar *text, gssize text_len, GError **error)
 				     tmp);
 			return NULL;
 		}
+		self->rhs = self->lhs;
+		self->lhs = g_strdup ("position()");
 		self->position = idx;
 		self->kind = XB_PREDICATE_KIND_EQ;
 		self->quirk |= XB_PREDICATE_QUIRK_IS_POSITION;

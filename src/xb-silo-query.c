@@ -21,11 +21,40 @@ typedef struct {
 } XbSiloQueryLevel;
 
 static gboolean
+xb_string_contains_fuzzy (const gchar *text, const gchar *search)
+{
+	guint search_sz;
+	guint text_sz;
+
+	/* can't possibly match */
+	if (text == NULL || search == NULL)
+		return FALSE;
+
+	/* sanity check */
+	text_sz = strlen (text);
+	search_sz = strlen (search);
+	if (search_sz > text_sz)
+		return FALSE;
+	for (guint i = 0; i < text_sz - search_sz + 1; i++) {
+		if (g_ascii_strncasecmp (text + i, search, search_sz) == 0) {
+//			g_debug ("matched %s", search);
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+static gboolean
 xb_silo_query_check_predicate (XbSilo *self, XbSiloNode *sn, XbPredicate *predicate, XbSiloQueryLevel *level)
 {
 	/* @attr */
 	if (predicate->quirk & XB_PREDICATE_QUIRK_IS_ATTR) {
 		gint rc;
+		if (predicate->kind == XB_PREDICATE_KIND_SEARCH) {
+			const gchar *tmp = xb_silo_node_get_attr (self, sn, predicate->lhs + 1);
+			g_debug ("%s,%s", tmp, predicate->rhs);
+			return xb_string_contains_fuzzy (tmp, predicate->rhs);
+		}
 		if (predicate->rhs == NULL) {
 			rc = xb_silo_node_get_attr (self, sn, predicate->lhs + 1) != 0 ? 0 : 1;
 		} else {
@@ -37,7 +66,12 @@ xb_silo_query_check_predicate (XbSilo *self, XbSiloNode *sn, XbPredicate *predic
 
 	/* text() */
 	if (predicate->quirk & XB_PREDICATE_QUIRK_IS_TEXT) {
-		gint rc = g_strcmp0 (xb_silo_node_get_text (self, sn), predicate->rhs);
+		gint rc;
+		if (predicate->kind == XB_PREDICATE_KIND_SEARCH) {
+			return xb_string_contains_fuzzy (xb_silo_node_get_text (self, sn),
+				predicate->rhs);
+		}
+		rc = g_strcmp0 (xb_silo_node_get_text (self, sn), predicate->rhs);
 		return xb_predicate_query (predicate->kind, rc);
 	}
 

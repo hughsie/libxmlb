@@ -69,6 +69,14 @@ xb_predicate_func (void)
 		  XB_PREDICATE_QUIRK_IS_POSITION |
 		  XB_PREDICATE_QUIRK_IS_FN_LAST,
 		  "last()", NULL },
+		{ "text()<=='beef'",
+		  XB_PREDICATE_KIND_SEARCH,
+		  XB_PREDICATE_QUIRK_IS_TEXT,
+		  "text()", "beef" },
+		{ "@type<=='dead'",
+		  XB_PREDICATE_KIND_SEARCH,
+		  XB_PREDICATE_QUIRK_IS_ATTR,
+		  "@type", "dead" },
 		/* sentinel */
 		{ NULL,
 		  XB_PREDICATE_KIND_NONE,
@@ -477,6 +485,13 @@ xb_xpath_func (void)
 	g_assert_cmpstr (xb_node_get_attr (n, "type"), ==, "sha1");
 	g_clear_object (&n);
 
+	/* query with search */
+	n = xb_silo_query_first (silo, "components/component/id[text()<=='gimp']", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "gimp.desktop");
+	g_clear_object (&n);
+
 	/* query with backtrack */
 	g_debug ("\n%s", xml);
 	n = xb_silo_query_first (silo, "components/component[@type=firmware]/id[text()=org.hughski.ColorHug2.firmware]", &error);
@@ -531,6 +546,7 @@ xb_xpath_parent_func (void)
 	"  </component>\n"
 	"  <component type=\"firmware\">\n"
 	"    <id>org.hughski.ColorHug2.firmware</id>\n"
+	"    <pkgname>colorhug-client</pkgname>\n"
 	"  </component>\n"
 	"</components>\n";
 
@@ -579,6 +595,20 @@ xb_xpath_parent_func (void)
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT);
 	g_assert_null (n);
 	g_clear_error (&error);
+
+	/* fuzzy substring match */
+	n = xb_silo_query_first (silo, "components/component/pkgname[text()<=='colorhug']", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "colorhug-client");
+	g_clear_object (&n);
+
+	/* fuzzy substring match */
+	n = xb_silo_query_first (silo, "components/component[@type<=='ware']/pkgname", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "colorhug-client");
+	g_clear_object (&n);
 }
 
 static void
