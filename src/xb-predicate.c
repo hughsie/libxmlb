@@ -53,11 +53,11 @@ xb_predicate_new (const gchar *text, gssize text_len, GError **error)
 		gsize		 len;
 		const gchar	*str;
 	} kinds[] = {
-		{ XB_PREDICATE_KIND_SEARCH,	3,	"<==" },
 		{ XB_PREDICATE_KIND_NE,		2,	"!=" },	/* has to be ordered by strlen */
 		{ XB_PREDICATE_KIND_LE,		2,	"<=" },
 		{ XB_PREDICATE_KIND_GE,		2,	">=" },
 		{ XB_PREDICATE_KIND_EQ,		2,	"==" },
+		{ XB_PREDICATE_KIND_CONTAINS,	2,	"~=" },
 		{ XB_PREDICATE_KIND_EQ,		1,	"=" },
 		{ XB_PREDICATE_KIND_GT,		1,	">" },
 		{ XB_PREDICATE_KIND_LT,		1,	"<" },

@@ -50,9 +50,8 @@ xb_silo_query_check_predicate (XbSilo *self, XbSiloNode *sn, XbPredicate *predic
 	/* @attr */
 	if (predicate->quirk & XB_PREDICATE_QUIRK_IS_ATTR) {
 		gint rc;
-		if (predicate->kind == XB_PREDICATE_KIND_SEARCH) {
+		if (predicate->kind == XB_PREDICATE_KIND_CONTAINS) {
 			const gchar *tmp = xb_silo_node_get_attr (self, sn, predicate->lhs + 1);
-			g_debug ("%s,%s", tmp, predicate->rhs);
 			return xb_string_contains_fuzzy (tmp, predicate->rhs);
 		}
 		if (predicate->rhs == NULL) {
@@ -67,7 +66,7 @@ xb_silo_query_check_predicate (XbSilo *self, XbSiloNode *sn, XbPredicate *predic
 	/* text() */
 	if (predicate->quirk & XB_PREDICATE_QUIRK_IS_TEXT) {
 		gint rc;
-		if (predicate->kind == XB_PREDICATE_KIND_SEARCH) {
+		if (predicate->kind == XB_PREDICATE_KIND_CONTAINS) {
 			return xb_string_contains_fuzzy (xb_silo_node_get_text (self, sn),
 				predicate->rhs);
 		}
