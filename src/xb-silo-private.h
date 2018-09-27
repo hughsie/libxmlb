@@ -9,6 +9,7 @@
 
 #include <uuid.h>
 
+#include "xb-machine.h"
 #include "xb-node.h"
 #include "xb-silo.h"
 
@@ -46,6 +47,11 @@ typedef struct __attribute__ ((packed)) {
 	guint32		attr_value;	/* from strtab */
 } XbSiloAttr;
 
+typedef struct {
+	XbSiloNode	*sn;
+	guint		*position;
+} XbSiloCurrent;
+
 const gchar	*xb_silo_from_strtab		(XbSilo		*self,
 						 guint32	 offset);
 XbSiloNode	*xb_silo_get_node		(XbSilo		*self,
@@ -53,6 +59,7 @@ XbSiloNode	*xb_silo_get_node		(XbSilo		*self,
 XbSiloAttr	*xb_silo_get_attr		(XbSilo		*self,
 						 guint32	 off,
 						 guint8		 idx);
+XbMachine	*xb_silo_get_machine		(XbSilo		*self);
 guint32		 xb_silo_get_strtab		(XbSilo		*self);
 guint32		 xb_silo_get_strtab_idx		(XbSilo		*self,
 						 const gchar	*element);
@@ -77,6 +84,7 @@ guint		 xb_silo_node_get_depth		(XbSilo		*self,
 						 XbSiloNode	*n);
 XbNode		*xb_silo_node_create		(XbSilo		*self,
 						 XbSiloNode	*sn);
+XbSiloCurrent	*xb_silo_get_current		(XbSilo		*self);
 
 // FIXME xb-silo-export-private.h?
 gchar		*xb_silo_export_with_root	(XbSilo		*self,

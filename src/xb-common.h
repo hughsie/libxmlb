@@ -14,6 +14,8 @@ G_BEGIN_DECLS
 guint		 xb_string_replace			(GString	*str,
 							 const gchar	*search,
 							 const gchar	*replace);
+gboolean	 xb_string_contains_fuzzy		(const gchar	*text,
+							 const gchar	*search);
 
 G_END_DECLS
 

@@ -53,7 +53,7 @@ We will use the following XML document in the examples below.
         <title lang="en">Harry Potter</title>
         <price>29.99</price>
       </book>
-      <book>
+      <book percentage="99">
         <title lang="en">Learning XML</title>
         <price>39.95</price>
       </book>
@@ -88,9 +88,12 @@ value. Predicates are always embedded in square brackets.
 | Example | Description | Supported |
 | --- | --- | --- |
 | `/bookstore/book[1]` | Returns the first book element | ✔ |
+| `/bookstore/book[first()]` | Returns the first book element | ✔ |
 | `/bookstore/book[last()]` | Returns the last book element | ✔ |
 | `/bookstore/book[last()-1]` | Returns the last but one book element | ✖ |
-| `/bookstore/book[position()<3]` | Returns the first two books | ✖ |
+| `/bookstore/book[position()<3]` | Returns the first two books | ✔ |
+| `/bookstore/book[upper-case(text())=='HARRY POTTER']` | Returns the first book | ✔ |
+| `/bookstore/book[@percentage>=90]` | Returns the book with `>=` 90% completion | ✔ |
 | `/bookstore/book/title[@lang]` | Returns titles with an attribute named `lang` | ✔ |
 | `/bookstore/book/title[@lang='en']` | Returns titles that have a `lang`equal `en` | ✔ |
 | `/bookstore/book/title[@lang!='en']` | Returns titles that have a `lang` not equal `en` | ✔ |

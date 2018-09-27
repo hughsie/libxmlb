@@ -12,101 +12,9 @@
 #include <gio/gio.h>
 
 #include "xb-node-private.h"
-#include "xb-predicate.h"
+#include "xb-opcode.h"
 #include "xb-silo-private.h"
 #include "xb-silo-query-private.h"
-
-typedef struct {
-	guint		 position;
-} XbSiloQueryLevel;
-
-static gboolean
-xb_string_contains_fuzzy (const gchar *text, const gchar *search)
-{
-	guint search_sz;
-	guint text_sz;
-
-	/* can't possibly match */
-	if (text == NULL || search == NULL)
-		return FALSE;
-
-	/* sanity check */
-	text_sz = strlen (text);
-	search_sz = strlen (search);
-	if (search_sz > text_sz)
-		return FALSE;
-	for (guint i = 0; i < text_sz - search_sz + 1; i++) {
-		if (g_ascii_strncasecmp (text + i, search, search_sz) == 0) {
-//			g_debug ("matched %s", search);
-			return TRUE;
-		}
-	}
-	return FALSE;
-}
-
-static gboolean
-xb_silo_query_check_predicate (XbSilo *self, XbSiloNode *sn, XbPredicate *predicate, XbSiloQueryLevel *level)
-{
-	/* @attr */
-	if (predicate->quirk & XB_PREDICATE_QUIRK_IS_ATTR) {
-		gint rc;
-		if (predicate->kind == XB_PREDICATE_KIND_CONTAINS) {
-			const gchar *tmp = xb_silo_node_get_attr (self, sn, predicate->lhs + 1);
-			return xb_string_contains_fuzzy (tmp, predicate->rhs);
-		}
-		if (predicate->rhs == NULL) {
-			rc = xb_silo_node_get_attr (self, sn, predicate->lhs + 1) != 0 ? 0 : 1;
-		} else {
-			rc = g_strcmp0 (xb_silo_node_get_attr (self, sn, predicate->lhs + 1),
-					predicate->rhs);
-		}
-		return xb_predicate_query (predicate->kind, rc);
-	}
-
-	/* text() */
-	if (predicate->quirk & XB_PREDICATE_QUIRK_IS_TEXT) {
-		gint rc;
-		if (predicate->kind == XB_PREDICATE_KIND_CONTAINS) {
-			return xb_string_contains_fuzzy (xb_silo_node_get_text (self, sn),
-				predicate->rhs);
-		}
-		rc = g_strcmp0 (xb_silo_node_get_text (self, sn), predicate->rhs);
-		return xb_predicate_query (predicate->kind, rc);
-	}
-
-	/* position */
-	if (predicate->quirk & XB_PREDICATE_QUIRK_IS_POSITION) {
-		/* [1] */
-		if (predicate->position > 0) {
-//			g_debug ("for %s, wanted predicate position %u, got %u",
-//				 xb_silo_node_get_element (self, sn),
-//				 predicate->position,
-//				 level->position);
-			return predicate->position == level->position;
-		}
-		/* [last()[ */
-		if (predicate->quirk & XB_PREDICATE_QUIRK_IS_FN_LAST)
-			return sn->next == 0;
-	}
-
-	// FIXME
-	g_warning ("could not handle complex predicate");
-	return FALSE;
-}
-
-static gboolean
-xb_silo_query_check_predicates (XbSilo *self,
-				XbSiloNode *sn,
-				GPtrArray *predicates,
-				XbSiloQueryLevel *level)
-{
-	for (guint i = 0; i < predicates->len; i++) {
-		XbPredicate *predicate = g_ptr_array_index (predicates, i);
-		if (!xb_silo_query_check_predicate (self, sn, predicate, level))
-			return FALSE;
-	}
-	return TRUE;
-}
 
 typedef enum {
 	XB_SILO_QUERY_KIND_UNKNOWN,
@@ -134,22 +42,23 @@ xb_silo_query_section_free (XbSiloQuerySection *section)
 }
 
 static gboolean
-xb_silo_query_parse_predicate (XbSiloQuerySection *section,
+xb_silo_query_parse_predicate (XbSilo *self,
+			       XbSiloQuerySection *section,
 			       const gchar *text,
 			       gssize text_len,
 			       GError **error)
 {
-	XbPredicate *predicate;
+	GPtrArray *opcodes;
 
 	/* parse */
-	predicate = xb_predicate_new (text, text_len, error);
-	if (predicate == NULL)
+	opcodes = xb_machine_parse (xb_silo_get_machine (self), text, text_len, error);
+	if (opcodes == NULL)
 		return FALSE;
 
 	/* create array if it does not exist */
 	if (section->predicates == NULL)
-		section->predicates = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_predicate_free);
-	g_ptr_array_add (section->predicates, predicate);
+		section->predicates = g_ptr_array_new_with_free_func ((GDestroyNotify) g_ptr_array_unref);
+	g_ptr_array_add (section->predicates, opcodes);
 	return TRUE;
 }
 
@@ -180,7 +89,8 @@ xb_silo_query_parse_section (XbSilo *self, const gchar *xpath, GError **error)
 			continue;
 		}
 		if (start > 0 && xpath[i] == ']') {
-			if (!xb_silo_query_parse_predicate (section,
+			if (!xb_silo_query_parse_predicate (self,
+							    section,
 							    xpath + start + 1,
 							    i - start - 1,
 							    error)) {
@@ -226,27 +136,35 @@ xb_silo_query_parse_sections (XbSilo *self, const gchar *xpath, GError **error)
 
 static gboolean
 xb_silo_query_node_matches (XbSilo *self,
+			    XbMachine *machine,
 			    XbSiloNode *sn,
 			    XbSiloQuerySection *section,
-			    XbSiloQueryLevel *level)
+			    guint *position,
+			    gboolean *result,
+			    GError **error)
 {
 	/* wildcard */
-	if (section->kind == XB_SILO_QUERY_KIND_WILDCARD)
+	if (section->kind == XB_SILO_QUERY_KIND_WILDCARD) {
+		*result = TRUE;
 		return TRUE;
+	}
 
 	/* we have an index into the string table */
-	if (section->element_idx != sn->element_name)
-		return FALSE;
+	if (section->element_idx != sn->element_name) {
+		*result = FALSE;
+		return TRUE;
+	}
 
 	/* for section */
-	level->position += 1;
+	*position += 1;
 
 	/* check predicates */
 	if (section->predicates != NULL) {
-		return xb_silo_query_check_predicates (self,
-						       sn,
-						       section->predicates,
-						       level);
+		for (guint i = 0; i < section->predicates->len; i++) {
+			GPtrArray *opcodes = g_ptr_array_index (section->predicates, i);
+			if (!xb_machine_run (machine, opcodes, result, error))
+				return FALSE;
+		}
 	}
 
 	/* success */
@@ -277,10 +195,13 @@ xb_silo_query_section_root (XbSilo *self,
 			    XbSiloQueryHelper *helper,
 			    GError **error)
 {
+	XbMachine *machine = xb_silo_get_machine (self);
+	XbSiloCurrent *current = xb_silo_get_current (self);
 	XbSiloQuerySection *section = g_ptr_array_index (helper->sections, i);
-	XbSiloQueryLevel level = {
-		.position	= 0,
-	};
+	guint position = 0;
+
+	/* set up level pointer */
+	current->position = &position;
 
 	/* handle parent */
 	if (section->kind == XB_SILO_QUERY_KIND_PARENT) {
@@ -334,7 +255,11 @@ xb_silo_query_section_root (XbSilo *self,
 
 	/* save the parent so we can support ".." */
 	do {
-		if (xb_silo_query_node_matches (self, sn, section, &level)) {
+		gboolean result = TRUE;
+		current->sn = sn;
+		if (!xb_silo_query_node_matches (self, machine, sn, section, &position, &result, error))
+			return FALSE;
+		if (result) {
 			if (i == helper->sections->len - 1) {
 //				g_debug ("add result %u",
 //					 xb_silo_get_offset_for_node (self, sn));

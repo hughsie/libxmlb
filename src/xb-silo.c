@@ -13,7 +13,9 @@
 #include <gio/gio.h>
 
 #include "xb-builder.h"
+#include "xb-common.h"
 #include "xb-node-private.h"
+#include "xb-opcode.h"
 #include "xb-silo-private.h"
 
 struct _XbSilo
@@ -27,6 +29,8 @@ struct _XbSilo
 	guint32			 strtab;
 	GHashTable		*strtab_tags;
 	GHashTable		*nodes;
+	XbMachine		*machine;
+	XbSiloCurrent		 current;
 };
 
 G_DEFINE_TYPE (XbSilo, xb_silo, G_TYPE_OBJECT)
@@ -331,6 +335,14 @@ xb_silo_get_guid (XbSilo *self)
 	return self->guid;
 }
 
+/* private */
+XbMachine *
+xb_silo_get_machine (XbSilo *self)
+{
+	g_return_val_if_fail (XB_IS_SILO (self), NULL);
+	return self->machine;
+}
+
 /**
  * xb_silo_load_from_bytes:
  * @self: a #XbSilo
@@ -555,12 +567,180 @@ xb_silo_node_create (XbSilo *self, XbSiloNode *sn)
 	return n;
 }
 
+/* convert [2] to position()=2 */
+static gboolean
+xb_silo_machine_fixup_position_cb (XbMachine *self,
+				   GPtrArray *opcodes,
+				   gpointer user_data,
+				   GError **error)
+{
+	g_ptr_array_add (opcodes, xb_machine_opcode_func_new (self, "position"));
+	g_ptr_array_add (opcodes, xb_machine_opcode_func_new (self, "eq"));
+	return TRUE;
+}
+
+/* convert "'type' attr()" -> "'type' attr() '(null)' ne()" */
+static gboolean
+xb_silo_machine_fixup_attr_exists_cb (XbMachine *self,
+				      GPtrArray *opcodes,
+				      gpointer user_data,
+				      GError **error)
+{
+	g_ptr_array_add (opcodes, xb_opcode_text_new_static (NULL));
+	g_ptr_array_add (opcodes, xb_machine_opcode_func_new (self, "ne"));
+	return TRUE;
+}
+
+static gboolean
+xb_silo_machine_func_attr_cb (XbMachine *self,
+			      gboolean *result,
+			      gpointer user_data,
+			      GError **error)
+{
+	XbSilo *silo = XB_SILO (user_data);
+	XbSiloCurrent *current = xb_silo_get_current (silo);
+	g_autoptr(XbOpcode) op = xb_machine_stack_pop (self);
+	const gchar *tmp = xb_opcode_get_str (op);
+	xb_machine_stack_push_text_static (self, xb_silo_node_get_attr (silo, current->sn, tmp));
+	return TRUE;
+}
+
+static gboolean
+xb_silo_machine_func_text_cb (XbMachine *self,
+			      gboolean *result,
+			      gpointer user_data,
+			      GError **error)
+{
+	XbSilo *silo = XB_SILO (user_data);
+	XbSiloCurrent *current = xb_silo_get_current (silo);
+	xb_machine_stack_push_text_static (self, xb_silo_node_get_text (silo, current->sn));
+	return TRUE;
+}
+
+static gboolean
+xb_silo_machine_func_first_cb (XbMachine *self,
+			       gboolean *result,
+			       gpointer user_data,
+			       GError **error)
+{
+	XbSilo *silo = XB_SILO (user_data);
+	XbSiloCurrent *current = xb_silo_get_current (silo);
+	*result = *current->position == 1;
+	return TRUE;
+}
+
+static gboolean
+xb_silo_machine_func_last_cb (XbMachine *self,
+			      gboolean *result,
+			      gpointer user_data,
+			      GError **error)
+{
+	XbSilo *silo = XB_SILO (user_data);
+	XbSiloCurrent *current = xb_silo_get_current (silo);
+	*result = current->sn->next == 0;
+	return TRUE;
+}
+
+static gboolean
+xb_silo_machine_func_position_cb (XbMachine *self,
+				  gboolean *result,
+				  gpointer user_data,
+				  GError **error)
+{
+	XbSilo *silo = XB_SILO (user_data);
+	XbSiloCurrent *current = xb_silo_get_current (silo);
+	xb_machine_stack_push_integer (self, *current->position);
+	return TRUE;
+}
+
+static gboolean
+xb_silo_machine_func_contains_cb (XbMachine *self,
+				  gboolean *result,
+				  gpointer user_data,
+				  GError **error)
+{
+	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self);
+	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self);
+
+	/* TEXT:TEXT */
+	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&
+	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_TEXT) {
+		*result = xb_string_contains_fuzzy (xb_opcode_get_str (op2),
+						    xb_opcode_get_str (op1));
+		return TRUE;
+	}
+
+	/* fail */
+	g_set_error (error,
+		     G_IO_ERROR,
+		     G_IO_ERROR_NOT_SUPPORTED,
+		     "%s:%s types not supported",
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op1)),
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op2)));
+	return FALSE;
+}
+
+static gboolean
+xb_silo_machine_fixup_attr_text_cb (XbMachine *self,
+				    GPtrArray *opcodes,
+				    const gchar *text,
+				    gboolean *handled,
+				    gpointer user_data,
+				    GError **error)
+{
+	/* @foo -> attr(foo) */
+	if (g_str_has_prefix (text, "@")) {
+		XbOpcode *opcode;
+		opcode = xb_machine_opcode_func_new (self, "attr");
+		if (opcode == NULL) {
+			g_set_error_literal (error,
+					     G_IO_ERROR,
+					     G_IO_ERROR_NOT_SUPPORTED,
+					     "no attr opcode");
+			return FALSE;
+		}
+		g_ptr_array_add (opcodes, xb_opcode_text_new (text + 1));
+		g_ptr_array_add (opcodes, opcode);
+		*handled = TRUE;
+		return TRUE;
+	}
+
+	/* not us */
+	return TRUE;
+}
+
+XbSiloCurrent *
+xb_silo_get_current (XbSilo *self)
+{
+	return &self->current;
+}
+
 static void
 xb_silo_init (XbSilo *self)
 {
 	self->nodes = g_hash_table_new_full (g_direct_hash, g_direct_equal,
 					     NULL, (GDestroyNotify) g_object_unref);
 	self->strtab_tags = g_hash_table_new (g_str_hash, g_str_equal);
+
+	self->machine = xb_machine_new ();
+	xb_machine_add_func (self->machine, "attr", 1,
+			     xb_silo_machine_func_attr_cb, self);
+	xb_machine_add_func (self->machine, "text", 0,
+			     xb_silo_machine_func_text_cb, self);
+	xb_machine_add_func (self->machine, "first", 0,
+			     xb_silo_machine_func_first_cb, self);
+	xb_machine_add_func (self->machine, "last", 0,
+			     xb_silo_machine_func_last_cb, self);
+	xb_machine_add_func (self->machine, "position", 0,
+			     xb_silo_machine_func_position_cb, self);
+	xb_machine_add_func (self->machine, "contains", 2,
+			     xb_silo_machine_func_contains_cb, self);
+	xb_machine_add_opcode_fixup (self->machine, "INTE",
+				     xb_silo_machine_fixup_position_cb, self);
+	xb_machine_add_opcode_fixup (self->machine, "TEXT,FUNC:attr",
+				     xb_silo_machine_fixup_attr_exists_cb, self);
+	xb_machine_add_text_handler (self->machine,
+				     xb_silo_machine_fixup_attr_text_cb, self);
 }
 
 static void
@@ -568,6 +748,7 @@ xb_silo_finalize (GObject *obj)
 {
 	XbSilo *self = XB_SILO (obj);
 	g_free (self->guid);
+	g_object_unref (self->machine);
 	g_hash_table_unref (self->nodes);
 	g_hash_table_unref (self->strtab_tags);
 	if (self->mmap != NULL)
