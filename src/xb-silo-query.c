@@ -303,14 +303,6 @@ xb_silo_query_section_root (XbSilo *self,
 			return FALSE;
 		}
 		if (i == helper->sections->len - 1) {
-			if (grandparent == NULL) {
-				g_set_error (error,
-					     G_IO_ERROR,
-					     G_IO_ERROR_INVALID_ARGUMENT,
-					     "no parent for %s",
-					     xb_silo_node_get_element (self, sn));
-				return FALSE;
-			}
 			xb_silo_query_section_add_result (self, helper, grandparent);
 			return TRUE;
 		}
