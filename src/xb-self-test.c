@@ -533,7 +533,9 @@ static void
 xb_xpath_parent_func (void)
 {
 	XbNode *n;
+	gboolean ret;
 	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new ();
 	g_autoptr(XbSilo) silo = NULL;
 	const gchar *xml =
 	"<components origin=\"lvfs\">\n"
@@ -547,11 +549,18 @@ xb_xpath_parent_func (void)
 	"  <component type=\"firmware\">\n"
 	"    <id>org.hughski.ColorHug2.firmware</id>\n"
 	"    <pkgname>colorhug-client</pkgname>\n"
+	"    <description xml:lang=\"de_DE\"><p>Wilcommen!</p></description>\n"
+	"    <description><p>hello!</p></description>\n"
+	"    <description xml:lang=\"fr_FR\"><p>Bonjour!</p></description>\n"
+	"    <project_license>GPL-2.0</project_license>\n"
 	"  </component>\n"
 	"</components>\n";
 
 	/* import from XML */
-	silo = xb_silo_new_from_xml (xml, &error);
+	ret = xb_builder_import_xml (builder, xml, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);
 
@@ -578,10 +587,10 @@ xb_xpath_parent_func (void)
 	g_clear_object (&n);
 
 	/* descend, ascend, descend */
-	n = xb_silo_query_first (silo, "components/component[@type=firmware]/pkgname/../id", &error);
+	n = xb_silo_query_first (silo, "components/component[@type='firmware']/pkgname/../project_license", &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (n);
-	g_assert_cmpstr (xb_node_get_text (n), ==, "org.hughski.ColorHug2.firmware");
+	g_assert_cmpstr (xb_node_get_text (n), ==, "GPL-2.0");
 	g_clear_object (&n);
 
 	/* descend, ascend, descend */

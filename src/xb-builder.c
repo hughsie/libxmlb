@@ -508,9 +508,13 @@ xb_builder_nodetab_fix_cb (GNode *n, gpointer user_data)
 
 	/* set ->next if the node has one */ 
 	n2 = g_node_next_sibling (n);
-	if (n2 != NULL) {
+	while (n2 != NULL) {
 		XbBuilderNode *bn2 = n2->data;
-		sn->next = xb_builder_node_get_offset (bn2);
+		if (!xb_builder_node_has_flag (bn2, XB_BUILDER_NODE_FLAG_IGNORE_CDATA)) {
+			sn->next = xb_builder_node_get_offset (bn2);
+			break;
+		}
+		n2 = g_node_next_sibling (n2);
 	}
 
 	return FALSE;

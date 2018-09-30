@@ -28,7 +28,7 @@ typedef struct __attribute__ ((packed)) {
 } XbSiloHeader;
 
 #define XB_SILO_MAGIC_BYTES		0x624c4d58
-#define XB_SILO_VERSION			0x00000003
+#define XB_SILO_VERSION			0x00000004
 #define XB_SILO_UNSET			0xffffffff
 
 typedef struct __attribute__ ((packed)) {
