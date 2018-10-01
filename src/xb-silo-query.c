@@ -203,15 +203,19 @@ xb_silo_query_node_matches (XbSilo *self,
 }
 
 typedef struct {
-	GPtrArray	*sections;
-	GPtrArray	*results;
+	GPtrArray	*sections;	/* of XbSiloQuerySection */
+	GPtrArray	*results;	/* of XbNode */
+	GHashTable	*results_hash;	/* of sn:1 */
 	guint		 limit;
 } XbSiloQueryHelper;
 
 static gboolean
 xb_silo_query_section_add_result (XbSilo *self, XbSiloQueryHelper *helper, XbSiloNode *sn)
 {
+	if (g_hash_table_lookup (helper->results_hash, sn) != NULL)
+		return FALSE;
 	g_ptr_array_add (helper->results, xb_silo_node_create (self, sn));
+	g_hash_table_add (helper->results_hash, sn);
 	return helper->results->len == helper->limit;
 }
 
@@ -316,6 +320,7 @@ static gboolean
 xb_silo_query_part (XbSilo *self,
 		    XbSiloNode *sroot,
 		    GPtrArray *results,
+		    GHashTable *results_hash,
 		    const gchar *xpath,
 		    guint limit,
 		    GError **error)
@@ -324,6 +329,7 @@ xb_silo_query_part (XbSilo *self,
 	XbSiloQueryHelper helper = {
 		.results = results,
 		.limit = limit,
+		.results_hash = results_hash,
 	};
 
 	/* handle each section */
@@ -365,6 +371,7 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 {
 	XbSiloNode *sn;
 	g_auto(GStrv) split = NULL;
+	g_autoptr(GHashTable) results_hash = g_hash_table_new (g_direct_hash, g_direct_equal);
 	g_autoptr(GPtrArray) results = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 
 	g_return_val_if_fail (XB_IS_SILO (self), NULL);
@@ -399,7 +406,7 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 	/* do 'or' searches */
 	split = g_strsplit (xpath, "|", -1);
 	for (guint i = 0; split[i] != NULL; i++) {
-		if (!xb_silo_query_part (self, sn, results, split[i], limit, error))
+		if (!xb_silo_query_part (self, sn, results, results_hash, split[i], limit, error))
 			return NULL;
 	}
 
