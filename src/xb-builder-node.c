@@ -81,6 +81,30 @@ xb_builder_node_get_element (XbBuilderNode *self)
 }
 
 /**
+ * xb_builder_node_get_attribute:
+ * @self: a #XbBuilderNode
+ * @name: attribute name, e.g. `type`
+ *
+ * Gets an attribute from the builder node.
+ *
+ * Returns: string, or %NULL if unset
+ *
+ * Since: 0.1.0
+ **/
+const gchar *
+xb_builder_node_get_attribute (XbBuilderNode *self, const gchar *name)
+{
+	g_return_val_if_fail (XB_IS_BUILDER_NODE (self), NULL);
+	g_return_val_if_fail (name != NULL, NULL);
+	for (guint i = 0; i < self->attrs->len; i++) {
+		XbBuilderNodeAttr *a = g_ptr_array_index (self->attrs, i);
+		if (g_strcmp0 (a->name, name) == 0)
+			return a->value;
+	}
+	return NULL;
+}
+
+/**
  * xb_builder_node_get_text:
  * @self: a #XbBuilderNode
  *
