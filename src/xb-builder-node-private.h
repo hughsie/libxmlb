@@ -25,6 +25,9 @@ guint32		 xb_builder_node_size		(XbBuilderNode		*self);
 guint32		 xb_builder_node_get_offset	(XbBuilderNode		*self);
 void		 xb_builder_node_set_offset	(XbBuilderNode		*self,
 						 guint32		 offset);
+gint		 xb_builder_node_get_priority	(XbBuilderNode		*self);
+void		 xb_builder_node_set_priority	(XbBuilderNode		*self,
+						 gint			 priority);
 guint32		 xb_builder_node_get_element_idx(XbBuilderNode		*self);
 void		 xb_builder_node_set_element_idx(XbBuilderNode		*self,
 						 guint32		 element_idx);

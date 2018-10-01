@@ -330,6 +330,7 @@ xb_tool_query_file (XbToolPrivate *priv, gchar **values, GError **error)
 static gboolean
 xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 {
+	const gchar *const *locales = g_get_language_names ();
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
 	g_autoptr(XbSilo) silo = NULL;
 	g_autoptr(GFile) file_dst = NULL;
@@ -346,6 +347,9 @@ xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 	}
 
 	/* load file */
+	for (guint i = 0; locales[i] != NULL; i++)
+		xb_builder_add_locale (builder, locales[i]);
+
 	for (guint i = 1; values[i] != NULL; i++) {
 		g_autoptr(GFile) file = g_file_new_for_path (values[i]);
 		if (!xb_builder_import_file (builder, file, NULL, NULL, error))
@@ -355,7 +359,7 @@ xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 	silo = xb_builder_ensure (builder, file_dst,
 				  XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT |
 				  XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID |
-				  XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS,
+				  XB_BUILDER_COMPILE_FLAG_SINGLE_LANG,
 				  NULL, error);
 	if (silo == NULL)
 		return FALSE;

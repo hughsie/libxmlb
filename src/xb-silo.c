@@ -193,8 +193,8 @@ xb_silo_to_string (XbSilo *self, GError **error)
 	while (off < self->strtab) {
 		XbSiloNode *n = xb_silo_get_node (self, off);
 		if (n->is_node) {
-			g_string_append_printf (str, "NODE @%" G_GUINT32_FORMAT " (%p)\n", off, n);
-			g_string_append_printf (str, "element_name: %s (%u)\n",
+			g_string_append_printf (str, "NODE @%" G_GUINT32_FORMAT "\n", off);
+			g_string_append_printf (str, "element_name: %s [%03u]\n",
 						xb_silo_from_strtab (self, n->element_name),
 						n->element_name);
 			g_string_append_printf (str, "next:         %" G_GUINT32_FORMAT "\n", n->next);
@@ -205,10 +205,10 @@ xb_silo_to_string (XbSilo *self, GError **error)
 			}
 			for (guint8 i = 0; i < n->nr_attrs; i++) {
 				XbSiloAttr *a = xb_silo_get_attr (self, off, i);
-				g_string_append_printf (str, "attr_name:    %s (%u)\n",
+				g_string_append_printf (str, "attr_name:    %s [%03u]\n",
 							xb_silo_from_strtab (self, a->attr_name),
 							a->attr_name);
-				g_string_append_printf (str, "attr_value:   %s (%u)\n",
+				g_string_append_printf (str, "attr_value:   %s [%03u]\n",
 							xb_silo_from_strtab (self, a->attr_value),
 							a->attr_value);
 			}
@@ -216,6 +216,16 @@ xb_silo_to_string (XbSilo *self, GError **error)
 			g_string_append_printf (str, "SENT @%" G_GUINT32_FORMAT "\n", off);
 		}
 		off += xb_silo_node_get_size (n);
+	}
+
+	/* add strtab */
+	g_string_append_printf (str, "STRTAB @%" G_GUINT32_FORMAT "\n", hdr->strtab);
+	for (off = 0; off < self->datasz - hdr->strtab;) {
+		const gchar *tmp = xb_silo_from_strtab (self, off);
+		if (tmp == NULL)
+			break;
+		g_string_append_printf (str, "[%03u]: %s\n", off, tmp);
+		off += strlen (tmp) + 1;
 	}
 
 	/* success */

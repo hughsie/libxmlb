@@ -18,6 +18,7 @@ struct _XbBuilderNode
 {
 	GObject			 parent_instance;
 	guint32			 offset;
+	gint			 priority;
 	XbBuilderNodeFlags	 flags;
 	gchar			*element;
 	guint32			 element_idx;
@@ -274,6 +275,22 @@ xb_builder_node_set_offset (XbBuilderNode *self, guint32 offset)
 {
 	g_return_if_fail (XB_IS_BUILDER_NODE (self));
 	self->offset = offset;
+}
+
+/* private */
+gint
+xb_builder_node_get_priority (XbBuilderNode *self)
+{
+	g_return_val_if_fail (XB_IS_BUILDER_NODE (self), 0);
+	return self->priority;
+}
+
+/* private */
+void
+xb_builder_node_set_priority (XbBuilderNode *self, gint priority)
+{
+	g_return_if_fail (XB_IS_BUILDER_NODE (self));
+	self->priority = priority;
 }
 
 /* private */

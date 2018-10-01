@@ -2,6 +2,7 @@
 
 LIBXMLB_0.1.0 {
   global:
+    xb_builder_add_locale;
     xb_builder_append_guid;
     xb_builder_compile;
     xb_builder_ensure;

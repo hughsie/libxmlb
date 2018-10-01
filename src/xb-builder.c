@@ -18,8 +18,9 @@
 
 struct _XbBuilder {
 	GObject			 parent_instance;
-	GPtrArray		*imports; /* of XbBuilderImport */
-	GPtrArray		*nodes; /* of XbBuilderNode */
+	GPtrArray		*imports;	/* of XbBuilderImport */
+	GPtrArray		*nodes;		/* of XbBuilderNode */
+	GPtrArray		*locales;	/* of str */
 	XbSilo			*silo;
 	GString			*guid;
 };
@@ -35,7 +36,7 @@ typedef struct {
 	GHashTable		*strtab_hash;
 	GString			*strtab;
 	XbBuilderNode		*info;
-	const gchar * const	*locales;
+	GPtrArray		*locales;
 } XbBuilderCompileHelper;
 
 static guint32
@@ -66,6 +67,17 @@ xb_builder_compile_node_tree (GNode *parent, XbBuilderNode *bn)
 	}
 }
 
+static gint
+xb_builder_get_locale_priority (XbBuilderCompileHelper *helper, const gchar *locale)
+{
+	for (guint i = 0; i < helper->locales->len; i++) {
+		const gchar *locale_tmp = g_ptr_array_index (helper->locales, i);
+		if (g_strcmp0 (locale_tmp, locale) == 0)
+			return helper->locales->len - i;
+	}
+	return -1;
+}
+
 static void
 xb_builder_compile_start_element_cb (GMarkupParseContext *context,
 				     const gchar         *element_name,
@@ -86,12 +98,23 @@ xb_builder_compile_start_element_cb (GMarkupParseContext *context,
 	/* check if we should ignore the locale */
 	if (!xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA) &&
 	    helper->flags & XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS) {
+		const gchar *xml_lang = NULL;
 		for (guint i = 0; attr_names[i] != NULL; i++) {
 			if (g_strcmp0 (attr_names[i], "xml:lang") == 0) {
-				const gchar *lang = attr_values[i];
-				if (lang != NULL && !g_strv_contains (helper->locales, lang))
-					xb_builder_node_add_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA);
+				xml_lang = attr_values[i];
+				break;
 			}
+		}
+		if (xml_lang == NULL) {
+			if (parent != NULL) {
+				gint prio = xb_builder_node_get_priority (parent);
+				xb_builder_node_set_priority (bn, prio);
+			}
+		} else {
+			gint prio = xb_builder_get_locale_priority (helper, xml_lang);
+			if (prio < 0)
+				xb_builder_node_add_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA);
+			xb_builder_node_set_priority (bn, prio);
 		}
 	}
 
@@ -382,6 +405,66 @@ xb_builder_strtab_text_cb (GNode *n, gpointer user_data)
 }
 
 static gboolean
+xb_builder_xml_lang_prio_cb (GNode *n, gpointer user_data)
+{
+	GPtrArray *nodes_to_destroy = (GPtrArray *) user_data;
+	XbBuilderNode *bn = n->data;
+	XbBuilderNode *bn_best = bn;
+	gint prio_best = 0;
+	g_autoptr(GPtrArray) nodes = g_ptr_array_new ();
+
+	/* root node */
+	if (bn == NULL)
+		return FALSE;
+
+	/* already ignored */
+	if (xb_builder_node_get_priority (bn) == -2)
+		return FALSE;
+
+	/* get all the siblings with the same name */
+	g_ptr_array_add (nodes, n);
+	for (GNode *n2 = n->prev; n2 != NULL; n2 = n2->prev) {
+		XbBuilderNode *bn2 = n2->data;
+		if (g_strcmp0 (xb_builder_node_get_element (bn),
+			       xb_builder_node_get_element (bn2)) == 0)
+			g_ptr_array_add (nodes, n2);
+	}
+	for (GNode *n2 = n->next; n2 != NULL; n2 = n2->next) {
+		XbBuilderNode *bn2 = n2->data;
+		if (g_strcmp0 (xb_builder_node_get_element (bn),
+			       xb_builder_node_get_element (bn2)) == 0)
+			g_ptr_array_add (nodes, n2);
+	}
+
+	/* only one thing, so bail early */
+	if (nodes->len == 1)
+		return FALSE;
+
+	/* find the best locale */
+	for (guint i = 0; i < nodes->len; i++) {
+		GNode *n2 = g_ptr_array_index (nodes, i);
+		XbBuilderNode *bn2 = n2->data;
+		if (xb_builder_node_get_priority (bn2) > prio_best) {
+			prio_best = xb_builder_node_get_priority (bn2);
+			bn_best = bn2;
+		}
+	}
+
+	/* add any nodes not as good as the bext locale to the kill list */
+	for (guint i = 0; i < nodes->len; i++) {
+		GNode *n2 = g_ptr_array_index (nodes, i);
+		XbBuilderNode *bn2 = n2->data;
+		if (xb_builder_node_get_priority (bn2) < xb_builder_node_get_priority (bn_best))
+			g_ptr_array_add (nodes_to_destroy, n2);
+
+		/* never visit this node again */
+		xb_builder_node_set_priority (bn2, -2);
+	}
+
+	return FALSE;
+}
+
+static gboolean
 xb_builder_nodetab_size_cb (GNode *n, gpointer user_data)
 {
 	guint32 *sz = (guint32 *) user_data;
@@ -589,6 +672,34 @@ xb_builder_import_node (XbBuilder *self, XbBuilderNode *bn)
 }
 
 /**
+ * xb_builder_add_locale:
+ * @self: a #XbSilo
+ * @locale: a locale, e.g. "en_US"
+ *
+ * Adds a locale to the builder. Locales added first will be prioritised over
+ * locales added later.
+ *
+ * Since: 0.1.0
+ **/
+void
+xb_builder_add_locale (XbBuilder *self, const gchar *locale)
+{
+	g_return_if_fail (XB_IS_BUILDER (self));
+	g_return_if_fail (locale != NULL);
+	if (g_str_has_suffix (locale, ".UTF-8"))
+		return;
+	for (guint i = 0; i < self->locales->len; i++) {
+		const gchar *locale_tmp = g_ptr_array_index (self->locales, i);
+		if (g_strcmp0 (locale_tmp, locale) == 0)
+			return;
+	}
+	g_ptr_array_add (self->locales, g_strdup (locale));
+
+	/* if the user changes LANG, the blob is no longer valid */
+	xb_builder_append_guid (self, locale);
+}
+
+/**
  * xb_builder_compile:
  * @self: a #XbSilo
  * @flags: some #XbBuilderCompileFlags, e.g. %XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT
@@ -619,15 +730,29 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 		.level = 0,
 		.buf = NULL,
 	};
+	g_autoptr(GPtrArray) nodes_to_destroy = g_ptr_array_new ();
 	g_autoptr(XbBuilderCompileHelper) helper = NULL;
 
 	g_return_val_if_fail (XB_IS_BUILDER (self), NULL);
+
+	/* this is inferred */
+	if (flags & XB_BUILDER_COMPILE_FLAG_SINGLE_LANG)
+		flags |= XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS;
+
+	/* the builder needs to know the locales */
+	if (self->locales->len == 0 && (flags & XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS)) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_INVALID_DATA,
+				     "No locales set and using NATIVE_LANGS");
+		return NULL;
+	}
 
 	/* create helper used for compiling */
 	helper = g_new0 (XbBuilderCompileHelper, 1);
 	helper->flags = flags;
 	helper->root = g_node_new (NULL);
-	helper->locales = g_get_language_names ();
+	helper->locales = self->locales;
 	helper->strtab = g_string_new (NULL);
 	helper->strtab_hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 
@@ -652,6 +777,18 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 						    "failed to compile %s: ",
 						    xb_builder_import_get_guid (import));
 			return NULL;
+		}
+	}
+
+	/* only include the highest priority translation */
+	if (flags & XB_BUILDER_COMPILE_FLAG_SINGLE_LANG) {
+		g_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
+				 xb_builder_xml_lang_prio_cb, nodes_to_destroy);
+		for (guint i = 0; i < nodes_to_destroy->len; i++) {
+			GNode *n = g_ptr_array_index (nodes_to_destroy, i);
+			g_node_traverse (n, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
+					 xb_builder_destroy_node_cb, NULL);
+			g_node_destroy (n);
 		}
 	}
 
@@ -805,6 +942,7 @@ xb_builder_finalize (GObject *obj)
 
 	g_ptr_array_unref (self->imports);
 	g_ptr_array_unref (self->nodes);
+	g_ptr_array_unref (self->locales);
 	g_object_unref (self->silo);
 	g_string_free (self->guid, TRUE);
 
@@ -823,6 +961,7 @@ xb_builder_init (XbBuilder *self)
 {
 	self->imports = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	self->nodes = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+	self->locales = g_ptr_array_new_with_free_func (g_free);
 	self->silo = xb_silo_new ();
 	self->guid = g_string_new (NULL);
 }

@@ -24,6 +24,7 @@ G_DECLARE_FINAL_TYPE (XbBuilder, xb_builder, XB, BUILDER, GObject)
  * @XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT:	Do not attempt to repair XML whitespace
  * @XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS:	Only load native languages
  * @XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID:	Ignore invalid files without an error
+ * @XB_BUILDER_COMPILE_FLAG_SINGLE_LANG:	Only store a single language
  *
  * The flags for converting to XML.
  **/
@@ -32,6 +33,7 @@ typedef enum {
 	XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT	= 1 << 0,	/* Since: 0.1.0 */
 	XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS	= 1 << 1,	/* Since: 0.1.0 */
 	XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID	= 1 << 2,	/* Since: 0.1.0 */
+	XB_BUILDER_COMPILE_FLAG_SINGLE_LANG	= 1 << 3,	/* Since: 0.1.0 */
 	/*< private >*/
 	XB_BUILDER_COMPILE_FLAG_LAST
 } XbBuilderCompileFlags;
@@ -63,6 +65,8 @@ XbSilo		*xb_builder_ensure		(XbBuilder		*self,
 						 XbBuilderCompileFlags	 flags,
 						 GCancellable		*cancellable,
 						 GError			**error);
+void		 xb_builder_add_locale		(XbBuilder		*self,
+						 const gchar		*locale);
 
 G_END_DECLS
 

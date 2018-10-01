@@ -546,6 +546,82 @@ xb_xpath_func (void)
 }
 
 static void
+xb_builder_native_lang_func (void)
+{
+	gboolean ret;
+	g_autoptr(GError) error = NULL;
+	g_autofree gchar *str = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbSilo) silo = NULL;
+	const gchar *xml =
+	"<components>\n"
+	"  <component>\n"
+	"    <p xml:lang=\"de_DE\">Wilcommen</p>\n"
+	"    <p>Hello</p>\n"
+	"    <p xml:lang=\"fr\">Salut</p>\n"
+	"  </component>\n"
+	"</components>\n";
+
+	/* import from XML */
+	ret = xb_builder_import_xml (builder, xml, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	xb_builder_add_locale (builder, "fr_FR");
+	xb_builder_add_locale (builder, "fr");
+	xb_builder_add_locale (builder, "C");
+	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_SINGLE_LANG, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* test we removed other languages */
+	str = xb_silo_to_string (silo, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (str);
+	g_debug ("\n%s", str);
+	g_assert_null (g_strstr_len (str, -1, "Wilcommen"));
+	g_assert_null (g_strstr_len (str, -1, "Hello"));
+	g_assert_nonnull (g_strstr_len (str, -1, "Salut"));
+}
+
+static void
+xb_builder_native_lang2_func (void)
+{
+	gboolean ret;
+	g_autoptr(GError) error = NULL;
+	g_autofree gchar *str = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbSilo) silo = NULL;
+	const gchar *xml =
+	"<components>\n"
+	"  <component>\n"
+	"    <description xml:lang=\"de_DE\"><p>Wilcommen</p></description>\n"
+	"    <description><p>Hello</p></description>\n"
+	"    <description xml:lang=\"fr\"><p>Salut</p></description>\n"
+	"  </component>\n"
+	"</components>\n";
+
+	/* import from XML */
+	ret = xb_builder_import_xml (builder, xml, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	xb_builder_add_locale (builder, "fr_FR");
+	xb_builder_add_locale (builder, "fr");
+	xb_builder_add_locale (builder, "C");
+	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_SINGLE_LANG, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* test we removed other languages */
+	str = xb_silo_to_string (silo, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (str);
+	g_assert_null (g_strstr_len (str, -1, "Wilcommen"));
+	g_assert_null (g_strstr_len (str, -1, "Hello"));
+	g_assert_nonnull (g_strstr_len (str, -1, "Salut"));
+	g_debug ("\n%s", str);
+}
+
+static void
 xb_xpath_parent_func (void)
 {
 	XbNode *n;
@@ -576,6 +652,7 @@ xb_xpath_parent_func (void)
 	ret = xb_builder_import_xml (builder, xml, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
+	xb_builder_add_locale (builder, "C");
 	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);
@@ -929,6 +1006,8 @@ main (int argc, char **argv)
 	/* tests go here */
 	g_test_add_func ("/libxmlb/opcodes", xb_predicate_func);
 	g_test_add_func ("/libxmlb/builder", xb_builder_func);
+	g_test_add_func ("/libxmlb/builder{native-lang}", xb_builder_native_lang_func);
+	g_test_add_func ("/libxmlb/builder{native-lang-nested}", xb_builder_native_lang2_func);
 	g_test_add_func ("/libxmlb/builder{empty}", xb_builder_empty_func);
 	g_test_add_func ("/libxmlb/builder{ensure}", xb_builder_ensure_func);
 	g_test_add_func ("/libxmlb/builder-node", xb_builder_node_func);
