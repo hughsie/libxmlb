@@ -341,6 +341,31 @@ xb_xpath_helpers_func (void)
 }
 
 static void
+xb_xpath_query_func (void)
+{
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbNode) n = NULL;
+	g_autoptr(XbSilo) silo = NULL;
+	const gchar *xml =
+	"<components>\n"
+	"  <component>\n"
+	"    <id>n/a</id>\n"
+	"  </component>\n"
+	"</components>\n";
+
+	/* import from XML */
+	silo = xb_silo_new_from_xml (xml, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* query with slash */
+	n = xb_silo_query_first (silo, "components/component/id[text()='n\\/a']", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "n/a");
+}
+
+static void
 xb_xpath_func (void)
 {
 	XbNode *n;
@@ -768,7 +793,7 @@ xb_builder_node_info_func (void)
 	g_assert_nonnull (silo);
 
 	/* get info */
-	n = xb_silo_query_first (silo, "component/id[text()='dave'/../info/scope", &error);
+	n = xb_silo_query_first (silo, "component/id[text()='dave']/../info/scope", &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (n);
 	g_assert_cmpstr (xb_node_get_text (n), ==, "user");
@@ -909,6 +934,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/builder-node", xb_builder_node_func);
 	g_test_add_func ("/libxmlb/builder-node{info}", xb_builder_node_info_func);
 	g_test_add_func ("/libxmlb/xpath", xb_xpath_func);
+	g_test_add_func ("/libxmlb/xpath-query", xb_xpath_query_func);
 	g_test_add_func ("/libxmlb/xpath{helpers}", xb_xpath_helpers_func);
 	g_test_add_func ("/libxmlb/xpath-parent", xb_xpath_parent_func);
 	g_test_add_func ("/libxmlb/xpath-glob", xb_xpath_glob_func);

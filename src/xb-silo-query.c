@@ -119,18 +119,49 @@ xb_silo_query_parse_section (XbSilo *self, const gchar *xpath, GError **error)
 static GPtrArray *
 xb_silo_query_parse_sections (XbSilo *self, const gchar *xpath, GError **error)
 {
+	XbSiloQuerySection *section;
 	g_autoptr(GPtrArray) sections = NULL;
-	g_auto(GStrv) split = NULL;
+	g_autoptr(GString) acc = g_string_new (NULL);
 
 //	g_debug ("parsing XPath %s", xpath);
 	sections = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_silo_query_section_free);
-	split = g_strsplit (xpath, "/", -1);
-	for (guint i = 0; split[i] != NULL; i++) {
-		XbSiloQuerySection *section = xb_silo_query_parse_section (self, split[i], error);
-		if (section == NULL)
-			return NULL;
-		g_ptr_array_add (sections, section);
+	for (gsize i = 0; xpath[i] != '\0'; i++) {
+
+		/* escaped chars */
+		if (xpath[i] == '\\') {
+			if (xpath[i+1] == '/' ||
+			    xpath[i+1] == 't' ||
+			    xpath[i+1] == 'n') {
+				g_string_append_c (acc, xpath[i+1]);
+				i += 1;
+				continue;
+			}
+		}
+
+		/* split */
+		if (xpath[i] == '/') {
+			if (acc->len == 0) {
+				g_set_error_literal (error,
+						     G_IO_ERROR,
+						     G_IO_ERROR_NOT_FOUND,
+						     "xpath section empty");
+				return NULL;
+			}
+			section = xb_silo_query_parse_section (self, acc->str, error);
+			if (section == NULL)
+				return NULL;
+			g_ptr_array_add (sections, section);
+			g_string_truncate (acc, 0);
+			continue;
+		}
+		g_string_append_c (acc, xpath[i]);
 	}
+
+	/* add any remaining section */
+	section = xb_silo_query_parse_section (self, acc->str, error);
+	if (section == NULL)
+		return NULL;
+	g_ptr_array_add (sections, section);
 	return g_steal_pointer (&sections);
 }
 
