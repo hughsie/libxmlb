@@ -809,7 +809,7 @@ xb_builder_node_func (void)
 					     "origin", "lvfs",
 					     NULL);
 	component = xb_builder_node_insert (components, "component", NULL);
-	xb_builder_node_add_attribute (component, "type", "desktop");
+	xb_builder_node_set_attr (component, "type", "desktop");
 	id = xb_builder_node_new ("id");
 	xb_builder_node_add_child (component, id);
 	xb_builder_node_set_text (id, "gimp.desktop", -1);

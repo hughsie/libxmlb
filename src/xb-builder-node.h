@@ -52,7 +52,7 @@ const gchar	*xb_builder_node_get_text	(XbBuilderNode		*self);
 void		 xb_builder_node_set_text	(XbBuilderNode		*self,
 						 const gchar		*text,
 						 gssize			 text_len);
-void		 xb_builder_node_add_attribute	(XbBuilderNode		*self,
+void		 xb_builder_node_set_attr	(XbBuilderNode		*self,
 						 const gchar		*name,
 						 const gchar		*value);
 void		 xb_builder_node_remove_attr	(XbBuilderNode		*self,

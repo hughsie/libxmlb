@@ -224,7 +224,7 @@ xb_builder_node_set_text (XbBuilderNode *self, const gchar *text, gssize text_le
 }
 
 /**
- * xb_builder_node_add_attribute:
+ * xb_builder_node_set_attr:
  * @self: a #XbBuilderNode
  * @name: attribute name, e.g. `type`
  * @value: attribute value, e.g. `desktop`
@@ -234,9 +234,25 @@ xb_builder_node_set_text (XbBuilderNode *self, const gchar *text, gssize text_le
  * Since: 0.1.0
  **/
 void
-xb_builder_node_add_attribute (XbBuilderNode *self, const gchar *name, const gchar *value)
+xb_builder_node_set_attr (XbBuilderNode *self, const gchar *name, const gchar *value)
 {
-	XbBuilderNodeAttr *a = g_slice_new0 (XbBuilderNodeAttr);
+	XbBuilderNodeAttr *a;
+
+	g_return_if_fail (XB_IS_BUILDER_NODE (self));
+	g_return_if_fail (name != NULL);
+
+	/* check for existing name */
+	for (guint i = 0; i < self->attrs->len; i++) {
+		a = g_ptr_array_index (self->attrs, i);
+		if (g_strcmp0 (a->name, name) == 0) {
+			g_free (a->value);
+			a->value = g_strdup (value);
+			return;
+		}
+	}
+
+	/* create new */
+	a = g_slice_new0 (XbBuilderNodeAttr);
 	a->name = g_strdup (name);
 	a->name_idx = XB_SILO_UNSET;
 	a->value = g_strdup (value);
@@ -460,7 +476,7 @@ xb_builder_node_insert (XbBuilderNode *parent, const gchar *element, ...)
 		value = va_arg (args, const gchar *);
 		if (value == NULL)
 			break;
-		xb_builder_node_add_attribute (self, key, value);
+		xb_builder_node_set_attr (self, key, value);
 	}
 	va_end (args);
 
@@ -505,7 +521,7 @@ xb_builder_node_insert_text (XbBuilderNode *parent,
 		value = va_arg (args, const gchar *);
 		if (value == NULL)
 			break;
-		xb_builder_node_add_attribute (self, key, value);
+		xb_builder_node_set_attr (self, key, value);
 	}
 	va_end (args);
 }

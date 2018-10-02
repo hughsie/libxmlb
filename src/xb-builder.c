@@ -121,7 +121,7 @@ xb_builder_compile_start_element_cb (GMarkupParseContext *context,
 	/* add attributes */
 	if (!xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA)) {
 		for (guint i = 0; attr_names[i] != NULL; i++)
-			xb_builder_node_add_attribute (bn, attr_names[i], attr_values[i]);
+			xb_builder_node_set_attr (bn, attr_names[i], attr_values[i]);
 	}
 	helper->current = g_node_append_data (helper->current, bn);
 }
