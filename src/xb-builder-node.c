@@ -82,6 +82,23 @@ xb_builder_node_get_element (XbBuilderNode *self)
 }
 
 /**
+ * xb_builder_node_set_element:
+ * @self: a #XbBuilderNode
+ * @element: a string element
+ *
+ * Sets the element name on the builder node.
+ *
+ * Since: 0.1.0
+ **/
+void
+xb_builder_node_set_element (XbBuilderNode *self, const gchar *element)
+{
+	g_return_if_fail (XB_IS_BUILDER_NODE (self));
+	g_free (self->element);
+	self->element = g_strdup (element);
+}
+
+/**
  * xb_builder_node_get_attribute:
  * @self: a #XbBuilderNode
  * @name: attribute name, e.g. `type`
