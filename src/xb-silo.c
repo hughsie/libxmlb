@@ -100,6 +100,8 @@ xb_silo_get_strtab (XbSilo *self)
 XbSiloNode *
 xb_silo_get_sroot (XbSilo *self)
 {
+	if (self->blob == NULL)
+		return NULL;
 	if (g_bytes_get_size (self->blob) <= sizeof(XbSiloHeader))
 		return NULL;
 	return xb_silo_get_node (self, sizeof(XbSiloHeader));

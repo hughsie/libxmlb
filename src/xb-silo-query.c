@@ -389,6 +389,13 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 		}
 	} else {
 		sn = xb_silo_get_sroot (self);
+		if (sn == NULL) {
+			g_set_error_literal (error,
+					     G_IO_ERROR,
+					     G_IO_ERROR_NOT_FOUND,
+					     "silo root not found");
+			return NULL;
+		}
 		/* assume it's just a root query */
 		if (xpath[0] == '/')
 			xpath++;
