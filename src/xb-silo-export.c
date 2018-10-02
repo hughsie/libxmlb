@@ -73,7 +73,6 @@ xb_silo_export_node (XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, G
 	while (xb_silo_get_node(self, helper->off)->is_node) {
 		XbSiloNode *child = xb_silo_get_node (self, helper->off);
 		helper->level++;
-		g_debug ("exporting level %u", helper->level);
 		if (!xb_silo_export_node (self, helper, child, error))
 			return FALSE;
 		helper->level--;
