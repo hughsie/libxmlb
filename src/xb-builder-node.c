@@ -245,6 +245,30 @@ xb_builder_node_add_attribute (XbBuilderNode *self, const gchar *name, const gch
 }
 
 /**
+ * xb_builder_node_remove_attr:
+ * @self: a #XbBuilderNode
+ * @name: attribute name, e.g. `type`
+ *
+ * Removes an attribute from the builder node.
+ *
+ * Since: 0.1.0
+ **/
+void
+xb_builder_node_remove_attr (XbBuilderNode *self, const gchar *name)
+{
+	g_return_if_fail (XB_IS_BUILDER_NODE (self));
+	g_return_if_fail (name != NULL);
+
+	for (guint i = 0; i < self->attrs->len; i++) {
+		XbBuilderNodeAttr *a = g_ptr_array_index (self->attrs, i);
+		if (g_strcmp0 (a->name, name) == 0) {
+			g_ptr_array_remove_index (self->attrs, i);
+			break;
+		}
+	}
+}
+
+/**
  * xb_builder_node_add_child:
  * @self: A XbBuilderNode
  * @child: A XbBuilderNode

@@ -55,6 +55,8 @@ void		 xb_builder_node_set_text	(XbBuilderNode		*self,
 void		 xb_builder_node_add_attribute	(XbBuilderNode		*self,
 						 const gchar		*name,
 						 const gchar		*value);
+void		 xb_builder_node_remove_attr	(XbBuilderNode		*self,
+						 const gchar		*name);
 void		 xb_builder_node_add_child	(XbBuilderNode		*self,
 						 XbBuilderNode		*child);
 GPtrArray	*xb_builder_node_get_children	(XbBuilderNode		*self);
