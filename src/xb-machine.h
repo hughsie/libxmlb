@@ -53,15 +53,18 @@ gboolean	 xb_machine_run			(XbMachine		*self,
 void		 xb_machine_add_opcode_fixup	(XbMachine		*self,
 						 const gchar		*opcodes_sig,
 						 XbMachineOpcodeFixupCb	 fixup_cb,
-						 gpointer		 user_data);
+						 gpointer		 user_data,
+						 GDestroyNotify		 user_data_free);
 void		 xb_machine_add_text_handler	(XbMachine		*self,
 						 XbMachineTextHandlerCb	 fixup_cb,
-						 gpointer		 user_data);
+						 gpointer		 user_data,
+						 GDestroyNotify		 user_data_free);
 void		 xb_machine_add_func		(XbMachine		*self,
 						 const gchar		*name,
 						 guint			 n_opcodes,
 						 XbMachineFuncCb	 func_cb,
-						 gpointer		 user_data);
+						 gpointer		 user_data,
+						 GDestroyNotify		 user_data_free);
 void		 xb_machine_add_operator	(XbMachine		*self,
 						 const gchar		*id,
 						 const gchar		*name);

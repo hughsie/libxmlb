@@ -736,23 +736,23 @@ xb_silo_init (XbSilo *self)
 
 	self->machine = xb_machine_new ();
 	xb_machine_add_func (self->machine, "attr", 1,
-			     xb_silo_machine_func_attr_cb, self);
+			     xb_silo_machine_func_attr_cb, self, NULL);
 	xb_machine_add_func (self->machine, "text", 0,
-			     xb_silo_machine_func_text_cb, self);
+			     xb_silo_machine_func_text_cb, self, NULL);
 	xb_machine_add_func (self->machine, "first", 0,
-			     xb_silo_machine_func_first_cb, self);
+			     xb_silo_machine_func_first_cb, self, NULL);
 	xb_machine_add_func (self->machine, "last", 0,
-			     xb_silo_machine_func_last_cb, self);
+			     xb_silo_machine_func_last_cb, self, NULL);
 	xb_machine_add_func (self->machine, "position", 0,
-			     xb_silo_machine_func_position_cb, self);
+			     xb_silo_machine_func_position_cb, self, NULL);
 	xb_machine_add_func (self->machine, "contains", 2,
-			     xb_silo_machine_func_contains_cb, self);
+			     xb_silo_machine_func_contains_cb, self, NULL);
 	xb_machine_add_opcode_fixup (self->machine, "INTE",
-				     xb_silo_machine_fixup_position_cb, self);
+				     xb_silo_machine_fixup_position_cb, self, NULL);
 	xb_machine_add_opcode_fixup (self->machine, "TEXT,FUNC:attr",
-				     xb_silo_machine_fixup_attr_exists_cb, self);
+				     xb_silo_machine_fixup_attr_exists_cb, self, NULL);
 	xb_machine_add_text_handler (self->machine,
-				     xb_silo_machine_fixup_attr_text_cb, self);
+				     xb_silo_machine_fixup_attr_text_cb, self, NULL);
 }
 
 static void

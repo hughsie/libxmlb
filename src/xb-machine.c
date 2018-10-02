@@ -36,11 +36,13 @@ typedef struct {
 typedef struct {
 	XbMachineOpcodeFixupCb	 fixup_cb;
 	gpointer		 user_data;
+	GDestroyNotify		 user_data_free;
 } XbMachineOpcodeFixup;
 
 typedef struct {
 	XbMachineTextHandlerCb	 handler_cb;
 	gpointer		 user_data;
+	GDestroyNotify		 user_data_free;
 } XbMachineTextHandler;
 
 typedef struct {
@@ -49,6 +51,7 @@ typedef struct {
 	guint			 n_opcodes;
 	XbMachineFuncCb		 func_cb;
 	gpointer		 user_data;
+	GDestroyNotify		 user_data_free;
 } XbMachineFunc;
 
 /**
@@ -102,7 +105,8 @@ xb_machine_add_operator (XbMachine *self, const gchar *str, const gchar *name)
  * @name: function name, e.g. `contains`
  * @n_opcodes: minimum number of opcodes requried on the stack
  * @func_cb: function to call
- * @user_data: user pointer to pass to @func_cb
+ * @user_data: user pointer to pass to @func_cb, or %NULL
+ * @user_data_free: a function which gets called to free @user_data, or %NULL
  *
  * Adds a new function to the virtual machine. Registered functions can then be
  * used as methods.
@@ -117,7 +121,8 @@ xb_machine_add_func (XbMachine *self,
 		     const gchar *name,
 		     guint n_opcodes,
 		     XbMachineFuncCb func_cb,
-		     gpointer user_data)
+		     gpointer user_data,
+		     GDestroyNotify user_data_free)
 {
 	XbMachineFunc *func;
 
@@ -131,6 +136,7 @@ xb_machine_add_func (XbMachine *self,
 	func->n_opcodes = n_opcodes;
 	func->func_cb = func_cb;
 	func->user_data = user_data;
+	func->user_data_free = user_data_free;
 	g_ptr_array_add (self->funcs, func);
 }
 
@@ -140,6 +146,7 @@ xb_machine_add_func (XbMachine *self,
  * @opcodes_sig: signature, e.g. `INTE,TEXT`
  * @fixup_cb: callback
  * @user_data: user pointer to pass to @fixup_cb
+ * @user_data_free: a function which gets called to free @user_data, or %NULL
  *
  * Adds an opcode fixup. Fixups can be used to optimize the stack of opcodes or
  * to add support for a nonstandard feature, for instance supporting missing
@@ -151,11 +158,13 @@ void
 xb_machine_add_opcode_fixup (XbMachine *self,
 			     const gchar *opcodes_sig,
 			     XbMachineOpcodeFixupCb fixup_cb,
-			     gpointer user_data)
+			     gpointer user_data,
+			     GDestroyNotify user_data_free)
 {
 	XbMachineOpcodeFixup *fixup = g_slice_new0 (XbMachineOpcodeFixup);
 	fixup->fixup_cb = fixup_cb;
 	fixup->user_data = user_data;
+	fixup->user_data_free = user_data_free;
 	g_hash_table_insert (self->opcode_fixup, g_strdup (opcodes_sig), fixup);
 }
 
@@ -164,6 +173,7 @@ xb_machine_add_opcode_fixup (XbMachine *self,
  * @self: a #XbMachine
  * @handler_cb: callback
  * @user_data: user pointer to pass to @handler_cb
+ * @user_data_free: a function which gets called to free @user_data, or %NULL
  *
  * Adds a text handler. This allows the virtual machine to support nonstandard
  * encoding or shorthand mnemonics for standard functions.
@@ -171,11 +181,13 @@ xb_machine_add_opcode_fixup (XbMachine *self,
 void
 xb_machine_add_text_handler (XbMachine *self,
 			     XbMachineTextHandlerCb handler_cb,
-			     gpointer user_data)
+			     gpointer user_data,
+			     GDestroyNotify user_data_free)
 {
-	XbMachineTextHandler *handler = g_new0 (XbMachineTextHandler, 1);
+	XbMachineTextHandler *handler = g_slice_new0 (XbMachineTextHandler);
 	handler->handler_cb = handler_cb;
 	handler->user_data = user_data;
+	handler->user_data_free = user_data_free;
 	g_ptr_array_add (self->text_handlers, handler);
 }
 
@@ -1109,14 +1121,26 @@ xb_machine_func_ge_cb (XbMachine *self,
 static void
 xb_machine_opcode_fixup_free (XbMachineOpcodeFixup *fixup)
 {
+	if (fixup->user_data_free != NULL)
+		fixup->user_data_free (fixup->user_data);
 	g_slice_free (XbMachineOpcodeFixup, fixup);
 }
 
 static void
 xb_machine_func_free (XbMachineFunc *func)
 {
+	if (func->user_data_free != NULL)
+		func->user_data_free (func->user_data);
 	g_free (func->name);
 	g_slice_free (XbMachineFunc, func);
+}
+
+static void
+xb_machine_text_handler_free (XbMachineTextHandler *handler)
+{
+	if (handler->user_data_free != NULL)
+		handler->user_data_free (handler->user_data);
+	g_slice_free (XbMachineTextHandler, handler);
 }
 
 static void
@@ -1133,19 +1157,19 @@ xb_machine_init (XbMachine *self)
 	self->stack = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_opcode_unref);
 	self->funcs = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_func_free);
 	self->operators = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_operator_free);
-	self->text_handlers = g_ptr_array_new_with_free_func ((GDestroyNotify) g_free);
+	self->text_handlers = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_text_handler_free);
 	self->opcode_fixup = g_hash_table_new_full (g_str_hash, g_str_equal,
 						     g_free, (GDestroyNotify) xb_machine_opcode_fixup_free);
 
 	/* build-in functions */
-	xb_machine_add_func (self, "eq", 2, xb_machine_func_eq_cb, NULL);
-	xb_machine_add_func (self, "ne", 2, xb_machine_func_ne_cb, NULL);
-	xb_machine_add_func (self, "lt", 2, xb_machine_func_lt_cb, NULL);
-	xb_machine_add_func (self, "gt", 2, xb_machine_func_gt_cb, NULL);
-	xb_machine_add_func (self, "le", 2, xb_machine_func_le_cb, NULL);
-	xb_machine_add_func (self, "ge", 2, xb_machine_func_ge_cb, NULL);
-	xb_machine_add_func (self, "lower-case", 1, xb_machine_func_lower_cb, NULL);
-	xb_machine_add_func (self, "upper-case", 1, xb_machine_func_upper_cb, NULL);
+	xb_machine_add_func (self, "eq", 2, xb_machine_func_eq_cb, NULL, NULL);
+	xb_machine_add_func (self, "ne", 2, xb_machine_func_ne_cb, NULL, NULL);
+	xb_machine_add_func (self, "lt", 2, xb_machine_func_lt_cb, NULL, NULL);
+	xb_machine_add_func (self, "gt", 2, xb_machine_func_gt_cb, NULL, NULL);
+	xb_machine_add_func (self, "le", 2, xb_machine_func_le_cb, NULL, NULL);
+	xb_machine_add_func (self, "ge", 2, xb_machine_func_ge_cb, NULL, NULL);
+	xb_machine_add_func (self, "lower-case", 1, xb_machine_func_lower_cb, NULL, NULL);
+	xb_machine_add_func (self, "upper-case", 1, xb_machine_func_upper_cb, NULL, NULL);
 
 	/* built-in operators */
 	xb_machine_add_operator (self, "!=", "ne");
