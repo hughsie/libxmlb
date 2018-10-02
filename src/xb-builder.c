@@ -20,6 +20,7 @@ struct _XbBuilder {
 	GObject			 parent_instance;
 	GPtrArray		*imports;	/* of XbBuilderImport */
 	GPtrArray		*nodes;		/* of XbBuilderNode */
+	GPtrArray		*node_items;	/* of XbBuilderNodeFuncItem */
 	GPtrArray		*locales;	/* of str */
 	XbSilo			*silo;
 	GString			*guid;
@@ -28,6 +29,12 @@ struct _XbBuilder {
 G_DEFINE_TYPE (XbBuilder, xb_builder, G_TYPE_OBJECT)
 
 #define XB_SILO_APPENDBUF(str,data,sz)	g_string_append_len(str,(const gchar *)data, sz);
+
+typedef struct {
+	XbBuilderNodeFunc		 func;
+	gpointer			 user_data;
+	GDestroyNotify			 user_data_free;
+} XbBuilderNodeFuncItem;
 
 typedef struct {
 	GNode			*root;
@@ -174,6 +181,35 @@ xb_builder_compile_text_cb (GMarkupParseContext *context,
 	if (helper->flags & XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT)
 		xb_builder_node_add_flag (bn, XB_BUILDER_NODE_FLAG_LITERAL_TEXT);
 	xb_builder_node_set_text (bn, text, text_len);
+}
+
+/**
+ * xb_builder_add_node_func:
+ * @self: a #XbBuilderImport
+ * @func: a callback
+ * @user_data: user pointer to pass to @func, or %NULL
+ * @user_data_free: a function which gets called to free @user_data, or %NULL
+ *
+ * Adds a function that will get run on every #XbBuilderNode compile creates.
+ *
+ * Since: 0.1.0
+ **/
+void
+xb_builder_add_node_func (XbBuilder *self,
+			  XbBuilderNodeFunc func,
+			  gpointer user_data,
+			  GDestroyNotify user_data_free)
+{
+	XbBuilderNodeFuncItem *item;
+
+	g_return_if_fail (XB_IS_BUILDER (self));
+	g_return_if_fail (func != NULL);
+
+	item = g_slice_new0 (XbBuilderNodeFuncItem);
+	item->func = func;
+	item->user_data = user_data;
+	item->user_data_free = user_data_free;
+	g_ptr_array_add (self->node_items, item);
 }
 
 /**
@@ -699,6 +735,68 @@ xb_builder_add_locale (XbBuilder *self, const gchar *locale)
 	xb_builder_append_guid (self, locale);
 }
 
+typedef struct {
+	XbBuilder	*self;
+	gboolean	 ret;
+	GError		*error;
+} XbBuilderNodeFuncHelper;
+
+static gboolean
+xb_builder_node_func_cb (GNode *n, gpointer data)
+{
+	XbBuilderNode *bn = n->data;
+	XbBuilderNodeFuncHelper *helper = (XbBuilderNodeFuncHelper *) data;
+
+	/* root node */
+	if (bn == NULL)
+		return FALSE;
+
+	for (guint i = 0; i < helper->self->node_items->len; i++) {
+		XbBuilderNodeFuncItem *item = g_ptr_array_index (helper->self->node_items, i);
+		if (!item->func (helper->self, bn, item->user_data, &helper->error)) {
+			helper->ret = FALSE;
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+static gboolean
+xb_builder_node_func_call (XbBuilder *self, GNode *n, GError **error)
+{
+	XbBuilderNodeFuncHelper helper = {
+		.self = self,
+		.ret = TRUE,
+		.error = NULL,
+	};
+
+	/* call the builder node vfuncs */
+	g_node_traverse (n, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
+			 xb_builder_node_func_cb, &helper);
+	if (!helper.ret) {
+		g_propagate_error (error, helper.error);
+		return FALSE;
+	}
+	return TRUE;
+}
+
+static gboolean
+xb_builder_compile_fix_children_cb (GNode *n, gpointer user_data)
+{
+	XbBuilderNode *bn = n->data;
+
+	/* root node */
+	if (bn == NULL)
+		return FALSE;
+
+	/* add children from the node tree as children of the builder node */
+	for (GNode *c = n->children; c != NULL; c = c->next) {
+		XbBuilderNode *bc = c->data;
+		xb_builder_node_add_child (bn, bc);
+	}
+	return FALSE;
+}
+
 /**
  * xb_builder_compile:
  * @self: a #XbSilo
@@ -779,6 +877,14 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 			return NULL;
 		}
 	}
+
+	/* set up the child pointers in the builder nodes */
+	g_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
+			 xb_builder_compile_fix_children_cb, NULL);
+
+	/* run any node functions */
+	if (!xb_builder_node_func_call (self, helper->root, error))
+		return NULL;
 
 	/* only include the highest priority translation */
 	if (flags & XB_BUILDER_COMPILE_FLAG_SINGLE_LANG) {
@@ -936,6 +1042,14 @@ xb_builder_append_guid (XbBuilder *self, const gchar *guid)
 }
 
 static void
+xb_builder_node_func_free (XbBuilderNodeFuncItem *item)
+{
+	if (item->user_data_free != NULL)
+		item->user_data_free (item->user_data);
+	g_slice_free (XbBuilderNodeFuncItem, item);
+}
+
+static void
 xb_builder_finalize (GObject *obj)
 {
 	XbBuilder *self = XB_BUILDER (obj);
@@ -943,6 +1057,7 @@ xb_builder_finalize (GObject *obj)
 	g_ptr_array_unref (self->imports);
 	g_ptr_array_unref (self->nodes);
 	g_ptr_array_unref (self->locales);
+	g_ptr_array_unref (self->node_items);
 	g_object_unref (self->silo);
 	g_string_free (self->guid, TRUE);
 
@@ -961,6 +1076,7 @@ xb_builder_init (XbBuilder *self)
 {
 	self->imports = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	self->nodes = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+	self->node_items = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_builder_node_func_free);
 	self->locales = g_ptr_array_new_with_free_func (g_free);
 	self->silo = xb_silo_new ();
 	self->guid = g_string_new (NULL);

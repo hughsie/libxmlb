@@ -224,6 +224,63 @@ xb_builder_ensure_func (void)
 	g_assert_nonnull (silo);
 }
 
+static gboolean
+xb_builder_upgrade_appstream_cb (XbBuilder *self, XbBuilderNode *bn, gpointer user_data, GError **error)
+{
+	if (g_strcmp0 (xb_builder_node_get_element (bn), "application") == 0) {
+		GPtrArray *children = xb_builder_node_get_children (bn);
+		g_autofree gchar *kind = NULL;
+		for (guint i = 0; i < children->len; i++) {
+			XbBuilderNode *bc = g_ptr_array_index (children, i);
+			if (g_strcmp0 (xb_builder_node_get_element (bc), "id") == 0) {
+				kind = g_strdup (xb_builder_node_get_attribute (bc, "type"));
+				xb_builder_node_remove_attr (bc, "type");
+				break;
+			}
+		}
+		if (kind != NULL)
+			xb_builder_node_set_attr (bn, "type", kind);
+		xb_builder_node_set_element (bn, "component");
+	} else if (g_strcmp0 (xb_builder_node_get_element (bn), "metadata") == 0) {
+		xb_builder_node_set_element (bn, "custom");
+	}
+	return TRUE;
+}
+
+static void
+xb_builder_node_vfunc_func (void)
+{
+	gboolean ret;
+	g_autofree gchar *xml2 = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbSilo) silo = NULL;
+	const gchar *xml =
+		"  <application>\n"
+		"    <id type=\"desktop\">gimp.desktop</id>\n"
+		"  </application>\n";
+
+	/* import some XML */
+	ret = xb_builder_import_xml (builder, xml, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	xb_builder_add_node_func (builder, xb_builder_upgrade_appstream_cb, NULL, NULL);
+	silo = xb_builder_compile (builder,
+				   XB_BUILDER_COMPILE_FLAG_NONE,
+				   NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* check the XML */
+	xml2 = xb_silo_export (silo, XB_NODE_EXPORT_FLAG_NONE, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (xml2);
+	g_print ("%s\n", xml2);
+	g_assert_cmpstr ("<component type=\"desktop\">"
+			 "<id>gimp.desktop</id>"
+			 "</component>", ==, xml2);
+}
+
 static void
 xb_builder_empty_func (void)
 {
@@ -1010,6 +1067,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/builder{native-lang-nested}", xb_builder_native_lang2_func);
 	g_test_add_func ("/libxmlb/builder{empty}", xb_builder_empty_func);
 	g_test_add_func ("/libxmlb/builder{ensure}", xb_builder_ensure_func);
+	g_test_add_func ("/libxmlb/builder{node-vfunc}", xb_builder_node_vfunc_func);
 	g_test_add_func ("/libxmlb/builder-node", xb_builder_node_func);
 	g_test_add_func ("/libxmlb/builder-node{info}", xb_builder_node_info_func);
 	g_test_add_func ("/libxmlb/xpath", xb_xpath_func);

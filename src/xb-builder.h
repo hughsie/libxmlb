@@ -38,6 +38,11 @@ typedef enum {
 	XB_BUILDER_COMPILE_FLAG_LAST
 } XbBuilderCompileFlags;
 
+typedef gboolean (*XbBuilderNodeFunc)		(XbBuilder		*self,
+						 XbBuilderNode		*bn,
+						 gpointer		 user_data,
+						 GError			**error);
+
 XbBuilder	*xb_builder_new			(void);
 void		 xb_builder_append_guid		(XbBuilder		*self,
 						 const gchar		*guid);
@@ -56,6 +61,10 @@ gboolean	 xb_builder_import_file		(XbBuilder		*self,
 						 XbBuilderNode		*info,
 						 GCancellable		*cancellable,
 						 GError			**error);
+void		 xb_builder_add_node_func	(XbBuilder		*self,
+						 XbBuilderNodeFunc	 func,
+						 gpointer		 user_data,
+						 GDestroyNotify		 user_data_free);
 XbSilo		*xb_builder_compile		(XbBuilder		*self,
 						 XbBuilderCompileFlags	 flags,
 						 GCancellable		*cancellable,
