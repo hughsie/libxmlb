@@ -101,8 +101,3 @@ value. Predicates are always embedded in square brackets.
 | `/bookstore/book[price>35.00]` | Returns the books with a price greater than 35 | ✖ |
 | `/bookstore/book[price>35.00]/title` | Returns the titles that have a price greater than 35 | ✖ |
 | `/bookstore/book/title[text()='Learning XML']` | Returns the book node with matching content | ✔ |
-
-TODO
-====
-
-* Only store the best language -- not any found in langs
