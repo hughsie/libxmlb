@@ -16,6 +16,41 @@
 #include "xb-silo-private.h"
 #include "xb-silo-query.h"
 
+static GMainLoop *_test_loop = NULL;
+static guint _test_loop_timeout_id = 0;
+
+static gboolean
+xb_test_hang_check_cb (gpointer user_data)
+{
+	g_main_loop_quit (_test_loop);
+	_test_loop_timeout_id = 0;
+	return G_SOURCE_REMOVE;
+}
+
+static void
+xb_test_loop_run_with_timeout (guint timeout_ms)
+{
+	g_assert (_test_loop_timeout_id == 0);
+	g_assert (_test_loop == NULL);
+	_test_loop = g_main_loop_new (NULL, FALSE);
+	_test_loop_timeout_id = g_timeout_add (timeout_ms, xb_test_hang_check_cb, NULL);
+	g_main_loop_run (_test_loop);
+}
+
+static void
+xb_test_loop_quit (void)
+{
+	if (_test_loop_timeout_id > 0) {
+		g_source_remove (_test_loop_timeout_id);
+		_test_loop_timeout_id = 0;
+	}
+	if (_test_loop != NULL) {
+		g_main_loop_quit (_test_loop);
+		g_main_loop_unref (_test_loop);
+		_test_loop = NULL;
+	}
+}
+
 static void
 xb_predicate_func (void)
 {
@@ -119,6 +154,7 @@ xb_builder_func (void)
 	silo = xb_silo_new_from_xml (xml, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);
+	g_assert_true (xb_silo_is_valid (silo));
 
 	/* convert back to XML */
 	str = xb_silo_to_string (silo, &error);
@@ -140,9 +176,18 @@ xb_builder_func (void)
 }
 
 static void
+xb_builder_ensure_invalidate_cb (XbSilo *silo, GParamSpec *pspec, gpointer user_data)
+{
+	guint *invalidate_cnt = (guint *) user_data;
+	(*invalidate_cnt)++;
+	xb_test_loop_quit ();
+}
+
+static void
 xb_builder_ensure_func (void)
 {
 	gboolean ret;
+	guint invalidate_cnt = 0;
 	g_autoptr(GBytes) bytes1 = NULL;
 	g_autoptr(GBytes) bytes2 = NULL;
 	g_autoptr(GBytes) bytes3 = NULL;
@@ -180,23 +225,32 @@ xb_builder_ensure_func (void)
 	file = g_file_new_for_path ("/tmp/temp.xmlb");
 	g_file_delete (file, NULL, NULL);
 	silo = xb_builder_ensure (builder, file,
-				  XB_BUILDER_COMPILE_FLAG_NONE,
+				  XB_BUILDER_COMPILE_FLAG_WATCH_BLOB,
 				  NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);
+	g_signal_connect (silo, "notify::valid",
+			  G_CALLBACK (xb_builder_ensure_invalidate_cb),
+			  &invalidate_cnt);
+	g_assert_cmpint (invalidate_cnt, ==, 0);
 	bytes1 = xb_silo_get_bytes (silo);
-	g_clear_object (&silo);
 
 	/* recreate file if it is invalid */
 	ret = g_file_replace_contents (file, "dave", 4, NULL, FALSE,
 				       G_FILE_CREATE_NONE, NULL, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
+	xb_test_loop_run_with_timeout (2000);
+	g_assert_false (xb_silo_is_valid (silo));
+	g_assert_cmpint (invalidate_cnt, ==, 1);
+
+	g_clear_object (&silo);
 	silo = xb_builder_ensure (builder, file,
 				  XB_BUILDER_COMPILE_FLAG_NONE,
 				  NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);
+	g_assert_true (xb_silo_is_valid (silo));
 	bytes2 = xb_silo_get_bytes (silo);
 	g_assert (bytes1 != bytes2);
 	g_clear_object (&silo);
@@ -207,6 +261,7 @@ xb_builder_ensure_func (void)
 				  NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);
+	g_assert_true (xb_silo_is_valid (silo));
 	bytes3 = xb_silo_get_bytes (silo);
 	g_assert (bytes2 == bytes3);
 	g_clear_object (&silo);
@@ -302,6 +357,7 @@ xb_builder_empty_func (void)
 	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);
+	g_assert_true (xb_silo_is_valid (silo));
 
 	/* check size */
 	bytes = xb_silo_get_bytes (silo);

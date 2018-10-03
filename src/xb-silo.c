@@ -23,6 +23,7 @@ struct _XbSilo
 	GObject			 parent_instance;
 	GMappedFile		*mmap;
 	gchar			*guid;
+	gboolean		 valid;
 	GBytes			*blob;
 	const guint8		*data;	/* pointers into ->blob */
 	guint32			 datasz;
@@ -30,10 +31,23 @@ struct _XbSilo
 	GHashTable		*strtab_tags;
 	GHashTable		*nodes;
 	GMutex			 nodes_mutex;
+	GHashTable		*file_monitors;	/* of fn:XbSiloFileMonitorItem */
 	XbMachine		*machine;
 };
 
+typedef struct {
+	GFileMonitor		*file_monitor;
+	gulong			 file_monitor_id;
+} XbSiloFileMonitorItem;
+
 G_DEFINE_TYPE (XbSilo, xb_silo, G_TYPE_OBJECT)
+
+enum {
+	PROP_0,
+	PROP_GUID,
+	PROP_VALID,
+	PROP_LAST
+};
 
 /* private */
 const gchar *
@@ -297,6 +311,34 @@ xb_silo_get_size (XbSilo *self)
 	return nodes_cnt;
 }
 
+/**
+ * xb_silo_is_valid:
+ * @self: a #XbSilo
+ *
+ * Checks is the silo is valid. THe usual reason the silo is invalidated is
+ * when the backing mmapped file has changed, or one of the imported files have
+ * been modified.
+ *
+ * Returns: %TRUE
+ *
+ * Since: 0.1.0
+ **/
+gboolean
+xb_silo_is_valid (XbSilo *self)
+{
+	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
+	return self->valid;
+}
+
+void
+xb_silo_invalidate (XbSilo *self)
+{
+	if (!self->valid)
+		return;
+	self->valid = FALSE;
+	g_object_notify (G_OBJECT (self), "valid");
+}
+
 /* private */
 guint
 xb_silo_node_get_depth (XbSilo *self, XbSiloNode *n)
@@ -382,6 +424,7 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 	g_return_val_if_fail (locker != NULL, FALSE);
 
 	/* no longer valid */
+	g_hash_table_remove_all (self->file_monitors);
 	g_hash_table_remove_all (self->nodes);
 	g_hash_table_remove_all (self->strtab_tags);
 	g_clear_pointer (&self->guid, g_free);
@@ -454,6 +497,51 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 	}
 
 	/* success */
+	self->valid = TRUE;
+	return TRUE;
+}
+
+static void
+xb_silo_file_monitor_cb (GFileMonitor *monitor,
+			 GFile *file,
+			 GFile *other_file,
+			 GFileMonitorEvent event_type,
+			 gpointer user_data)
+{
+	XbSilo *silo = XB_SILO (user_data);
+	g_autofree gchar *fn = g_file_get_path (file);
+	g_debug ("%s changed, invalidating", fn);
+	xb_silo_invalidate (silo);
+}
+
+gboolean
+xb_silo_file_monitor_add (XbSilo *self,
+			  GFile *file,
+			  GCancellable *cancellable,
+			  GError **error)
+{
+	XbSiloFileMonitorItem *item;
+	g_autofree gchar *fn = g_file_get_path (file);
+	g_autoptr(GFileMonitor) file_monitor = NULL;
+
+	/* already exists */
+	item = g_hash_table_lookup (self->file_monitors, fn);
+	if (item != NULL)
+		return TRUE;
+
+	/* try to create */
+	file_monitor = g_file_monitor_file (file, G_FILE_MONITOR_NONE,
+					    cancellable, error);
+	if (file_monitor == NULL)
+		return FALSE;
+	g_file_monitor_set_rate_limit (file_monitor, 20);
+
+	/* add */
+	item = g_slice_new0 (XbSiloFileMonitorItem);
+	item->file_monitor = g_object_ref (file_monitor);
+	item->file_monitor_id = g_signal_connect (file_monitor, "changed",
+						  G_CALLBACK (xb_silo_file_monitor_cb), self);
+	g_hash_table_insert (self->file_monitors, g_steal_pointer (&fn), item);
 	return TRUE;
 }
 
@@ -484,12 +572,28 @@ xb_silo_load_from_file (XbSilo *self,
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
+	/* no longer valid */
+	g_hash_table_remove_all (self->file_monitors);
+	g_hash_table_remove_all (self->nodes);
+	g_hash_table_remove_all (self->strtab_tags);
+	g_clear_pointer (&self->guid, g_free);
+
 	fn = g_file_get_path (file);
 	self->mmap = g_mapped_file_new (fn, FALSE, error);
 	if (self->mmap == NULL)
 		return FALSE;
 	blob = g_mapped_file_get_bytes (self->mmap);
-	return xb_silo_load_from_bytes (self, blob, flags, error);
+	if (!xb_silo_load_from_bytes (self, blob, flags, error))
+		return FALSE;
+
+	/* watch file for changes */
+	if (flags & XB_SILO_LOAD_FLAG_WATCH_BLOB) {
+		if (!xb_silo_file_monitor_add (self, file, cancellable, error))
+			return FALSE;
+	}
+
+	/* success */
+	return TRUE;
 }
 
 /**
@@ -738,8 +842,50 @@ xb_silo_machine_fixup_attr_text_cb (XbMachine *self,
 }
 
 static void
+xb_silo_file_monitor_item_free (XbSiloFileMonitorItem *item)
+{
+	g_signal_handler_disconnect (item->file_monitor, item->file_monitor_id);
+	g_object_unref (item->file_monitor);
+	g_slice_free (XbSiloFileMonitorItem, item);
+}
+
+static void
+xb_silo_get_property (GObject *obj, guint prop_id, GValue *value, GParamSpec *pspec)
+{
+	XbSilo *self = XB_SILO (obj);
+	switch (prop_id) {
+	case PROP_GUID:
+		g_value_set_string (value, self->guid);
+		break;
+	case PROP_VALID:
+		g_value_set_boolean (value, self->valid);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (obj, prop_id, pspec);
+		break;
+	}
+}
+
+static void
+xb_silo_set_property (GObject *obj, guint prop_id, const GValue *value, GParamSpec *pspec)
+{
+	XbSilo *self = XB_SILO (obj);
+	switch (prop_id) {
+	case PROP_GUID:
+		g_free (self->guid);
+		self->guid = g_value_dup_string (value);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (obj, prop_id, pspec);
+		break;
+	}
+}
+
+static void
 xb_silo_init (XbSilo *self)
 {
+	self->file_monitors = g_hash_table_new_full (g_str_hash, g_str_equal,
+						     g_free, (GDestroyNotify) xb_silo_file_monitor_item_free);
 	self->nodes = g_hash_table_new_full (g_direct_hash, g_direct_equal,
 					     NULL, (GDestroyNotify) g_object_unref);
 	self->strtab_tags = g_hash_table_new (g_str_hash, g_str_equal);
@@ -776,6 +922,7 @@ xb_silo_finalize (GObject *obj)
 
 	g_free (self->guid);
 	g_object_unref (self->machine);
+	g_hash_table_unref (self->file_monitors);
 	g_hash_table_unref (self->nodes);
 	g_hash_table_unref (self->strtab_tags);
 	if (self->mmap != NULL)
@@ -788,8 +935,25 @@ xb_silo_finalize (GObject *obj)
 static void
 xb_silo_class_init (XbSiloClass *klass)
 {
+	GParamSpec *pspec;
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = xb_silo_finalize;
+	object_class->get_property = xb_silo_get_property;
+	object_class->set_property = xb_silo_set_property;
+
+	/**
+	 * XbSilo:guid:
+	 */
+	pspec = g_param_spec_string ("guid", NULL, NULL, NULL,
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+	g_object_class_install_property (object_class, PROP_GUID, pspec);
+
+	/**
+	 * XbSilo:allow-cancel:
+	 */
+	pspec = g_param_spec_boolean ("valid", NULL, NULL, TRUE,
+				      G_PARAM_READABLE);
+	g_object_class_install_property (object_class, PROP_VALID, pspec);
 }
 
 /**

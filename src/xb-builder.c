@@ -982,6 +982,7 @@ XbSilo *
 xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 		   GCancellable *cancellable, GError **error)
 {
+	XbSiloLoadFlags load_flags = XB_SILO_LOAD_FLAG_NONE;
 	g_autofree gchar *fn = NULL;
 	g_autoptr(XbSilo) silo_tmp = xb_silo_new ();
 	g_autoptr(XbSilo) silo_new = NULL;
@@ -990,11 +991,15 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 	g_return_val_if_fail (XB_IS_BUILDER (self), NULL);
 	g_return_val_if_fail (G_IS_FILE (file), NULL);
 
+	/* watch the blob, so propagate flags */
+	if (flags & XB_BUILDER_COMPILE_FLAG_WATCH_BLOB)
+		load_flags |= XB_SILO_LOAD_FLAG_WATCH_BLOB;
+
 	/* load the file and peek at the GUIDs */
 	fn = g_file_get_path (file);
 	g_debug ("attempting to load %s", fn);
 	if (!xb_silo_load_from_file (silo_tmp, file,
-				     XB_SILO_LOAD_FLAG_NONE,
+				     load_flags,
 				     cancellable,
 				     &error_local)) {
 		g_debug ("failed to load silo: %s", error_local->message);
@@ -1028,6 +1033,14 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 		return NULL;
 	if (!xb_silo_save_to_file (silo_new, file, NULL, error))
 		return NULL;
+
+	/* watch blob for changes */
+	if (flags & XB_BUILDER_COMPILE_FLAG_WATCH_BLOB) {
+		if (!xb_silo_file_monitor_add (silo_new, file, cancellable, error))
+			return FALSE;
+	}
+
+	/* success */
 	return g_steal_pointer (&silo_new);
 }
 

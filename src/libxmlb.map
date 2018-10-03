@@ -62,6 +62,7 @@ LIBXMLB_0.1.0 {
     xb_silo_get_root;
     xb_silo_get_size;
     xb_silo_get_type;
+    xb_silo_is_valid;
     xb_silo_load_from_bytes;
     xb_silo_load_from_file;
     xb_silo_new;

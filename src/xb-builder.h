@@ -26,6 +26,7 @@ G_DECLARE_FINAL_TYPE (XbBuilder, xb_builder, XB, BUILDER, GObject)
  * @XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS:	Only load native languages
  * @XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID:	Ignore invalid files without an error
  * @XB_BUILDER_COMPILE_FLAG_SINGLE_LANG:	Only store a single language
+ * @XB_BUILDER_COMPILE_FLAG_WATCH_BLOB:		Watch the XMLB file for changes
  *
  * The flags for converting to XML.
  **/
@@ -35,6 +36,7 @@ typedef enum {
 	XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS	= 1 << 1,	/* Since: 0.1.0 */
 	XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID	= 1 << 2,	/* Since: 0.1.0 */
 	XB_BUILDER_COMPILE_FLAG_SINGLE_LANG	= 1 << 3,	/* Since: 0.1.0 */
+	XB_BUILDER_COMPILE_FLAG_WATCH_BLOB	= 1 << 4,	/* Since: 0.1.0 */
 	/*< private >*/
 	XB_BUILDER_COMPILE_FLAG_LAST
 } XbBuilderCompileFlags;
