@@ -42,7 +42,6 @@ typedef struct {
 	XbBuilderCompileFlags	 flags;
 	GHashTable		*strtab_hash;
 	GString			*strtab;
-	XbBuilderNode		*info;
 	GPtrArray		*locales;
 } XbBuilderCompileHelper;
 
@@ -140,13 +139,6 @@ xb_builder_compile_end_element_cb (GMarkupParseContext *context,
 				  GError             **error)
 {
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *) user_data;
-
-	/* add info to root element to allow querying later */
-	if (helper->current->parent == helper->root && helper->info != NULL) {
-		g_debug ("adding info to root node");
-		xb_builder_compile_node_tree (helper->current, helper->info);
-	}
-
 	helper->current = helper->current->parent;
 }
 
@@ -336,22 +328,25 @@ xb_builder_import_file (XbBuilder *self,
 static gboolean
 xb_builder_compile_import (XbBuilderCompileHelper *helper,
 			   XbBuilderImport *import,
+			   GNode *root,
 			   GCancellable *cancellable,
 			   GError **error)
 {
 	GInputStream *istream = xb_builder_import_get_istream (import);
 	gsize chunk_size = 32 * 1024;
 	gssize len;
+	XbBuilderNode *info;
 	g_autofree gchar *data = NULL;
 	g_autoptr(GMarkupParseContext) ctx = NULL;
+	g_autoptr(GNode) root_tmp = g_node_new (NULL);
 	const GMarkupParser parser = {
 		xb_builder_compile_start_element_cb,
 		xb_builder_compile_end_element_cb,
 		xb_builder_compile_text_cb,
 		NULL, NULL };
 
-	/* this is something we can query with later */
-	helper->info = xb_builder_import_get_info (import);
+	/* add the import to a fake root in case it fails during processing */
+	helper->current = root_tmp;
 
 	/* parse */
 	ctx = g_markup_parse_context_new (&parser, G_MARKUP_PREFIX_ERROR_POSITION, helper, NULL);
@@ -368,12 +363,24 @@ xb_builder_compile_import (XbBuilderCompileHelper *helper,
 		return FALSE;
 
 	/* more opening than closing */
-	if (helper->root != helper->current) {
+	if (root_tmp != helper->current) {
 		g_set_error_literal (error,
 				     G_IO_ERROR,
 				     G_IO_ERROR_INVALID_DATA,
 				     "Mismatched XML");
 		return FALSE;
+	}
+
+	/* add any manually built nodes */
+	/* this is something we can query with later */
+	info = xb_builder_import_get_info (import);
+	if (info != NULL)
+		xb_builder_compile_node_tree (helper->current->children, info);
+
+	/* add this to the main document */
+	for (GNode *c = root_tmp->children; c != NULL; c = c->next) {
+		g_node_unlink (c);
+		g_node_append (root, c);
 	}
 
 	/* success */
@@ -872,14 +879,34 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 
 	/* build node tree */
 	for (guint i = 0; i < self->imports->len; i++) {
+		GNode *root = NULL;
 		XbBuilderImport *import = g_ptr_array_index (self->imports, i);
 		g_autoptr(GError) error_local = NULL;
 
-		/* don't allow damaged XML files to ruin all the next ones */
-		helper->current = helper->root;
+		/* find, or create the prefix */
+		if (xb_builder_import_get_prefix (import) != NULL) {
+			for (GNode *c = helper->root->children; c != NULL; c = c->next) {
+				XbBuilderNode *bn = c->data;
+				if (g_strcmp0 (xb_builder_node_get_element (bn),
+					       xb_builder_import_get_prefix (import)) == 0) {
+					root = c;
+					break;
+				}
+			}
+
+			/* not found, so create */
+			if (root == NULL) {
+				XbBuilderNode *bn = xb_builder_node_new (xb_builder_import_get_prefix (import));
+				root = g_node_insert_data (helper->root, -1, bn);
+			}
+		} else {
+			/* don't allow damaged XML files to ruin all the next ones */
+			root = helper->root;
+		}
 
 		g_debug ("compiling %s…", xb_builder_import_get_guid (import));
-		if (!xb_builder_compile_import (helper, import, cancellable, &error_local)) {
+		if (!xb_builder_compile_import (helper, import, root,
+						cancellable, &error_local)) {
 			if (flags & XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID) {
 				g_debug ("ignoring invalid file %s: %s",
 					 xb_builder_import_get_guid (import),

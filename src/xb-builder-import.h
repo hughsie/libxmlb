@@ -24,6 +24,8 @@ XbBuilderImport	*xb_builder_import_new_xml	(const gchar		*xml,
 						 GError			**error);
 void		 xb_builder_import_set_info	(XbBuilderImport	*self,
 						 XbBuilderNode		*info);
+void		 xb_builder_import_set_prefix	(XbBuilderImport	*self,
+						 const gchar		*prefix);
 
 G_END_DECLS
 

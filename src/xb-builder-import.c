@@ -18,6 +18,7 @@ struct _XbBuilderImport {
 	GInputStream		*istream;
 	XbBuilderNode		*info;
 	gchar			*guid;
+	gchar			*prefix;
 };
 
 G_DEFINE_TYPE (XbBuilderImport, xb_builder_import, G_TYPE_OBJECT)
@@ -103,6 +104,24 @@ xb_builder_import_set_info (XbBuilderImport *self, XbBuilderNode *info)
 }
 
 /**
+ * xb_builder_import_set_prefix:
+ * @self: a #XbBuilderImport
+ * @prefix: (allow-none): an XPath prefix, e.g. `installed`
+ *
+ * Sets an optional prefix on the root import node. This makes any nodes added
+ * using this import reside under a common shared parent node.
+ *
+ * Since: 0.1.0
+ **/
+void
+xb_builder_import_set_prefix (XbBuilderImport *self, const gchar *prefix)
+{
+	g_return_if_fail (XB_IS_BUILDER_IMPORT (self));
+	g_free (self->prefix);
+	self->prefix = g_strdup (prefix);
+}
+
+/**
  * xb_builder_import_new_xml:
  * @xml: XML data
  * @error: the #GError, or %NULL
@@ -141,6 +160,13 @@ xb_builder_import_get_guid (XbBuilderImport *self)
 	return self->guid;
 }
 
+const gchar *
+xb_builder_import_get_prefix (XbBuilderImport *self)
+{
+	g_return_val_if_fail (XB_IS_BUILDER_IMPORT (self), NULL);
+	return self->prefix;
+}
+
 XbBuilderNode *
 xb_builder_import_get_info (XbBuilderImport *self)
 {
@@ -165,6 +191,7 @@ xb_builder_import_finalize (GObject *obj)
 	if (self->info != NULL)
 		g_object_unref (self->info);
 	g_free (self->guid);
+	g_free (self->prefix);
 
 	G_OBJECT_CLASS (xb_builder_import_parent_class)->finalize (obj);
 }

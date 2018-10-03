@@ -922,18 +922,20 @@ xb_builder_node_info_func (void)
 	g_assert_no_error (error);
 	g_assert_nonnull (import1);
 	xb_builder_import_set_info (import1, info1);
+	xb_builder_import_set_prefix (import1, "local");
 	xb_builder_import (builder, import1);
 	import2 = xb_builder_import_new_file (file, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (import2);
 	xb_builder_import_set_info (import2, info2);
+	xb_builder_import_set_prefix (import2, "local");
 	xb_builder_import (builder, import2);
 	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);
 
 	/* get info */
-	n = xb_silo_query_first (silo, "component/id[text()='dave']/../info/scope", &error);
+	n = xb_silo_query_first (silo, "local/component/id[text()='dave']/../info/scope", &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (n);
 	g_assert_cmpstr (xb_node_get_text (n), ==, "user");
@@ -942,7 +944,8 @@ xb_builder_node_info_func (void)
 	xml = xb_silo_export (silo, XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (xml);
-	g_assert_cmpstr ("<component>"
+	g_assert_cmpstr ("<local>"
+			 "<component>"
 			 "<id type=\"desktop\">dave</id>"
 			 "<info>"
 			 "<scope>user</scope>"
@@ -953,7 +956,9 @@ xb_builder_node_info_func (void)
 			 "<info>"
 			 "<scope>system</scope>"
 			 "</info>"
-			 "</component>", ==, xml);
+			 "</component>"
+			 "</local>"
+			 , ==, xml);
 }
 
 static void
