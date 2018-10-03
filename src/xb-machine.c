@@ -205,7 +205,6 @@ xb_machine_find_func (XbMachine *self, const gchar *func_name)
  * xb_machine_opcode_func_new:
  * @self: a #XbMachine
  * @func_name: function name, e.g. `eq`
- * @error: a #GError, or %NULL
  *
  * Creates a new opcode for a registered function. Some standard opcodes are
  * registered by default, for instance `eq` or `ge`. Other opcodes have to be
@@ -590,7 +589,6 @@ xb_machine_opcode_to_string (XbMachine *self, XbOpcode *opcode)
  * xb_machine_opcodes_to_string:
  * @self: a #XbMachine
  * @opcodes: (element-type XbOpcode): opcodes
- * @error: a #GError, or %NULL
  *
  * Returns a string representing a set of opcodes.
  *
