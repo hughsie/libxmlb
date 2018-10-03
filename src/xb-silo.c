@@ -29,6 +29,7 @@ struct _XbSilo
 	guint32			 strtab;
 	GHashTable		*strtab_tags;
 	GHashTable		*nodes;
+	GMutex			 nodes_mutex;
 	XbMachine		*machine;
 	XbSiloCurrent		 current;
 };
@@ -375,6 +376,7 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 	gsize sz = 0;
 	gchar guid[UUID_STR_LEN] = { '\0' };
 	guint32 off = 0;
+	g_autoptr(GMutexLocker) locker = g_mutex_locker_new (&self->nodes_mutex);
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (blob != NULL, FALSE);
@@ -567,6 +569,7 @@ XbNode *
 xb_silo_node_create (XbSilo *self, XbSiloNode *sn)
 {
 	XbNode *n;
+	g_autoptr(GMutexLocker) locker = g_mutex_locker_new (&self->nodes_mutex);
 
 	/* does already exist */
 	n = g_hash_table_lookup (self->nodes, sn);
@@ -742,6 +745,8 @@ xb_silo_init (XbSilo *self)
 					     NULL, (GDestroyNotify) g_object_unref);
 	self->strtab_tags = g_hash_table_new (g_str_hash, g_str_equal);
 
+	g_mutex_init (&self->nodes_mutex);
+
 	self->machine = xb_machine_new ();
 	xb_machine_add_func (self->machine, "attr", 1,
 			     xb_silo_machine_func_attr_cb, self, NULL);
@@ -767,6 +772,9 @@ static void
 xb_silo_finalize (GObject *obj)
 {
 	XbSilo *self = XB_SILO (obj);
+
+	g_mutex_clear (&self->nodes_mutex);
+
 	g_free (self->guid);
 	g_object_unref (self->machine);
 	g_hash_table_unref (self->nodes);
