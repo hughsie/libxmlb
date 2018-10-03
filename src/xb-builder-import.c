@@ -25,7 +25,6 @@ G_DEFINE_TYPE (XbBuilderImport, xb_builder_import, G_TYPE_OBJECT)
 /**
  * xb_builder_import_new_file:
  * @file: a #GFile
- * @info: (allow-none): a #XbBuilderNode
  * @cancellable: a #GCancellable, or %NULL
  * @error: the #GError, or %NULL
  *
@@ -36,10 +35,7 @@ G_DEFINE_TYPE (XbBuilderImport, xb_builder_import, G_TYPE_OBJECT)
  * Since: 0.1.0
  **/
 XbBuilderImport *
-xb_builder_import_new_file (GFile *file,
-			    XbBuilderNode *info,
-			    GCancellable *cancellable,
-			    GError **error)
+xb_builder_import_new_file (GFile *file, GCancellable *cancellable, GError **error)
 {
 	const gchar *content_type = NULL;
 	guint64 mtime;
@@ -63,10 +59,6 @@ xb_builder_import_new_file (GFile *file,
 				      error);
 	if (fileinfo == NULL)
 		return FALSE;
-
-	/* store info */
-	if (info != NULL)
-		self->info = g_object_ref (info);
 
 	/* add data to GUID */
 	fn = g_file_get_path (file);
@@ -92,6 +84,22 @@ xb_builder_import_new_file (GFile *file,
 
 	/* success */
 	return g_steal_pointer (&self);
+}
+
+/**
+ * xb_builder_import_set_info:
+ * @self: a #XbBuilderImport
+ * @info: (allow-none): a #XbBuilderNode
+ *
+ * Sets an optional information metadata node on the root import node.
+ *
+ * Since: 0.1.0
+ **/
+void
+xb_builder_import_set_info (XbBuilderImport *self, XbBuilderNode *info)
+{
+	g_return_if_fail (XB_IS_BUILDER_IMPORT (self));
+	g_set_object (&self->info, info);
 }
 
 /**

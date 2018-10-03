@@ -11,9 +11,11 @@ LIBXMLB_0.1.0 {
     xb_builder_import;
     xb_builder_import_dir;
     xb_builder_import_file;
+    xb_builder_import_get_type;
     xb_builder_import_new_file;
     xb_builder_import_new_xml;
     xb_builder_import_node;
+    xb_builder_import_set_info;
     xb_builder_import_xml;
     xb_builder_new;
     xb_builder_node_add_child;

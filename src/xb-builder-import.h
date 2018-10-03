@@ -18,11 +18,12 @@ G_BEGIN_DECLS
 G_DECLARE_FINAL_TYPE (XbBuilderImport, xb_builder_import, XB, BUILDER_IMPORT, GObject)
 
 XbBuilderImport	*xb_builder_import_new_file	(GFile			*file,
-						 XbBuilderNode		*info,
 						 GCancellable		*cancellable,
 						 GError			**error);
 XbBuilderImport	*xb_builder_import_new_xml	(const gchar		*xml,
 						 GError			**error);
+void		 xb_builder_import_set_info	(XbBuilderImport	*self,
+						 XbBuilderNode		*info);
 
 G_END_DECLS
 

@@ -264,7 +264,6 @@ xb_builder_import_xml (XbBuilder *self, const gchar *xml, GError **error)
  * xb_builder_import_dir:
  * @self: a #XbSilo
  * @path: a directory path
- * @info: (allow-none): a #XbBuilderNode
  * @cancellable: a #GCancellable, or %NULL
  * @error: the #GError, or %NULL
  *
@@ -277,7 +276,6 @@ xb_builder_import_xml (XbBuilder *self, const gchar *xml, GError **error)
 gboolean
 xb_builder_import_dir (XbBuilder *self,
 		       const gchar *path,
-		       XbBuilderNode *info,
 		       GCancellable *cancellable,
 		       GError **error)
 {
@@ -290,7 +288,7 @@ xb_builder_import_dir (XbBuilder *self,
 		    g_str_has_suffix (fn, ".xml.gz")) {
 			g_autofree gchar *filename = g_build_filename (path, fn, NULL);
 			g_autoptr(GFile) file = g_file_new_for_path (filename);
-			if (!xb_builder_import_file (self, file, info, cancellable, error))
+			if (!xb_builder_import_file (self, file, cancellable, error))
 				return FALSE;
 		}
 	}
@@ -301,11 +299,14 @@ xb_builder_import_dir (XbBuilder *self,
  * xb_builder_import_file:
  * @self: a #XbSilo
  * @file: a #GFile
- * @info: (allow-none): a #XbBuilderNode
  * @cancellable: a #GCancellable, or %NULL
  * @error: the #GError, or %NULL
  *
  * Adds an optionally compressed XML file to build a #XbSilo.
+ *
+ * If extra metadata is required on the import, create it manually using
+ * xb_builder_import_new_file(), calling xb_builder_import_set_info() and then
+ * xb_builder_import().
  *
  * Returns: %TRUE for success, otherwise @error is set.
  *
@@ -314,7 +315,6 @@ xb_builder_import_dir (XbBuilder *self,
 gboolean
 xb_builder_import_file (XbBuilder *self,
 			GFile *file,
-			XbBuilderNode *info,
 			GCancellable *cancellable,
 			GError **error)
 {
@@ -324,7 +324,7 @@ xb_builder_import_file (XbBuilder *self,
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
 	/* add import */
-	import = xb_builder_import_new_file (file, info, cancellable, error);
+	import = xb_builder_import_new_file (file, cancellable, error);
 	if (import == NULL)
 		return FALSE;
 

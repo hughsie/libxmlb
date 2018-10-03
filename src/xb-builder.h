@@ -56,12 +56,10 @@ gboolean	 xb_builder_import_xml		(XbBuilder		*self,
 						 GError			**error);
 gboolean	 xb_builder_import_dir		(XbBuilder		*self,
 						 const gchar		*path,
-						 XbBuilderNode		*info,
 						 GCancellable		*cancellable,
 						 GError			**error);
 gboolean	 xb_builder_import_file		(XbBuilder		*self,
 						 GFile			*file,
-						 XbBuilderNode		*info,
 						 GCancellable		*cancellable,
 						 GError			**error);
 void		 xb_builder_add_node_func	(XbBuilder		*self,

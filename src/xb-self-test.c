@@ -898,6 +898,8 @@ xb_builder_node_info_func (void)
 	gboolean ret;
 	g_autofree gchar *xml = NULL;
 	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilderImport) import1 = NULL;
+	g_autoptr(XbBuilderImport) import2 = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
 	g_autoptr(XbNode) n = NULL;
 	g_autoptr(XbBuilderNode) info1 = NULL;
@@ -916,12 +918,16 @@ xb_builder_node_info_func (void)
 
 	/* import the doc */
 	file = g_file_new_for_path (fn);
-	ret = xb_builder_import_file (builder, file, info1, NULL, &error);
+	import1 = xb_builder_import_new_file (file, NULL, &error);
 	g_assert_no_error (error);
-	g_assert_true (ret);
-	ret = xb_builder_import_file (builder, file, info2, NULL, &error);
+	g_assert_nonnull (import1);
+	xb_builder_import_set_info (import1, info1);
+	xb_builder_import (builder, import1);
+	import2 = xb_builder_import_new_file (file, NULL, &error);
 	g_assert_no_error (error);
-	g_assert_true (ret);
+	g_assert_nonnull (import2);
+	xb_builder_import_set_info (import2, info2);
+	xb_builder_import (builder, import2);
 	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);
