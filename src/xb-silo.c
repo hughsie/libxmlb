@@ -31,7 +31,6 @@ struct _XbSilo
 	GHashTable		*nodes;
 	GMutex			 nodes_mutex;
 	XbMachine		*machine;
-	XbSiloCurrent		 current;
 };
 
 G_DEFINE_TYPE (XbSilo, xb_silo, G_TYPE_OBJECT)
@@ -380,6 +379,7 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (blob != NULL, FALSE);
+	g_return_val_if_fail (locker != NULL, FALSE);
 
 	/* no longer valid */
 	g_hash_table_remove_all (self->nodes);
@@ -571,6 +571,8 @@ xb_silo_node_create (XbSilo *self, XbSiloNode *sn)
 	XbNode *n;
 	g_autoptr(GMutexLocker) locker = g_mutex_locker_new (&self->nodes_mutex);
 
+	g_return_val_if_fail (locker != NULL, NULL);
+
 	/* does already exist */
 	n = g_hash_table_lookup (self->nodes, sn);
 	if (n != NULL)
@@ -611,14 +613,15 @@ xb_silo_machine_func_attr_cb (XbMachine *self,
 			      GPtrArray *stack,
 			      gboolean *result,
 			      gpointer user_data,
+			      gpointer exec_data,
 			      GError **error)
 {
 	XbSilo *silo = XB_SILO (user_data);
-	XbSiloCurrent *current = xb_silo_get_current (silo);
+	XbSiloQueryData *query_data = (XbSiloQueryData *) exec_data;
 	g_autoptr(XbOpcode) op = xb_machine_stack_pop (self, stack);
 	const gchar *tmp = xb_opcode_get_str (op);
 	xb_machine_stack_push_text_static (self, stack,
-					   xb_silo_node_get_attr (silo, current->sn, tmp));
+					   xb_silo_node_get_attr (silo, query_data->sn, tmp));
 	return TRUE;
 }
 
@@ -627,12 +630,13 @@ xb_silo_machine_func_text_cb (XbMachine *self,
 			      GPtrArray *stack,
 			      gboolean *result,
 			      gpointer user_data,
+			      gpointer exec_data,
 			      GError **error)
 {
 	XbSilo *silo = XB_SILO (user_data);
-	XbSiloCurrent *current = xb_silo_get_current (silo);
+	XbSiloQueryData *query_data = (XbSiloQueryData *) exec_data;
 	xb_machine_stack_push_text_static (self, stack,
-					   xb_silo_node_get_text (silo, current->sn));
+					   xb_silo_node_get_text (silo, query_data->sn));
 	return TRUE;
 }
 
@@ -641,11 +645,11 @@ xb_silo_machine_func_first_cb (XbMachine *self,
 			       GPtrArray *stack,
 			       gboolean *result,
 			       gpointer user_data,
+			       gpointer exec_data,
 			       GError **error)
 {
-	XbSilo *silo = XB_SILO (user_data);
-	XbSiloCurrent *current = xb_silo_get_current (silo);
-	*result = *current->position == 1;
+	XbSiloQueryData *query_data = (XbSiloQueryData *) exec_data;
+	*result = query_data->position == 1;
 	return TRUE;
 }
 
@@ -654,11 +658,11 @@ xb_silo_machine_func_last_cb (XbMachine *self,
 			      GPtrArray *stack,
 			      gboolean *result,
 			      gpointer user_data,
+			      gpointer exec_data,
 			      GError **error)
 {
-	XbSilo *silo = XB_SILO (user_data);
-	XbSiloCurrent *current = xb_silo_get_current (silo);
-	*result = current->sn->next == 0;
+	XbSiloQueryData *query_data = (XbSiloQueryData *) exec_data;
+	*result = query_data->sn->next == 0;
 	return TRUE;
 }
 
@@ -667,11 +671,11 @@ xb_silo_machine_func_position_cb (XbMachine *self,
 				  GPtrArray *stack,
 				  gboolean *result,
 				  gpointer user_data,
+				  gpointer exec_data,
 				  GError **error)
 {
-	XbSilo *silo = XB_SILO (user_data);
-	XbSiloCurrent *current = xb_silo_get_current (silo);
-	xb_machine_stack_push_integer (self, stack, *current->position);
+	XbSiloQueryData *query_data = (XbSiloQueryData *) exec_data;
+	xb_machine_stack_push_integer (self, stack, query_data->position);
 	return TRUE;
 }
 
@@ -680,6 +684,7 @@ xb_silo_machine_func_contains_cb (XbMachine *self,
 				  GPtrArray *stack,
 				  gboolean *result,
 				  gpointer user_data,
+				  gpointer exec_data,
 				  GError **error)
 {
 	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
@@ -730,12 +735,6 @@ xb_silo_machine_fixup_attr_text_cb (XbMachine *self,
 
 	/* not us */
 	return TRUE;
-}
-
-XbSiloCurrent *
-xb_silo_get_current (XbSilo *self)
-{
-	return &self->current;
 }
 
 static void

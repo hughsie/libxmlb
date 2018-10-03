@@ -335,7 +335,10 @@ xb_node_get_depth (XbNode *self)
  *
  * Searches the silo using an XPath query, returning up to @limit results.
  *
- * Important note: Only a tiny subset of XPath 1.0 is supported.
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbSilo.
+ *
+ * Please note: Only a subset of XPath is supported.
  *
  * Returns: (transfer container) (element-type XbNode): results, or %NULL if unfound
  *
@@ -405,7 +408,10 @@ xb_node_query_first (XbNode *self, const gchar *xpath, GError **error)
  *
  * Searches the node using an XPath query, returning up to one result.
  *
- * Please note: Only a tiny subset of XPath 1.0 is supported.
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbSilo.
+ *
+ * Please note: Only a subset of XPath is supported.
  *
  * Returns: (transfer none): a string, or %NULL if unfound
  *
@@ -443,7 +449,10 @@ xb_node_query_text (XbNode *self, const gchar *xpath, GError **error)
  *
  * Searches the node using an XPath query, returning up to one result.
  *
- * Please note: Only a tiny subset of XPath 1.0 is supported.
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbSilo.
+ *
+ * Please note: Only a subset of XPath is supported.
  *
  * Returns: (transfer none): a string, or %NULL if unfound
  *
@@ -481,7 +490,10 @@ xb_node_query_attr (XbNode *self, const gchar *xpath, const gchar *name, GError 
  * Searches the node using an XPath query, returning an XML string of the
  * result and any children.
  *
- * Please note: Only a tiny subset of XPath 1.0 is supported.
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbSilo.
+ *
+ * Please note: Only a subset of XPath is supported.
  *
  * Returns: (transfer none): a string, or %NULL if unfound
  *
@@ -509,7 +521,10 @@ xb_node_query_export (XbNode *self, const gchar *xpath, GError **error)
  *
  * Searches the node using an XPath query, returning up to one result.
  *
- * Please note: Only a tiny subset of XPath 1.0 is supported.
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbSilo.
+ *
+ * Please note: Only a subset of XPath is supported.
  *
  * Returns: a guint64, or %G_MAXUINT64 if unfound
  *
@@ -538,7 +553,10 @@ xb_node_query_text_as_uint (XbNode *self, const gchar *xpath, GError **error)
  *
  * Searches the node using an XPath query, returning up to one result.
  *
- * Please note: Only a tiny subset of XPath 1.0 is supported.
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbSilo.
+ *
+ * Please note: Only a subset of XPath is supported.
  *
  * Returns: a guint64, or %G_MAXUINT64 if unfound
  *

@@ -170,7 +170,7 @@ xb_silo_query_node_matches (XbSilo *self,
 			    XbMachine *machine,
 			    XbSiloNode *sn,
 			    XbSiloQuerySection *section,
-			    guint *position,
+			    XbSiloQueryData *query_data,
 			    gboolean *result,
 			    GError **error)
 {
@@ -187,13 +187,13 @@ xb_silo_query_node_matches (XbSilo *self,
 	}
 
 	/* for section */
-	*position += 1;
+	query_data->position += 1;
 
 	/* check predicates */
 	if (section->predicates != NULL) {
 		for (guint i = 0; i < section->predicates->len; i++) {
 			GPtrArray *opcodes = g_ptr_array_index (section->predicates, i);
-			if (!xb_machine_run (machine, opcodes, result, error))
+			if (!xb_machine_run (machine, opcodes, result, query_data, error))
 				return FALSE;
 		}
 	}
@@ -207,6 +207,7 @@ typedef struct {
 	GPtrArray	*results;	/* of XbNode */
 	GHashTable	*results_hash;	/* of sn:1 */
 	guint		 limit;
+	XbSiloQueryData	*query_data;
 } XbSiloQueryHelper;
 
 static gboolean
@@ -231,12 +232,11 @@ xb_silo_query_section_root (XbSilo *self,
 			    GError **error)
 {
 	XbMachine *machine = xb_silo_get_machine (self);
-	XbSiloCurrent *current = xb_silo_get_current (self);
+	XbSiloQueryData *query_data = helper->query_data;
 	XbSiloQuerySection *section = g_ptr_array_index (helper->sections, i);
-	guint position = 0;
 
 	/* set up level pointer */
-	current->position = &position;
+	query_data->position = 0;
 
 	/* handle parent */
 	if (section->kind == XB_SILO_QUERY_KIND_PARENT) {
@@ -291,8 +291,9 @@ xb_silo_query_section_root (XbSilo *self,
 	/* save the parent so we can support ".." */
 	do {
 		gboolean result = TRUE;
-		current->sn = sn;
-		if (!xb_silo_query_node_matches (self, machine, sn, section, &position, &result, error))
+		query_data->sn = sn;
+		if (!xb_silo_query_node_matches (self, machine, sn, section,
+						 query_data, &result, error))
 			return FALSE;
 		if (result) {
 			if (i == helper->sections->len - 1) {
@@ -323,6 +324,7 @@ xb_silo_query_part (XbSilo *self,
 		    GHashTable *results_hash,
 		    const gchar *xpath,
 		    guint limit,
+		    XbSiloQueryData *query_data,
 		    GError **error)
 {
 	g_autoptr(GPtrArray) sections = NULL;
@@ -330,6 +332,7 @@ xb_silo_query_part (XbSilo *self,
 		.results = results,
 		.limit = limit,
 		.results_hash = results_hash,
+		.query_data = query_data,
 	};
 
 	/* handle each section */
@@ -360,7 +363,10 @@ xb_silo_query_part (XbSilo *self,
  *
  * Searches the silo using an XPath query, returning up to @limit results.
  *
- * Important note: Only a tiny subset of XPath 1.0 is supported.
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbSilo.
+ *
+ * Please note: Only a subset of XPath is supported.
  *
  * Returns: (transfer container) (element-type XbNode): results, or %NULL if unfound
  *
@@ -373,6 +379,10 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 	g_auto(GStrv) split = NULL;
 	g_autoptr(GHashTable) results_hash = g_hash_table_new (g_direct_hash, g_direct_equal);
 	g_autoptr(GPtrArray) results = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+	XbSiloQueryData query_data = {
+		.sn = NULL,
+		.position = 0,
+	};
 
 	g_return_val_if_fail (XB_IS_SILO (self), NULL);
 	g_return_val_if_fail (xpath != NULL, NULL);
@@ -413,7 +423,10 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 	/* do 'or' searches */
 	split = g_strsplit (xpath, "|", -1);
 	for (guint i = 0; split[i] != NULL; i++) {
-		if (!xb_silo_query_part (self, sn, results, results_hash, split[i], limit, error))
+		if (!xb_silo_query_part (self, sn,
+					 results, results_hash,
+					 split[i], limit, &query_data,
+					 error))
 			return NULL;
 	}
 
@@ -439,7 +452,10 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
  *
  * Searches the silo using an XPath query, returning up to @limit results.
  *
- * Important note: Only a tiny subset of XPath 1.0 is supported.
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbSilo.
+ *
+ * Please note: Only a subset of XPath is supported.
  *
  * Returns: (transfer container) (element-type XbNode): results, or %NULL if unfound
  *
@@ -460,6 +476,9 @@ xb_silo_query (XbSilo *self, const gchar *xpath, guint limit, GError **error)
  * @error: the #GError, or %NULL
  *
  * Searches the silo using an XPath query, returning up to one result.
+ *
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbSilo.
  *
  * Please note: Only a tiny subset of XPath 1.0 is supported.
  *

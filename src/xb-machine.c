@@ -526,7 +526,12 @@ xb_machine_debug_show_stack (XbMachine *self, GPtrArray *stack)
 }
 
 static gboolean
-xb_machine_run_func (XbMachine *self, GPtrArray *stack, XbOpcode *opcode, gboolean *result, GError **error)
+xb_machine_run_func (XbMachine *self,
+		     GPtrArray *stack,
+		     XbOpcode *opcode,
+		     gboolean *result,
+		     gpointer exec_data,
+		     GError **error)
 {
 	XbMachineFunc *func = g_ptr_array_index (self->funcs, xb_opcode_get_val (opcode));
 
@@ -546,7 +551,7 @@ xb_machine_run_func (XbMachine *self, GPtrArray *stack, XbOpcode *opcode, gboole
 			     func->n_opcodes, stack->len);
 		return FALSE;
 	}
-	if (!func->func_cb (self, stack, result, func->user_data, error)) {
+	if (!func->func_cb (self, stack, result, func->user_data, exec_data, error)) {
 		g_prefix_error (error, "failed to call %s(): ", func->name);
 		return FALSE;
 	}
@@ -614,6 +619,7 @@ xb_machine_opcodes_to_string (XbMachine *self, GPtrArray *opcodes)
  * @self: a #XbMachine
  * @opcodes: (element-type XbOpcode): opcodes
  * @result: (out): return status after running @opcodes
+ * @exec_data: per-run user data that is passed to all the XbMachineFuncCb functions
  * @error: a #GError, or %NULL
  *
  * Runs a set of opcodes on the virtual machine.
@@ -627,6 +633,7 @@ gboolean
 xb_machine_run (XbMachine *self,
 		GPtrArray *opcodes,
 		gboolean *result,
+		gpointer exec_data,
 		GError **error)
 {
 	g_autoptr(GPtrArray) stack = NULL;
@@ -650,7 +657,12 @@ xb_machine_run (XbMachine *self,
 
 		/* process the stack */
 		if (kind == XB_OPCODE_KIND_FUNCTION) {
-			if (!xb_machine_run_func (self, stack, opcode, result, error))
+			if (!xb_machine_run_func (self,
+						  stack,
+						  opcode,
+						  result,
+						  exec_data,
+						  error))
 				return FALSE;
 			if (*result == FALSE)
 				return TRUE;
@@ -805,6 +817,7 @@ xb_machine_func_eq_cb (XbMachine *self,
 		       GPtrArray *stack,
 		       gboolean *result,
 		       gpointer user_data,
+		       gpointer exec_data,
 		       GError **error)
 {
 	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
@@ -857,6 +870,7 @@ xb_machine_func_ne_cb (XbMachine *self,
 		       GPtrArray *stack,
 		       gboolean *result,
 		       gpointer user_data,
+		       gpointer exec_data,
 		       GError **error)
 {
 	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
@@ -909,6 +923,7 @@ xb_machine_func_lt_cb (XbMachine *self,
 		       GPtrArray *stack,
 		       gboolean *result,
 		       gpointer user_data,
+		       gpointer exec_data,
 		       GError **error)
 {
 	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
@@ -960,6 +975,7 @@ xb_machine_func_gt_cb (XbMachine *self,
 		       GPtrArray *stack,
 		       gboolean *result,
 		       gpointer user_data,
+		       gpointer exec_data,
 		       GError **error)
 {
 	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
@@ -1012,6 +1028,7 @@ xb_machine_func_le_cb (XbMachine *self,
 		       GPtrArray *stack,
 		       gboolean *result,
 		       gpointer user_data,
+		       gpointer exec_data,
 		       GError **error)
 {
 	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
@@ -1064,6 +1081,7 @@ xb_machine_func_lower_cb (XbMachine *self,
 			  GPtrArray *stack,
 			  gboolean *result,
 			  gpointer user_data,
+			  gpointer exec_data,
 			  GError **error)
 {
 	g_autoptr(XbOpcode) op = xb_machine_stack_pop (self, stack);
@@ -1077,6 +1095,7 @@ xb_machine_func_upper_cb (XbMachine *self,
 			  GPtrArray *stack,
 			  gboolean *result,
 			  gpointer user_data,
+			  gpointer exec_data,
 			  GError **error)
 {
 	g_autoptr(XbOpcode) op = xb_machine_stack_pop (self, stack);
@@ -1090,6 +1109,7 @@ xb_machine_func_ge_cb (XbMachine *self,
 		       GPtrArray *stack,
 		       gboolean *result,
 		       gpointer user_data,
+		       gpointer exec_data,
 		       GError **error)
 {
 	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);

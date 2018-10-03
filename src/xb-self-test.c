@@ -951,6 +951,65 @@ xb_builder_node_info_func (void)
 }
 
 static void
+xb_threading_cb (gpointer data, gpointer user_data)
+{
+	XbSilo *silo = XB_SILO (user_data);
+	gint i = g_random_int_range (0, 50);
+	g_autofree gchar *xpath = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(GPtrArray) components = NULL;
+
+	/* do query */
+	xpath = g_strdup_printf ("components/component/id[text()='%06i.firmware']", i);
+	components = xb_silo_query (silo, xpath, 0, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (components);
+	g_assert_cmpint (components->len, ==, 1);
+	g_print (".");
+}
+
+static void
+xb_threading_func (void)
+{
+	GThreadPool *pool;
+	gboolean ret;
+	guint n_components = 10000;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(GString) xml = g_string_new (NULL);
+	g_autoptr(XbSilo) silo = NULL;
+
+	/* create a huge document */
+	g_string_append (xml, "<components>");
+	for (guint i = 0; i < n_components; i++) {
+		g_string_append (xml, "<component>");
+		g_string_append_printf (xml, "  <id>%06u.firmware</id>", i);
+		g_string_append (xml, "  <name>ColorHug2</name>");
+		g_string_append (xml, "  <summary>Firmware</summary>");
+		g_string_append (xml, "  <description><p>New features!</p></description>");
+		g_string_append (xml, "</component>");
+	}
+	g_string_append (xml, "</components>");
+
+	/* import from XML */
+	silo = xb_silo_new_from_xml (xml->str, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* create thread pool */
+	pool = g_thread_pool_new (xb_threading_cb, silo, 20, TRUE, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (pool);
+
+	/* run threads */
+	for (guint i = 0; i < 100; i++) {
+		ret = g_thread_pool_push (pool, &i, &error);
+		g_assert_no_error (error);
+		g_assert_true (ret);
+	}
+	g_thread_pool_free (pool, FALSE, TRUE);
+}
+
+static void
 xb_speed_func (void)
 {
 	XbNode *n;
@@ -1077,6 +1136,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/xpath-glob", xb_xpath_glob_func);
 	g_test_add_func ("/libxmlb/xpath-node", xb_xpath_node_func);
 	g_test_add_func ("/libxmlb/multiple-roots", xb_builder_multiple_roots_func);
+	g_test_add_func ("/libxmlb/threading", xb_threading_func);
 	g_test_add_func ("/libxmlb/speed", xb_speed_func);
 	return g_test_run ();
 }

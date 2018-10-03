@@ -36,6 +36,7 @@ typedef gboolean (*XbMachineTextHandlerCb)	(XbMachine		*self,
 typedef gboolean (*XbMachineFuncCb)		(XbMachine		*self,
 						 GPtrArray		*stack,
 						 gboolean		*result,
+						 gpointer		 exec_data,
 						 gpointer		 user_data,
 						 GError			**error);
 
@@ -49,6 +50,7 @@ GPtrArray	*xb_machine_parse		(XbMachine		*self,
 gboolean	 xb_machine_run			(XbMachine		*self,
 						 GPtrArray		*opcodes,
 						 gboolean		*result,
+						 gpointer		 exec_data,
 						 GError			**error);
 
 void		 xb_machine_add_opcode_fixup	(XbMachine		*self,

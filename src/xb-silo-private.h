@@ -49,8 +49,8 @@ typedef struct __attribute__ ((packed)) {
 
 typedef struct {
 	XbSiloNode	*sn;
-	guint		*position;
-} XbSiloCurrent;
+	guint		 position;
+} XbSiloQueryData;
 
 const gchar	*xb_silo_from_strtab		(XbSilo		*self,
 						 guint32	 offset);
@@ -84,7 +84,6 @@ guint		 xb_silo_node_get_depth		(XbSilo		*self,
 						 XbSiloNode	*n);
 XbNode		*xb_silo_node_create		(XbSilo		*self,
 						 XbSiloNode	*sn);
-XbSiloCurrent	*xb_silo_get_current		(XbSilo		*self);
 
 // FIXME xb-silo-export-private.h?
 gchar		*xb_silo_export_with_root	(XbSilo		*self,
