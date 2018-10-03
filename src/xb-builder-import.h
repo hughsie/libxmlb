@@ -23,9 +23,6 @@ XbBuilderImport	*xb_builder_import_new_file	(GFile			*file,
 						 GError			**error);
 XbBuilderImport	*xb_builder_import_new_xml	(const gchar		*xml,
 						 GError			**error);
-XbBuilderNode	*xb_builder_import_get_info	(XbBuilderImport	*self);
-const gchar	*xb_builder_import_get_guid	(XbBuilderImport	*self);
-GInputStream	*xb_builder_import_get_istream	(XbBuilderImport	*self);
 
 G_END_DECLS
 

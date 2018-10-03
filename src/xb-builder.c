@@ -13,7 +13,7 @@
 
 #include "xb-silo-private.h"
 #include "xb-builder.h"
-#include "xb-builder-import.h"
+#include "xb-builder-import-private.h"
 #include "xb-builder-node-private.h"
 
 struct _XbBuilder {
@@ -213,6 +213,24 @@ xb_builder_add_node_func (XbBuilder *self,
 }
 
 /**
+ * xb_builder_import:
+ * @self: a #XbSilo
+ * @import: a #XbBuilderImport
+ *
+ * Adds a #XbBuilderImport to the #XbBuilder.
+ *
+ * Since: 0.1.0
+ **/
+void
+xb_builder_import (XbBuilder *self, XbBuilderImport *import)
+{
+	g_return_if_fail (XB_IS_BUILDER (self));
+	g_return_if_fail (XB_IS_BUILDER_IMPORT (import));
+	xb_builder_append_guid (self, xb_builder_import_get_guid (import));
+	g_ptr_array_add (self->imports, g_object_ref (import));
+}
+
+/**
  * xb_builder_import_xml:
  * @self: a #XbSilo
  * @xml: XML data
@@ -227,7 +245,7 @@ xb_builder_add_node_func (XbBuilder *self,
 gboolean
 xb_builder_import_xml (XbBuilder *self, const gchar *xml, GError **error)
 {
-	XbBuilderImport *import;
+	g_autoptr(XbBuilderImport) import = NULL;
 
 	g_return_val_if_fail (XB_IS_BUILDER (self), FALSE);
 	g_return_val_if_fail (xml != NULL, FALSE);
@@ -238,8 +256,7 @@ xb_builder_import_xml (XbBuilder *self, const gchar *xml, GError **error)
 		return FALSE;
 
 	/* success */
-	xb_builder_append_guid (self, xb_builder_import_get_guid (import));
-	g_ptr_array_add (self->imports, import);
+	xb_builder_import (self, import);
 	return TRUE;
 }
 
@@ -301,7 +318,7 @@ xb_builder_import_file (XbBuilder *self,
 			GCancellable *cancellable,
 			GError **error)
 {
-	XbBuilderImport *import;
+	g_autoptr(XbBuilderImport) import = NULL;
 
 	g_return_val_if_fail (XB_IS_BUILDER (self), FALSE);
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
@@ -312,8 +329,7 @@ xb_builder_import_file (XbBuilder *self,
 		return FALSE;
 
 	/* success */
-	xb_builder_append_guid (self, xb_builder_import_get_guid (import));
-	g_ptr_array_add (self->imports, import);
+	xb_builder_import (self, import);
 	return TRUE;
 }
 

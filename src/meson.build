@@ -37,6 +37,7 @@ install_headers(
 
 install_headers([
     'xb-builder.h',
+    'xb-builder-import.h',
     'xb-builder-node.h',
     'xb-node.h',
     'xb-silo-export.h',
@@ -111,6 +112,8 @@ if get_option('introspection')
     sources : [
       'xb-builder.c',
       'xb-builder.h',
+      'xb-builder-import.c',
+      'xb-builder-import.h',
       'xb-builder-node.c',
       'xb-builder-node.h',
       'xb-node.c',

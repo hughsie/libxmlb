@@ -9,6 +9,7 @@
 
 #include <gio/gio.h>
 
+#include "xb-builder-import.h"
 #include "xb-builder-node.h"
 #include "xb-silo.h"
 
@@ -46,6 +47,8 @@ typedef gboolean (*XbBuilderNodeFunc)		(XbBuilder		*self,
 XbBuilder	*xb_builder_new			(void);
 void		 xb_builder_append_guid		(XbBuilder		*self,
 						 const gchar		*guid);
+void		 xb_builder_import		(XbBuilder		*self,
+						 XbBuilderImport	*import);
 void		 xb_builder_import_node		(XbBuilder		*self,
 						 XbBuilderNode		*bn);
 gboolean	 xb_builder_import_xml		(XbBuilder		*self,

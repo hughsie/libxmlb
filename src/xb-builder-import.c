@@ -11,7 +11,7 @@
 #include <gio/gio.h>
 #include <string.h>
 
-#include "xb-builder-import.h"
+#include "xb-builder-import-private.h"
 
 struct _XbBuilderImport {
 	GObject			 parent_instance;
@@ -22,6 +22,19 @@ struct _XbBuilderImport {
 
 G_DEFINE_TYPE (XbBuilderImport, xb_builder_import, G_TYPE_OBJECT)
 
+/**
+ * xb_builder_import_new_file:
+ * @file: a #GFile
+ * @info: (allow-none): a #XbBuilderNode
+ * @cancellable: a #GCancellable, or %NULL
+ * @error: the #GError, or %NULL
+ *
+ * Adds an optionally compressed XML file to build a #XbSilo.
+ *
+ * Returns: (transfer full): a #XbBuilderImport, or NULL for error.
+ *
+ * Since: 0.1.0
+ **/
 XbBuilderImport *
 xb_builder_import_new_file (GFile *file,
 			    XbBuilderNode *info,
@@ -81,6 +94,17 @@ xb_builder_import_new_file (GFile *file,
 	return g_steal_pointer (&self);
 }
 
+/**
+ * xb_builder_import_new_xml:
+ * @xml: XML data
+ * @error: the #GError, or %NULL
+ *
+ * Parses XML data and begins to build a #XbSilo.
+ *
+ * Returns: (transfer full): a #XbBuilderImport, or NULL for error.
+ *
+ * Since: 0.1.0
+ **/
 XbBuilderImport *
 xb_builder_import_new_xml (const gchar *xml, GError **error)
 {
