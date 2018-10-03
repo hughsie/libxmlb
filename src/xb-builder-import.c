@@ -16,12 +16,19 @@
 struct _XbBuilderImport {
 	GObject			 parent_instance;
 	GInputStream		*istream;
+	GPtrArray		*node_items;	/* of XbBuilderImportNodeFuncItem */
 	XbBuilderNode		*info;
 	gchar			*guid;
 	gchar			*prefix;
 };
 
 G_DEFINE_TYPE (XbBuilderImport, xb_builder_import, G_TYPE_OBJECT)
+
+typedef struct {
+	XbBuilderImportNodeFunc		 func;
+	gpointer			 user_data;
+	GDestroyNotify			 user_data_free;
+} XbBuilderImportNodeFuncItem;
 
 /**
  * xb_builder_import_new_file:
@@ -153,6 +160,46 @@ xb_builder_import_new_xml (const gchar *xml, GError **error)
 	return g_steal_pointer (&self);
 }
 
+/**
+ * xb_builder_import_add_node_func:
+ * @self: a #XbBuilderImport
+ * @func: a callback
+ * @user_data: user pointer to pass to @func, or %NULL
+ * @user_data_free: a function which gets called to free @user_data, or %NULL
+ *
+ * Adds a function that will get run on every #XbBuilderNode compile creates.
+ *
+ * Since: 0.1.0
+ **/
+void
+xb_builder_import_add_node_func (XbBuilderImport *self,
+				 XbBuilderImportNodeFunc func,
+				 gpointer user_data,
+				 GDestroyNotify user_data_free)
+{
+	XbBuilderImportNodeFuncItem *item;
+
+	g_return_if_fail (XB_IS_BUILDER_IMPORT (self));
+	g_return_if_fail (func != NULL);
+
+	item = g_slice_new0 (XbBuilderImportNodeFuncItem);
+	item->func = func;
+	item->user_data = user_data;
+	item->user_data_free = user_data_free;
+	g_ptr_array_add (self->node_items, item);
+}
+
+gboolean
+xb_builder_import_node_func_run (XbBuilderImport *self, XbBuilderNode *bn, GError **error)
+{
+	for (guint i = 0; i < self->node_items->len; i++) {
+		XbBuilderImportNodeFuncItem *item = g_ptr_array_index (self->node_items, i);
+		if (!item->func (self, bn, item->user_data, error))
+			return FALSE;
+	}
+	return TRUE;
+}
+
 const gchar *
 xb_builder_import_get_guid (XbBuilderImport *self)
 {
@@ -182,6 +229,14 @@ xb_builder_import_get_istream (XbBuilderImport *self)
 }
 
 static void
+xb_builder_import_node_func_free (XbBuilderImportNodeFuncItem *item)
+{
+	if (item->user_data_free != NULL)
+		item->user_data_free (item->user_data);
+	g_slice_free (XbBuilderImportNodeFuncItem, item);
+}
+
+static void
 xb_builder_import_finalize (GObject *obj)
 {
 	XbBuilderImport *self = XB_BUILDER_IMPORT (obj);
@@ -190,6 +245,7 @@ xb_builder_import_finalize (GObject *obj)
 		g_object_unref (self->istream);
 	if (self->info != NULL)
 		g_object_unref (self->info);
+	g_ptr_array_unref (self->node_items);
 	g_free (self->guid);
 	g_free (self->prefix);
 
@@ -206,4 +262,5 @@ xb_builder_import_class_init (XbBuilderImportClass *klass)
 static void
 xb_builder_import_init (XbBuilderImport *self)
 {
+	self->node_items = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_builder_import_node_func_free);
 }

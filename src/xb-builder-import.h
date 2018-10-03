@@ -17,6 +17,11 @@ G_BEGIN_DECLS
 
 G_DECLARE_FINAL_TYPE (XbBuilderImport, xb_builder_import, XB, BUILDER_IMPORT, GObject)
 
+typedef gboolean (*XbBuilderImportNodeFunc)	(XbBuilderImport	*self,
+						 XbBuilderNode		*bn,
+						 gpointer		 user_data,
+						 GError			**error);
+
 XbBuilderImport	*xb_builder_import_new_file	(GFile			*file,
 						 GCancellable		*cancellable,
 						 GError			**error);
@@ -26,6 +31,10 @@ void		 xb_builder_import_set_info	(XbBuilderImport	*self,
 						 XbBuilderNode		*info);
 void		 xb_builder_import_set_prefix	(XbBuilderImport	*self,
 						 const gchar		*prefix);
+void		 xb_builder_import_add_node_func (XbBuilderImport	*self,
+						 XbBuilderImportNodeFunc func,
+						 gpointer		 user_data,
+						 GDestroyNotify		 user_data_free);
 
 G_END_DECLS
 

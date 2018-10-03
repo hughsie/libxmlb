@@ -505,7 +505,7 @@ xb_machine_parse (XbMachine *self,
 	item = g_hash_table_lookup (self->opcode_fixup, opcodes_sig);
 	if (item != NULL) {
 		if (!item->fixup_cb (self, opcodes, item->user_data, error))
-			return FALSE;
+			return NULL;
 	}
 
 	/* success */

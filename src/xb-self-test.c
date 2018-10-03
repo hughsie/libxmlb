@@ -225,7 +225,10 @@ xb_builder_ensure_func (void)
 }
 
 static gboolean
-xb_builder_upgrade_appstream_cb (XbBuilder *self, XbBuilderNode *bn, gpointer user_data, GError **error)
+xb_builder_upgrade_appstream_cb (XbBuilderImport *self,
+				 XbBuilderNode *bn,
+				 gpointer user_data,
+				 GError **error)
 {
 	if (g_strcmp0 (xb_builder_node_get_element (bn), "application") == 0) {
 		GPtrArray *children = xb_builder_node_get_children (bn);
@@ -250,10 +253,10 @@ xb_builder_upgrade_appstream_cb (XbBuilder *self, XbBuilderNode *bn, gpointer us
 static void
 xb_builder_node_vfunc_func (void)
 {
-	gboolean ret;
 	g_autofree gchar *xml2 = NULL;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbBuilderImport) import = NULL;
 	g_autoptr(XbSilo) silo = NULL;
 	const gchar *xml =
 		"  <application>\n"
@@ -261,10 +264,11 @@ xb_builder_node_vfunc_func (void)
 		"  </application>\n";
 
 	/* import some XML */
-	ret = xb_builder_import_xml (builder, xml, &error);
+	import = xb_builder_import_new_xml (xml, &error);
 	g_assert_no_error (error);
-	g_assert_true (ret);
-	xb_builder_add_node_func (builder, xb_builder_upgrade_appstream_cb, NULL, NULL);
+	g_assert_nonnull (import);
+	xb_builder_import_add_node_func (import, xb_builder_upgrade_appstream_cb, NULL, NULL);
+	xb_builder_import (builder, import);
 	silo = xb_builder_compile (builder,
 				   XB_BUILDER_COMPILE_FLAG_NONE,
 				   NULL, &error);

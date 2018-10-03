@@ -3,12 +3,12 @@
 LIBXMLB_0.1.0 {
   global:
     xb_builder_add_locale;
-    xb_builder_add_node_func;
     xb_builder_append_guid;
     xb_builder_compile;
     xb_builder_ensure;
     xb_builder_get_type;
     xb_builder_import;
+    xb_builder_import_add_node_func;
     xb_builder_import_dir;
     xb_builder_import_file;
     xb_builder_import_get_type;
