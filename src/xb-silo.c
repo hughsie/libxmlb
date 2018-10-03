@@ -605,32 +605,37 @@ xb_silo_machine_fixup_attr_exists_cb (XbMachine *self,
 
 static gboolean
 xb_silo_machine_func_attr_cb (XbMachine *self,
+			      GPtrArray *stack,
 			      gboolean *result,
 			      gpointer user_data,
 			      GError **error)
 {
 	XbSilo *silo = XB_SILO (user_data);
 	XbSiloCurrent *current = xb_silo_get_current (silo);
-	g_autoptr(XbOpcode) op = xb_machine_stack_pop (self);
+	g_autoptr(XbOpcode) op = xb_machine_stack_pop (self, stack);
 	const gchar *tmp = xb_opcode_get_str (op);
-	xb_machine_stack_push_text_static (self, xb_silo_node_get_attr (silo, current->sn, tmp));
+	xb_machine_stack_push_text_static (self, stack,
+					   xb_silo_node_get_attr (silo, current->sn, tmp));
 	return TRUE;
 }
 
 static gboolean
 xb_silo_machine_func_text_cb (XbMachine *self,
+			      GPtrArray *stack,
 			      gboolean *result,
 			      gpointer user_data,
 			      GError **error)
 {
 	XbSilo *silo = XB_SILO (user_data);
 	XbSiloCurrent *current = xb_silo_get_current (silo);
-	xb_machine_stack_push_text_static (self, xb_silo_node_get_text (silo, current->sn));
+	xb_machine_stack_push_text_static (self, stack,
+					   xb_silo_node_get_text (silo, current->sn));
 	return TRUE;
 }
 
 static gboolean
 xb_silo_machine_func_first_cb (XbMachine *self,
+			       GPtrArray *stack,
 			       gboolean *result,
 			       gpointer user_data,
 			       GError **error)
@@ -643,6 +648,7 @@ xb_silo_machine_func_first_cb (XbMachine *self,
 
 static gboolean
 xb_silo_machine_func_last_cb (XbMachine *self,
+			      GPtrArray *stack,
 			      gboolean *result,
 			      gpointer user_data,
 			      GError **error)
@@ -655,24 +661,26 @@ xb_silo_machine_func_last_cb (XbMachine *self,
 
 static gboolean
 xb_silo_machine_func_position_cb (XbMachine *self,
+				  GPtrArray *stack,
 				  gboolean *result,
 				  gpointer user_data,
 				  GError **error)
 {
 	XbSilo *silo = XB_SILO (user_data);
 	XbSiloCurrent *current = xb_silo_get_current (silo);
-	xb_machine_stack_push_integer (self, *current->position);
+	xb_machine_stack_push_integer (self, stack, *current->position);
 	return TRUE;
 }
 
 static gboolean
 xb_silo_machine_func_contains_cb (XbMachine *self,
+				  GPtrArray *stack,
 				  gboolean *result,
 				  gpointer user_data,
 				  GError **error)
 {
-	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self);
-	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self);
+	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
+	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
 
 	/* TEXT:TEXT */
 	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&

@@ -18,7 +18,6 @@ struct _XbMachine
 {
 	GObject			 parent_instance;
 	XbMachineDebugFlags	 debug_flags;
-	GPtrArray		*stack;		/* of XbOpcode */
 	GPtrArray		*funcs;		/* of XbMachineFunc */
 	GPtrArray		*operators;	/* of XbMachineOperator */
 	GPtrArray		*text_handlers;	/* of XbMachineTextHandler */
@@ -515,19 +514,19 @@ xb_machine_parse (XbMachine *self,
 }
 
 static void
-xb_machine_debug_show_stack (XbMachine *self)
+xb_machine_debug_show_stack (XbMachine *self, GPtrArray *stack)
 {
 	g_autofree gchar *str = NULL;
-	if (self->stack->len == 0) {
+	if (stack->len == 0) {
 		g_debug ("stack is empty");
 		return;
 	}
-	str = xb_machine_opcodes_to_string (self, self->stack);
+	str = xb_machine_opcodes_to_string (self, stack);
 	g_debug ("stack: %s", str);
 }
 
 static gboolean
-xb_machine_run_func (XbMachine *self, XbOpcode *opcode, gboolean *result, GError **error)
+xb_machine_run_func (XbMachine *self, GPtrArray *stack, XbOpcode *opcode, gboolean *result, GError **error)
 {
 	XbMachineFunc *func = g_ptr_array_index (self->funcs, xb_opcode_get_val (opcode));
 
@@ -535,19 +534,19 @@ xb_machine_run_func (XbMachine *self, XbOpcode *opcode, gboolean *result, GError
 	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
 		g_autofree gchar *str = xb_machine_opcode_to_string (self, opcode);
 		g_debug ("running: %s", str);
-		xb_machine_debug_show_stack (self);
+		xb_machine_debug_show_stack (self, stack);
 	}
 
 	/* check we have enough stack elements */
-	if (func->n_opcodes > self->stack->len) {
+	if (func->n_opcodes > stack->len) {
 		g_set_error (error,
 			     G_IO_ERROR,
 			     G_IO_ERROR_NOT_SUPPORTED,
 			     "function required %u arguments, stack only has %u",
-			     func->n_opcodes, self->stack->len);
+			     func->n_opcodes, stack->len);
 		return FALSE;
 	}
-	if (!func->func_cb (self, result, func->user_data, error)) {
+	if (!func->func_cb (self, stack, result, func->user_data, error)) {
 		g_prefix_error (error, "failed to call %s(): ", func->name);
 		return FALSE;
 	}
@@ -619,6 +618,9 @@ xb_machine_opcodes_to_string (XbMachine *self, GPtrArray *opcodes)
  *
  * Runs a set of opcodes on the virtual machine.
  *
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbMachine.
+ *
  * Returns: a new #XbOpcode, or %NULL
  **/
 gboolean
@@ -627,12 +629,14 @@ xb_machine_run (XbMachine *self,
 		gboolean *result,
 		GError **error)
 {
+	g_autoptr(GPtrArray) stack = NULL;
+
 	g_return_val_if_fail (XB_IS_MACHINE (self), FALSE);
 	g_return_val_if_fail (opcodes != NULL, FALSE);
 	g_return_val_if_fail (result != NULL, FALSE);
 
 	/* process each opcode */
-	g_ptr_array_set_size (self->stack, 0);
+	stack = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_opcode_unref);
 	for (guint i = 0; i < opcodes->len; i++) {
 		XbOpcode *opcode = g_ptr_array_index (opcodes, i);
 		XbOpcodeKind kind = xb_opcode_get_kind (opcode);
@@ -640,13 +644,13 @@ xb_machine_run (XbMachine *self,
 		/* add to stack */
 		if (kind == XB_OPCODE_KIND_TEXT ||
 		    kind == XB_OPCODE_KIND_INTEGER) {
-			xb_machine_stack_push (self, opcode);
+			xb_machine_stack_push (self, stack, opcode);
 			continue;
 		}
 
 		/* process the stack */
 		if (kind == XB_OPCODE_KIND_FUNCTION) {
-			if (!xb_machine_run_func (self, opcode, result, error))
+			if (!xb_machine_run_func (self, stack, opcode, result, error))
 				return FALSE;
 			if (*result == FALSE)
 				return TRUE;
@@ -663,13 +667,13 @@ xb_machine_run (XbMachine *self,
 	}
 
 	/* the stack should have been completely consumed */
-	if (self->stack->len > 0) {
-		g_autofree gchar *tmp = xb_machine_opcodes_to_string (self, self->stack);
+	if (stack->len > 0) {
+		g_autofree gchar *tmp = xb_machine_opcodes_to_string (self, stack);
 		g_set_error (error,
 			     G_IO_ERROR,
 			     G_IO_ERROR_INVALID_DATA,
 			     "%u opcodes remain on the stack (%s)",
-			     self->stack->len, tmp);
+			     stack->len, tmp);
 		return FALSE;
 	}
 
@@ -680,125 +684,131 @@ xb_machine_run (XbMachine *self,
 /**
  * xb_machine_stack_pop:
  * @self: a #XbMachine
- * @error: a #GError, or %NULL
+ * @stack: (element-kind XbOpcode): the working stack
  *
  * Pops an opcode from the stack.
  *
  * Returns: (transfer full): a new #XbOpcode, or %NULL
  **/
 XbOpcode *
-xb_machine_stack_pop (XbMachine *self)
+xb_machine_stack_pop (XbMachine *self, GPtrArray *stack)
 {
 	XbOpcode *opcode;
-	if (self->stack->len == 0)
+	if (stack->len == 0)
 		return NULL;
-	opcode = g_ptr_array_index (self->stack, self->stack->len - 1);
+	opcode = g_ptr_array_index (stack, stack->len - 1);
 	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
 		g_autofree gchar *str = xb_machine_opcode_to_string (self, opcode);
 		g_debug ("popping: %s", str);
 	}
 	xb_opcode_ref (opcode);
-	g_ptr_array_remove_index (self->stack, self->stack->len - 1);
+	g_ptr_array_remove_index (stack, stack->len - 1);
 	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
-		xb_machine_debug_show_stack (self);
+		xb_machine_debug_show_stack (self, stack);
 	return opcode;
 }
 
 /**
  * xb_machine_stack_push:
  * @self: a #XbMachine
+ * @stack: (element-kind XbOpcode): the working stack
  * @opcode: a #XbOpcode
  *
  * Adds an opcode to the stack.
  **/
 void
-xb_machine_stack_push (XbMachine *self, XbOpcode *opcode)
+xb_machine_stack_push (XbMachine *self, GPtrArray *stack, XbOpcode *opcode)
 {
 	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
 		g_autofree gchar *str = xb_machine_opcode_to_string (self, opcode);
 		g_debug ("pushing: %s", str);
 	}
-	g_ptr_array_add (self->stack, xb_opcode_ref (opcode));
+	g_ptr_array_add (stack, xb_opcode_ref (opcode));
 	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
-		xb_machine_debug_show_stack (self);
+		xb_machine_debug_show_stack (self, stack);
 }
 
 /**
  * xb_machine_stack_push_text:
  * @self: a #XbMachine
+ * @stack: (element-kind XbOpcode): the working stack
  * @str: text literal
  *
  * Adds a text literal to the stack, copying @str.
  **/
 void
-xb_machine_stack_push_text (XbMachine *self, const gchar *str)
+xb_machine_stack_push_text (XbMachine *self, GPtrArray *stack, const gchar *str)
 {
 	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		g_debug ("pushing: %s", str);
-	g_ptr_array_add (self->stack, xb_opcode_text_new (str));
+	g_ptr_array_add (stack, xb_opcode_text_new (str));
 	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
-		xb_machine_debug_show_stack (self);
+		xb_machine_debug_show_stack (self, stack);
 }
 
 /**
  * xb_machine_stack_push_text_static:
  * @self: a #XbMachine
+ * @stack: (element-kind XbOpcode): the working stack
  * @str: text literal
  *
  * Adds static text literal to the stack.
  **/
 void
-xb_machine_stack_push_text_static (XbMachine *self, const gchar *str)
+xb_machine_stack_push_text_static (XbMachine *self, GPtrArray *stack, const gchar *str)
 {
 	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		g_debug ("pushing: %s", str);
-	g_ptr_array_add (self->stack, xb_opcode_text_new_static (str));
+	g_ptr_array_add (stack, xb_opcode_text_new_static (str));
 	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
-		xb_machine_debug_show_stack (self);
+		xb_machine_debug_show_stack (self, stack);
 }
 
 /**
  * xb_machine_stack_push_text_steal:
  * @self: a #XbMachine
+ * @stack: (element-kind XbOpcode): the working stack
  * @str: text literal
  *
  * Adds a stolen text literal to the stack.
  **/
 void
-xb_machine_stack_push_text_steal (XbMachine *self, gchar *str)
+xb_machine_stack_push_text_steal (XbMachine *self, GPtrArray *stack, gchar *str)
 {
 	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		g_debug ("pushing: %s", str);
-	g_ptr_array_add (self->stack, xb_opcode_text_new_steal (str));
+	g_ptr_array_add (stack, xb_opcode_text_new_steal (str));
 	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
-		xb_machine_debug_show_stack (self);
+		xb_machine_debug_show_stack (self, stack);
 }
 
 /**
  * xb_machine_stack_push_integer:
  * @self: a #XbMachine
+ * @stack: (element-kind XbOpcode): the working stack
  * @val: interger literal
  *
  * Adds an integer literal to the stack.
  **/
 void
-xb_machine_stack_push_integer (XbMachine *self, guint32 val)
+xb_machine_stack_push_integer (XbMachine *self, GPtrArray *stack, guint32 val)
 {
 	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		g_debug ("pushing: %u", val);
-	g_ptr_array_add (self->stack, xb_opcode_integer_new (val));
+	g_ptr_array_add (stack, xb_opcode_integer_new (val));
 	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
-		xb_machine_debug_show_stack (self);
+		xb_machine_debug_show_stack (self, stack);
 }
 
 static gboolean
 xb_machine_func_eq_cb (XbMachine *self,
+		       GPtrArray *stack,
 		       gboolean *result,
 		       gpointer user_data,
 		       GError **error)
 {
-	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self);
-	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self);
+	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
+	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
 
 	/* TEXT:TEXT */
 	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&
@@ -844,12 +854,13 @@ xb_machine_func_eq_cb (XbMachine *self,
 
 static gboolean
 xb_machine_func_ne_cb (XbMachine *self,
+		       GPtrArray *stack,
 		       gboolean *result,
 		       gpointer user_data,
 		       GError **error)
 {
-	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self);
-	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self);
+	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
+	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
 
 	/* TEXT:TEXT */
 	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&
@@ -895,12 +906,13 @@ xb_machine_func_ne_cb (XbMachine *self,
 
 static gboolean
 xb_machine_func_lt_cb (XbMachine *self,
+		       GPtrArray *stack,
 		       gboolean *result,
 		       gpointer user_data,
 		       GError **error)
 {
-	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self);
-	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self);
+	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
+	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
 
 	/* TEXT:TEXT */
 	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&
@@ -945,12 +957,13 @@ xb_machine_func_lt_cb (XbMachine *self,
 
 static gboolean
 xb_machine_func_gt_cb (XbMachine *self,
+		       GPtrArray *stack,
 		       gboolean *result,
 		       gpointer user_data,
 		       GError **error)
 {
-	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self);
-	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self);
+	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
+	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
 
 	/* TEXT:TEXT */
 	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&
@@ -996,12 +1009,13 @@ xb_machine_func_gt_cb (XbMachine *self,
 
 static gboolean
 xb_machine_func_le_cb (XbMachine *self,
+		       GPtrArray *stack,
 		       gboolean *result,
 		       gpointer user_data,
 		       GError **error)
 {
-	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self);
-	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self);
+	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
+	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
 
 	/* TEXT:TEXT */
 	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&
@@ -1047,34 +1061,39 @@ xb_machine_func_le_cb (XbMachine *self,
 
 static gboolean
 xb_machine_func_lower_cb (XbMachine *self,
+			  GPtrArray *stack,
 			  gboolean *result,
 			  gpointer user_data,
 			  GError **error)
 {
-	g_autoptr(XbOpcode) op = xb_machine_stack_pop (self);
-	xb_machine_stack_push_text_steal (self, g_ascii_strdown (xb_opcode_get_str (op), -1));
+	g_autoptr(XbOpcode) op = xb_machine_stack_pop (self, stack);
+	xb_machine_stack_push_text_steal (self, stack,
+					  g_ascii_strdown (xb_opcode_get_str (op), -1));
 	return TRUE;
 }
 
 static gboolean
 xb_machine_func_upper_cb (XbMachine *self,
+			  GPtrArray *stack,
 			  gboolean *result,
 			  gpointer user_data,
 			  GError **error)
 {
-	g_autoptr(XbOpcode) op = xb_machine_stack_pop (self);
-	xb_machine_stack_push_text_steal (self, g_ascii_strup (xb_opcode_get_str (op), -1));
+	g_autoptr(XbOpcode) op = xb_machine_stack_pop (self, stack);
+	xb_machine_stack_push_text_steal (self, stack,
+					  g_ascii_strup (xb_opcode_get_str (op), -1));
 	return TRUE;
 }
 
 static gboolean
 xb_machine_func_ge_cb (XbMachine *self,
+		       GPtrArray *stack,
 		       gboolean *result,
 		       gpointer user_data,
 		       GError **error)
 {
-	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self);
-	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self);
+	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
+	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
 
 	/* TEXT:TEXT */
 	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&
@@ -1154,7 +1173,6 @@ xb_machine_operator_free (XbMachineOperator *op)
 static void
 xb_machine_init (XbMachine *self)
 {
-	self->stack = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_opcode_unref);
 	self->funcs = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_func_free);
 	self->operators = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_operator_free);
 	self->text_handlers = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_text_handler_free);
@@ -1186,7 +1204,6 @@ static void
 xb_machine_finalize (GObject *obj)
 {
 	XbMachine *self = XB_MACHINE (obj);
-	g_ptr_array_unref (self->stack);
 	g_ptr_array_unref (self->funcs);
 	g_ptr_array_unref (self->operators);
 	g_ptr_array_unref (self->text_handlers);

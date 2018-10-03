@@ -34,6 +34,7 @@ typedef gboolean (*XbMachineTextHandlerCb)	(XbMachine		*self,
 						 gpointer		 user_data,
 						 GError			**error);
 typedef gboolean (*XbMachineFuncCb)		(XbMachine		*self,
+						 GPtrArray		*stack,
 						 gboolean		*result,
 						 gpointer		 user_data,
 						 GError			**error);
@@ -76,16 +77,22 @@ gchar		*xb_machine_opcode_to_string	(XbMachine		*self,
 gchar		*xb_machine_opcodes_to_string	(XbMachine		*self,
 						 GPtrArray		*opcodes);
 
-XbOpcode	*xb_machine_stack_pop		(XbMachine		*self);
+XbOpcode	*xb_machine_stack_pop		(XbMachine		*self,
+						 GPtrArray		*stack);
 void		 xb_machine_stack_push		(XbMachine		*self,
+						 GPtrArray		*stack,
 						 XbOpcode		*opcode);
 void		 xb_machine_stack_push_text	(XbMachine		*self,
+						 GPtrArray		*stack,
 						 const gchar		*str);
 void		 xb_machine_stack_push_text_static (XbMachine		*self,
+						 GPtrArray		*stack,
 						 const gchar		*str);
 void		 xb_machine_stack_push_text_steal (XbMachine		*self,
+						 GPtrArray		*stack,
 						 gchar			*str);
 void		 xb_machine_stack_push_integer	(XbMachine		*self,
+						 GPtrArray		*stack,
 						 guint32		 val);
 
 G_END_DECLS
