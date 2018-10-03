@@ -18,10 +18,10 @@ struct _XbMachine
 {
 	GObject			 parent_instance;
 	XbMachineDebugFlags	 debug_flags;
-	GPtrArray		*funcs;		/* of XbMachineFunc */
+	GPtrArray		*methods;		/* of XbMachineMethodItem */
 	GPtrArray		*operators;	/* of XbMachineOperator */
-	GPtrArray		*text_handlers;	/* of XbMachineTextHandler */
-	GHashTable		*opcode_fixup;	/* of str[XbMachineOpcodeFixup] */
+	GPtrArray		*text_handlers;	/* of XbMachineTextHandlerItem */
+	GHashTable		*opcode_fixup;	/* of str[XbMachineOpcodeFixupItem] */
 };
 
 G_DEFINE_TYPE (XbMachine, xb_machine, G_TYPE_OBJECT)
@@ -33,25 +33,25 @@ typedef struct {
 } XbMachineOperator;
 
 typedef struct {
-	XbMachineOpcodeFixupCb	 fixup_cb;
+	XbMachineOpcodeFixupFunc fixup_cb;
 	gpointer		 user_data;
 	GDestroyNotify		 user_data_free;
-} XbMachineOpcodeFixup;
+} XbMachineOpcodeFixupItem;
 
 typedef struct {
-	XbMachineTextHandlerCb	 handler_cb;
+	XbMachineTextHandlerFunc handler_cb;
 	gpointer		 user_data;
 	GDestroyNotify		 user_data_free;
-} XbMachineTextHandler;
+} XbMachineTextHandlerItem;
 
 typedef struct {
 	guint32			 idx;
 	gchar			*name;
 	guint			 n_opcodes;
-	XbMachineFuncCb		 func_cb;
+	XbMachineMethodFunc	 method_cb;
 	gpointer		 user_data;
 	GDestroyNotify		 user_data_free;
-} XbMachineFunc;
+} XbMachineMethodItem;
 
 /**
  * xb_machine_set_debug_flags:
@@ -99,44 +99,44 @@ xb_machine_add_operator (XbMachine *self, const gchar *str, const gchar *name)
 }
 
 /**
- * xb_machine_add_func:
+ * xb_machine_add_method:
  * @self: a #XbMachine
  * @name: function name, e.g. `contains`
  * @n_opcodes: minimum number of opcodes requried on the stack
- * @func_cb: function to call
- * @user_data: user pointer to pass to @func_cb, or %NULL
+ * @method_cb: function to call
+ * @user_data: user pointer to pass to @method_cb, or %NULL
  * @user_data_free: a function which gets called to free @user_data, or %NULL
  *
  * Adds a new function to the virtual machine. Registered functions can then be
  * used as methods.
  *
- * You need to add a custom function using xb_machine_add_func() before using
+ * You need to add a custom function using xb_machine_add_method() before using
  * methods that may reference it, for example xb_machine_add_opcode_fixup().
  *
  * Returns: a new #XbOpcode, or %NULL
  **/
 void
-xb_machine_add_func (XbMachine *self,
-		     const gchar *name,
-		     guint n_opcodes,
-		     XbMachineFuncCb func_cb,
-		     gpointer user_data,
-		     GDestroyNotify user_data_free)
+xb_machine_add_method (XbMachine *self,
+		       const gchar *name,
+		       guint n_opcodes,
+		       XbMachineMethodFunc method_cb,
+		       gpointer user_data,
+		       GDestroyNotify user_data_free)
 {
-	XbMachineFunc *func;
+	XbMachineMethodItem *item;
 
 	g_return_if_fail (XB_IS_MACHINE (self));
 	g_return_if_fail (name != NULL);
-	g_return_if_fail (func_cb != NULL);
+	g_return_if_fail (method_cb != NULL);
 
-	func = g_slice_new0 (XbMachineFunc);
-	func->idx = self->funcs->len;
-	func->name = g_strdup (name);
-	func->n_opcodes = n_opcodes;
-	func->func_cb = func_cb;
-	func->user_data = user_data;
-	func->user_data_free = user_data_free;
-	g_ptr_array_add (self->funcs, func);
+	item = g_slice_new0 (XbMachineMethodItem);
+	item->idx = self->methods->len;
+	item->name = g_strdup (name);
+	item->n_opcodes = n_opcodes;
+	item->method_cb = method_cb;
+	item->user_data = user_data;
+	item->user_data_free = user_data_free;
+	g_ptr_array_add (self->methods, item);
 }
 
 /**
@@ -156,15 +156,15 @@ xb_machine_add_func (XbMachine *self,
 void
 xb_machine_add_opcode_fixup (XbMachine *self,
 			     const gchar *opcodes_sig,
-			     XbMachineOpcodeFixupCb fixup_cb,
+			     XbMachineOpcodeFixupFunc fixup_cb,
 			     gpointer user_data,
 			     GDestroyNotify user_data_free)
 {
-	XbMachineOpcodeFixup *fixup = g_slice_new0 (XbMachineOpcodeFixup);
-	fixup->fixup_cb = fixup_cb;
-	fixup->user_data = user_data;
-	fixup->user_data_free = user_data_free;
-	g_hash_table_insert (self->opcode_fixup, g_strdup (opcodes_sig), fixup);
+	XbMachineOpcodeFixupItem *item = g_slice_new0 (XbMachineOpcodeFixupItem);
+	item->fixup_cb = fixup_cb;
+	item->user_data = user_data;
+	item->user_data_free = user_data_free;
+	g_hash_table_insert (self->opcode_fixup, g_strdup (opcodes_sig), item);
 }
 
 /**
@@ -179,24 +179,24 @@ xb_machine_add_opcode_fixup (XbMachine *self,
  **/
 void
 xb_machine_add_text_handler (XbMachine *self,
-			     XbMachineTextHandlerCb handler_cb,
+			     XbMachineTextHandlerFunc handler_cb,
 			     gpointer user_data,
 			     GDestroyNotify user_data_free)
 {
-	XbMachineTextHandler *handler = g_slice_new0 (XbMachineTextHandler);
-	handler->handler_cb = handler_cb;
-	handler->user_data = user_data;
-	handler->user_data_free = user_data_free;
-	g_ptr_array_add (self->text_handlers, handler);
+	XbMachineTextHandlerItem *item = g_slice_new0 (XbMachineTextHandlerItem);
+	item->handler_cb = handler_cb;
+	item->user_data = user_data;
+	item->user_data_free = user_data_free;
+	g_ptr_array_add (self->text_handlers, item);
 }
 
-static XbMachineFunc *
+static XbMachineMethodItem *
 xb_machine_find_func (XbMachine *self, const gchar *func_name)
 {
-	for (guint i = 0; i < self->funcs->len; i++) {
-		XbMachineFunc *func = g_ptr_array_index (self->funcs, i);
-		if (g_strcmp0 (func->name, func_name) == 0)
-			return func;
+	for (guint i = 0; i < self->methods->len; i++) {
+		XbMachineMethodItem *item = g_ptr_array_index (self->methods, i);
+		if (g_strcmp0 (item->name, func_name) == 0)
+			return item;
 	}
 	return NULL;
 }
@@ -209,19 +209,19 @@ xb_machine_find_func (XbMachine *self, const gchar *func_name)
  *
  * Creates a new opcode for a registered function. Some standard opcodes are
  * registered by default, for instance `eq` or `ge`. Other opcodes have to be
- * added using xb_machine_add_func().
+ * added using xb_machine_add_method().
  *
  * Returns: a new #XbOpcode, or %NULL
  **/
 XbOpcode *
 xb_machine_opcode_func_new (XbMachine *self, const gchar *func_name)
 {
-	XbMachineFunc *func = xb_machine_find_func (self, func_name);
-	if (func == NULL) {
+	XbMachineMethodItem *item = xb_machine_find_func (self, func_name);
+	if (item == NULL) {
 		g_critical ("failed to find %s", func_name);
 		return NULL;
 	}
-	return xb_opcode_func_new (func->idx);
+	return xb_opcode_func_new (item->idx);
 }
 
 static gboolean
@@ -230,11 +230,11 @@ xb_machine_parse_add_func (XbMachine *self,
 			   const gchar *func_name,
 			   GError **error)
 {
-	XbMachineFunc *func;
+	XbMachineMethodItem *item;
 
 	/* find function by name */
-	func = xb_machine_find_func (self, func_name);
-	if (func == NULL) {
+	item = xb_machine_find_func (self, func_name);
+	if (item == NULL) {
 		g_set_error (error,
 			     G_IO_ERROR,
 			     G_IO_ERROR_NOT_SUPPORTED,
@@ -244,7 +244,7 @@ xb_machine_parse_add_func (XbMachine *self,
 	}
 
 	/* create new opcode */
-	g_ptr_array_add (opcodes, xb_opcode_func_new (func->idx));
+	g_ptr_array_add (opcodes, xb_opcode_func_new (item->idx));
 	return TRUE;
 }
 
@@ -270,9 +270,9 @@ xb_machine_parse_add_text_raw (XbMachine *self,
 
 	/* do any additional handlers */
 	for (guint i = 0; i < self->text_handlers->len; i++) {
-		XbMachineTextHandler *handler = g_ptr_array_index (self->text_handlers, i);
+		XbMachineTextHandlerItem *item = g_ptr_array_index (self->text_handlers, i);
 		gboolean handled = FALSE;
-		if (!handler->handler_cb (self, opcodes, str, &handled, handler->user_data, error))
+		if (!item->handler_cb (self, opcodes, str, &handled, item->user_data, error))
 			return FALSE;
 		if (handled)
 			return TRUE;
@@ -384,12 +384,12 @@ xb_machine_get_opcodes_sig (XbMachine *self, GPtrArray *opcodes)
 		XbOpcode *opcode = g_ptr_array_index (opcodes, i);
 		g_assert (opcode != NULL);
 		if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_FUNCTION) {
-			XbMachineFunc *func;
-			func = g_ptr_array_index (self->funcs, xb_opcode_get_val (opcode));
-			if (func == NULL) {
+			XbMachineMethodItem *item;
+			item = g_ptr_array_index (self->methods, xb_opcode_get_val (opcode));
+			if (item == NULL) {
 				g_string_append (str, "FUNC:???,");
 			} else {
-				g_string_append_printf (str, "FUNC:%s,", func->name);
+				g_string_append_printf (str, "FUNC:%s,", item->name);
 			}
 			continue;
 		}
@@ -432,7 +432,7 @@ xb_machine_parse_part (XbMachine *self,
  * @error: a #GError, or %NULL
  *
  * Parses an XPath predicate. Not all of XPath 1.0 or XPath 1.0 is supported,
- * and new functions and mnemonics can be added using xb_machine_add_func()
+ * and new functions and mnemonics can be added using xb_machine_add_method()
  * and xb_machine_add_text_handler().
  *
  * Returns: (transfer container) (element-type #XbOpcode): opcodes, or %NULL on error
@@ -443,7 +443,7 @@ xb_machine_parse (XbMachine *self,
 		  gssize text_len,
 		  GError **error)
 {
-	XbMachineOpcodeFixup *fixup;
+	XbMachineOpcodeFixupItem *item;
 	g_autoptr(GPtrArray) opcodes = NULL;
 	g_autofree gchar *opcodes_sig = NULL;
 
@@ -503,9 +503,9 @@ xb_machine_parse (XbMachine *self,
 
 	/* do any fixups */
 	opcodes_sig = xb_machine_get_opcodes_sig (self, opcodes);
-	fixup = g_hash_table_lookup (self->opcode_fixup, opcodes_sig);
-	if (fixup != NULL) {
-		if (!fixup->fixup_cb (self, opcodes, fixup->user_data, error))
+	item = g_hash_table_lookup (self->opcode_fixup, opcodes_sig);
+	if (item != NULL) {
+		if (!item->fixup_cb (self, opcodes, item->user_data, error))
 			return FALSE;
 	}
 
@@ -533,7 +533,7 @@ xb_machine_run_func (XbMachine *self,
 		     gpointer exec_data,
 		     GError **error)
 {
-	XbMachineFunc *func = g_ptr_array_index (self->funcs, xb_opcode_get_val (opcode));
+	XbMachineMethodItem *item = g_ptr_array_index (self->methods, xb_opcode_get_val (opcode));
 
 	/* optional debugging */
 	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
@@ -543,16 +543,16 @@ xb_machine_run_func (XbMachine *self,
 	}
 
 	/* check we have enough stack elements */
-	if (func->n_opcodes > stack->len) {
+	if (item->n_opcodes > stack->len) {
 		g_set_error (error,
 			     G_IO_ERROR,
 			     G_IO_ERROR_NOT_SUPPORTED,
 			     "function required %u arguments, stack only has %u",
-			     func->n_opcodes, stack->len);
+			     item->n_opcodes, stack->len);
 		return FALSE;
 	}
-	if (!func->func_cb (self, stack, result, func->user_data, exec_data, error)) {
-		g_prefix_error (error, "failed to call %s(): ", func->name);
+	if (!item->method_cb (self, stack, result, item->user_data, exec_data, error)) {
+		g_prefix_error (error, "failed to call %s(): ", item->name);
 		return FALSE;
 	}
 	return TRUE;
@@ -574,9 +574,9 @@ xb_machine_opcode_to_string (XbMachine *self, XbOpcode *opcode)
 	g_return_val_if_fail (opcode != NULL, NULL);
 
 	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_FUNCTION) {
-		XbMachineFunc *func;
-		func = g_ptr_array_index (self->funcs, xb_opcode_get_val (opcode));
-		return g_strdup_printf ("%s()", func->name);
+		XbMachineMethodItem *item;
+		item = g_ptr_array_index (self->methods, xb_opcode_get_val (opcode));
+		return g_strdup_printf ("%s()", item->name);
 	}
 	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_TEXT)
 		return g_strdup_printf ("'%s'", xb_opcode_get_str (opcode));
@@ -619,7 +619,7 @@ xb_machine_opcodes_to_string (XbMachine *self, GPtrArray *opcodes)
  * @self: a #XbMachine
  * @opcodes: (element-type XbOpcode): opcodes
  * @result: (out): return status after running @opcodes
- * @exec_data: per-run user data that is passed to all the XbMachineFuncCb functions
+ * @exec_data: per-run user data that is passed to all the XbMachineMethodFunc functions
  * @error: a #GError, or %NULL
  *
  * Runs a set of opcodes on the virtual machine.
@@ -1158,28 +1158,28 @@ xb_machine_func_ge_cb (XbMachine *self,
 }
 
 static void
-xb_machine_opcode_fixup_free (XbMachineOpcodeFixup *fixup)
+xb_machine_opcode_fixup_free (XbMachineOpcodeFixupItem *item)
 {
-	if (fixup->user_data_free != NULL)
-		fixup->user_data_free (fixup->user_data);
-	g_slice_free (XbMachineOpcodeFixup, fixup);
+	if (item->user_data_free != NULL)
+		item->user_data_free (item->user_data);
+	g_slice_free (XbMachineOpcodeFixupItem, item);
 }
 
 static void
-xb_machine_func_free (XbMachineFunc *func)
+xb_machine_func_free (XbMachineMethodItem *item)
 {
-	if (func->user_data_free != NULL)
-		func->user_data_free (func->user_data);
-	g_free (func->name);
-	g_slice_free (XbMachineFunc, func);
+	if (item->user_data_free != NULL)
+		item->user_data_free (item->user_data);
+	g_free (item->name);
+	g_slice_free (XbMachineMethodItem, item);
 }
 
 static void
-xb_machine_text_handler_free (XbMachineTextHandler *handler)
+xb_machine_text_handler_free (XbMachineTextHandlerItem *item)
 {
-	if (handler->user_data_free != NULL)
-		handler->user_data_free (handler->user_data);
-	g_slice_free (XbMachineTextHandler, handler);
+	if (item->user_data_free != NULL)
+		item->user_data_free (item->user_data);
+	g_slice_free (XbMachineTextHandlerItem, item);
 }
 
 static void
@@ -1193,21 +1193,21 @@ xb_machine_operator_free (XbMachineOperator *op)
 static void
 xb_machine_init (XbMachine *self)
 {
-	self->funcs = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_func_free);
+	self->methods = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_func_free);
 	self->operators = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_operator_free);
 	self->text_handlers = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_text_handler_free);
 	self->opcode_fixup = g_hash_table_new_full (g_str_hash, g_str_equal,
 						     g_free, (GDestroyNotify) xb_machine_opcode_fixup_free);
 
 	/* build-in functions */
-	xb_machine_add_func (self, "eq", 2, xb_machine_func_eq_cb, NULL, NULL);
-	xb_machine_add_func (self, "ne", 2, xb_machine_func_ne_cb, NULL, NULL);
-	xb_machine_add_func (self, "lt", 2, xb_machine_func_lt_cb, NULL, NULL);
-	xb_machine_add_func (self, "gt", 2, xb_machine_func_gt_cb, NULL, NULL);
-	xb_machine_add_func (self, "le", 2, xb_machine_func_le_cb, NULL, NULL);
-	xb_machine_add_func (self, "ge", 2, xb_machine_func_ge_cb, NULL, NULL);
-	xb_machine_add_func (self, "lower-case", 1, xb_machine_func_lower_cb, NULL, NULL);
-	xb_machine_add_func (self, "upper-case", 1, xb_machine_func_upper_cb, NULL, NULL);
+	xb_machine_add_method (self, "eq", 2, xb_machine_func_eq_cb, NULL, NULL);
+	xb_machine_add_method (self, "ne", 2, xb_machine_func_ne_cb, NULL, NULL);
+	xb_machine_add_method (self, "lt", 2, xb_machine_func_lt_cb, NULL, NULL);
+	xb_machine_add_method (self, "gt", 2, xb_machine_func_gt_cb, NULL, NULL);
+	xb_machine_add_method (self, "le", 2, xb_machine_func_le_cb, NULL, NULL);
+	xb_machine_add_method (self, "ge", 2, xb_machine_func_ge_cb, NULL, NULL);
+	xb_machine_add_method (self, "lower-case", 1, xb_machine_func_lower_cb, NULL, NULL);
+	xb_machine_add_method (self, "upper-case", 1, xb_machine_func_upper_cb, NULL, NULL);
 
 	/* built-in operators */
 	xb_machine_add_operator (self, "!=", "ne");
@@ -1224,7 +1224,7 @@ static void
 xb_machine_finalize (GObject *obj)
 {
 	XbMachine *self = XB_MACHINE (obj);
-	g_ptr_array_unref (self->funcs);
+	g_ptr_array_unref (self->methods);
 	g_ptr_array_unref (self->operators);
 	g_ptr_array_unref (self->text_handlers);
 	g_hash_table_unref (self->opcode_fixup);

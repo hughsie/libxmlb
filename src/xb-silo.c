@@ -747,18 +747,18 @@ xb_silo_init (XbSilo *self)
 	g_mutex_init (&self->nodes_mutex);
 
 	self->machine = xb_machine_new ();
-	xb_machine_add_func (self->machine, "attr", 1,
-			     xb_silo_machine_func_attr_cb, self, NULL);
-	xb_machine_add_func (self->machine, "text", 0,
-			     xb_silo_machine_func_text_cb, self, NULL);
-	xb_machine_add_func (self->machine, "first", 0,
-			     xb_silo_machine_func_first_cb, self, NULL);
-	xb_machine_add_func (self->machine, "last", 0,
-			     xb_silo_machine_func_last_cb, self, NULL);
-	xb_machine_add_func (self->machine, "position", 0,
-			     xb_silo_machine_func_position_cb, self, NULL);
-	xb_machine_add_func (self->machine, "contains", 2,
-			     xb_silo_machine_func_contains_cb, self, NULL);
+	xb_machine_add_method (self->machine, "attr", 1,
+			       xb_silo_machine_func_attr_cb, self, NULL);
+	xb_machine_add_method (self->machine, "text", 0,
+			       xb_silo_machine_func_text_cb, self, NULL);
+	xb_machine_add_method (self->machine, "first", 0,
+			       xb_silo_machine_func_first_cb, self, NULL);
+	xb_machine_add_method (self->machine, "last", 0,
+			       xb_silo_machine_func_last_cb, self, NULL);
+	xb_machine_add_method (self->machine, "position", 0,
+			       xb_silo_machine_func_position_cb, self, NULL);
+	xb_machine_add_method (self->machine, "contains", 2,
+			       xb_silo_machine_func_contains_cb, self, NULL);
 	xb_machine_add_opcode_fixup (self->machine, "INTE",
 				     xb_silo_machine_fixup_position_cb, self, NULL);
 	xb_machine_add_opcode_fixup (self->machine, "TEXT,FUNC:attr",

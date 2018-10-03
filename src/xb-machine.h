@@ -23,17 +23,17 @@ typedef enum {
 	XB_MACHINE_DEBUG_FLAG_LAST
 } XbMachineDebugFlags;
 
-typedef gboolean (*XbMachineOpcodeFixupCb)	(XbMachine		*self,
+typedef gboolean (*XbMachineOpcodeFixupFunc)	(XbMachine		*self,
 						 GPtrArray		*opcodes,
 						 gpointer		 user_data,
 						 GError			**error);
-typedef gboolean (*XbMachineTextHandlerCb)	(XbMachine		*self,
+typedef gboolean (*XbMachineTextHandlerFunc)	(XbMachine		*self,
 						 GPtrArray		*opcodes,
 						 const gchar		*text,
 						 gboolean		*handled,
 						 gpointer		 user_data,
 						 GError			**error);
-typedef gboolean (*XbMachineFuncCb)		(XbMachine		*self,
+typedef gboolean (*XbMachineMethodFunc)		(XbMachine		*self,
 						 GPtrArray		*stack,
 						 gboolean		*result,
 						 gpointer		 exec_data,
@@ -55,17 +55,17 @@ gboolean	 xb_machine_run			(XbMachine		*self,
 
 void		 xb_machine_add_opcode_fixup	(XbMachine		*self,
 						 const gchar		*opcodes_sig,
-						 XbMachineOpcodeFixupCb	 fixup_cb,
+						 XbMachineOpcodeFixupFunc	 fixup_cb,
 						 gpointer		 user_data,
 						 GDestroyNotify		 user_data_free);
 void		 xb_machine_add_text_handler	(XbMachine		*self,
-						 XbMachineTextHandlerCb	 fixup_cb,
+						 XbMachineTextHandlerFunc	 fixup_cb,
 						 gpointer		 user_data,
 						 GDestroyNotify		 user_data_free);
-void		 xb_machine_add_func		(XbMachine		*self,
+void		 xb_machine_add_method		(XbMachine		*self,
 						 const gchar		*name,
 						 guint			 n_opcodes,
-						 XbMachineFuncCb	 func_cb,
+						 XbMachineMethodFunc	 func_cb,
 						 gpointer		 user_data,
 						 GDestroyNotify		 user_data_free);
 void		 xb_machine_add_operator	(XbMachine		*self,
