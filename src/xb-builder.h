@@ -22,7 +22,6 @@ G_DECLARE_FINAL_TYPE (XbBuilder, xb_builder, XB, BUILDER, GObject)
 /**
  * XbBuilderCompileFlags:
  * @XB_BUILDER_COMPILE_FLAG_NONE:		No extra flags to use
- * @XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT:	Do not attempt to repair XML whitespace
  * @XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS:	Only load native languages
  * @XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID:	Ignore invalid files without an error
  * @XB_BUILDER_COMPILE_FLAG_SINGLE_LANG:	Only store a single language
@@ -32,7 +31,6 @@ G_DECLARE_FINAL_TYPE (XbBuilder, xb_builder, XB, BUILDER, GObject)
  **/
 typedef enum {
 	XB_BUILDER_COMPILE_FLAG_NONE		= 0,		/* Since: 0.1.0 */
-	XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT	= 1 << 0,	/* Since: 0.1.0 */
 	XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS	= 1 << 1,	/* Since: 0.1.0 */
 	XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID	= 1 << 2,	/* Since: 0.1.0 */
 	XB_BUILDER_COMPILE_FLAG_SINGLE_LANG	= 1 << 3,	/* Since: 0.1.0 */
@@ -50,13 +48,16 @@ void		 xb_builder_import_node		(XbBuilder		*self,
 						 XbBuilderNode		*bn);
 gboolean	 xb_builder_import_xml		(XbBuilder		*self,
 						 const gchar		*xml,
+						 XbBuilderSourceFlags	 flags,
 						 GError			**error);
 gboolean	 xb_builder_import_dir		(XbBuilder		*self,
 						 const gchar		*path,
+						 XbBuilderSourceFlags	 flags,
 						 GCancellable		*cancellable,
 						 GError			**error);
 gboolean	 xb_builder_import_file		(XbBuilder		*self,
 						 GFile			*file,
+						 XbBuilderSourceFlags	 flags,
 						 GCancellable		*cancellable,
 						 GError			**error);
 XbSilo		*xb_builder_compile		(XbBuilder		*self,

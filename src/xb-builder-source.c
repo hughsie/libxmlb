@@ -20,6 +20,7 @@ struct _XbBuilderSource {
 	XbBuilderNode		*info;
 	gchar			*guid;
 	gchar			*prefix;
+	XbBuilderSourceFlags	 flags;
 };
 
 G_DEFINE_TYPE (XbBuilderSource, xb_builder_source, G_TYPE_OBJECT)
@@ -33,6 +34,7 @@ typedef struct {
 /**
  * xb_builder_source_new_file:
  * @file: a #GFile
+ * @flags: some #XbBuilderSourceFlags, e.g. %XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT
  * @cancellable: a #GCancellable, or %NULL
  * @error: the #GError, or %NULL
  *
@@ -43,7 +45,10 @@ typedef struct {
  * Since: 0.1.0
  **/
 XbBuilderSource *
-xb_builder_source_new_file (GFile *file, GCancellable *cancellable, GError **error)
+xb_builder_source_new_file (GFile *file,
+			    XbBuilderSourceFlags flags,
+			    GCancellable *cancellable,
+			    GError **error)
 {
 	const gchar *content_type = NULL;
 	guint64 mtime;
@@ -91,6 +96,7 @@ xb_builder_source_new_file (GFile *file, GCancellable *cancellable, GError **err
 	}
 
 	/* success */
+	self->flags = flags;
 	return g_steal_pointer (&self);
 }
 
@@ -131,6 +137,7 @@ xb_builder_source_set_prefix (XbBuilderSource *self, const gchar *prefix)
 /**
  * xb_builder_source_new_xml:
  * @xml: XML data
+ * @flags: some #XbBuilderSourceFlags, e.g. %XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT
  * @error: the #GError, or %NULL
  *
  * Parses XML data and begins to build a #XbSilo.
@@ -140,7 +147,7 @@ xb_builder_source_set_prefix (XbBuilderSource *self, const gchar *prefix)
  * Since: 0.1.0
  **/
 XbBuilderSource *
-xb_builder_source_new_xml (const gchar *xml, GError **error)
+xb_builder_source_new_xml (const gchar *xml, XbBuilderSourceFlags flags, GError **error)
 {
 	g_autoptr(XbBuilderSource) self = g_object_new (XB_TYPE_BUILDER_SOURCE, NULL);
 	g_autoptr(GBytes) blob = NULL;
@@ -157,6 +164,7 @@ xb_builder_source_new_xml (const gchar *xml, GError **error)
 		return NULL;
 
 	/* success */
+	self->flags = flags;
 	return g_steal_pointer (&self);
 }
 
@@ -226,6 +234,13 @@ xb_builder_source_get_istream (XbBuilderSource *self)
 {
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), NULL);
 	return self->istream;
+}
+
+XbBuilderSourceFlags
+xb_builder_source_get_flags (XbBuilderSource *self)
+{
+	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), 0);
+	return self->flags;
 }
 
 static void

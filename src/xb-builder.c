@@ -32,7 +32,8 @@ G_DEFINE_TYPE (XbBuilder, xb_builder, G_TYPE_OBJECT)
 typedef struct {
 	GNode			*root;
 	GNode			*current;
-	XbBuilderCompileFlags	 flags;
+	XbBuilderCompileFlags	 compile_flags;
+	XbBuilderSourceFlags	 source_flags;
 	GHashTable		*strtab_hash;
 	GString			*strtab;
 	GPtrArray		*locales;
@@ -96,7 +97,7 @@ xb_builder_compile_start_element_cb (GMarkupParseContext *context,
 
 	/* check if we should ignore the locale */
 	if (!xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA) &&
-	    helper->flags & XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS) {
+	    helper->compile_flags & XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS) {
 		const gchar *xml_lang = NULL;
 		for (guint i = 0; attr_names[i] != NULL; i++) {
 			if (g_strcmp0 (attr_names[i], "xml:lang") == 0) {
@@ -163,7 +164,7 @@ xb_builder_compile_text_cb (GMarkupParseContext *context,
 		return;
 
 	/* repair text unless we know it's valid */
-	if (helper->flags & XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT)
+	if (helper->source_flags & XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT)
 		xb_builder_node_add_flag (bn, XB_BUILDER_NODE_FLAG_LITERAL_TEXT);
 	xb_builder_node_set_text (bn, text, text_len);
 }
@@ -190,6 +191,7 @@ xb_builder_import_source (XbBuilder *self, XbBuilderSource *source)
  * xb_builder_import_xml:
  * @self: a #XbSilo
  * @xml: XML data
+ * @flags: some #XbBuilderSourceFlags, e.g. %XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT
  * @error: the #GError, or %NULL
  *
  * Parses XML data and begins to build a #XbSilo.
@@ -199,7 +201,10 @@ xb_builder_import_source (XbBuilder *self, XbBuilderSource *source)
  * Since: 0.1.0
  **/
 gboolean
-xb_builder_import_xml (XbBuilder *self, const gchar *xml, GError **error)
+xb_builder_import_xml (XbBuilder *self,
+		       const gchar *xml,
+		       XbBuilderSourceFlags flags,
+		       GError **error)
 {
 	g_autoptr(XbBuilderSource) source = NULL;
 
@@ -207,7 +212,7 @@ xb_builder_import_xml (XbBuilder *self, const gchar *xml, GError **error)
 	g_return_val_if_fail (xml != NULL, FALSE);
 
 	/* add source */
-	source = xb_builder_source_new_xml (xml, error);
+	source = xb_builder_source_new_xml (xml, flags, error);
 	if (source == NULL)
 		return FALSE;
 
@@ -220,6 +225,7 @@ xb_builder_import_xml (XbBuilder *self, const gchar *xml, GError **error)
  * xb_builder_import_dir:
  * @self: a #XbSilo
  * @path: a directory path
+ * @flags: some #XbBuilderSourceFlags, e.g. %XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT
  * @cancellable: a #GCancellable, or %NULL
  * @error: the #GError, or %NULL
  *
@@ -232,6 +238,7 @@ xb_builder_import_xml (XbBuilder *self, const gchar *xml, GError **error)
 gboolean
 xb_builder_import_dir (XbBuilder *self,
 		       const gchar *path,
+		       XbBuilderSourceFlags flags,
 		       GCancellable *cancellable,
 		       GError **error)
 {
@@ -244,7 +251,7 @@ xb_builder_import_dir (XbBuilder *self,
 		    g_str_has_suffix (fn, ".xml.gz")) {
 			g_autofree gchar *filename = g_build_filename (path, fn, NULL);
 			g_autoptr(GFile) file = g_file_new_for_path (filename);
-			if (!xb_builder_import_file (self, file, cancellable, error))
+			if (!xb_builder_import_file (self, file, flags, cancellable, error))
 				return FALSE;
 		}
 	}
@@ -255,6 +262,7 @@ xb_builder_import_dir (XbBuilder *self,
  * xb_builder_import_file:
  * @self: a #XbSilo
  * @file: a #GFile
+ * @flags: some #XbBuilderSourceFlags, e.g. %XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT
  * @cancellable: a #GCancellable, or %NULL
  * @error: the #GError, or %NULL
  *
@@ -271,6 +279,7 @@ xb_builder_import_dir (XbBuilder *self,
 gboolean
 xb_builder_import_file (XbBuilder *self,
 			GFile *file,
+			XbBuilderSourceFlags flags,
 			GCancellable *cancellable,
 			GError **error)
 {
@@ -280,7 +289,7 @@ xb_builder_import_file (XbBuilder *self,
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
 	/* add source */
-	source = xb_builder_source_new_file (file, cancellable, error);
+	source = xb_builder_source_new_file (file, flags, cancellable, error);
 	if (source == NULL)
 		return FALSE;
 
@@ -373,6 +382,7 @@ xb_builder_compile_source (XbBuilderCompileHelper *helper,
 
 	/* add the source to a fake root in case it fails during processing */
 	helper->current = root_tmp;
+	helper->source_flags = xb_builder_source_get_flags (source);
 
 	/* parse */
 	ctx = g_markup_parse_context_new (&parser, G_MARKUP_PREFIX_ERROR_POSITION, helper, NULL);
@@ -795,7 +805,7 @@ xb_builder_add_locale (XbBuilder *self, const gchar *locale)
 /**
  * xb_builder_compile:
  * @self: a #XbSilo
- * @flags: some #XbBuilderCompileFlags, e.g. %XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT
+ * @flags: some #XbBuilderCompileFlags, e.g. %XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT
  * @cancellable: a #GCancellable, or %NULL
  * @error: the #GError, or %NULL
  *
@@ -843,7 +853,7 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 
 	/* create helper used for compiling */
 	helper = g_new0 (XbBuilderCompileHelper, 1);
-	helper->flags = flags;
+	helper->compile_flags = flags;
 	helper->root = g_node_new (NULL);
 	helper->locales = self->locales;
 	helper->strtab = g_string_new (NULL);
@@ -965,7 +975,7 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
  * xb_builder_ensure:
  * @self: a #XbSilo
  * @file: a #GFile
- * @flags: some #XbBuilderCompileFlags, e.g. %XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT
+ * @flags: some #XbBuilderCompileFlags, e.g. %XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID
  * @cancellable: a #GCancellable, or %NULL
  * @error: the #GError, or %NULL
  *

@@ -21,6 +21,7 @@ GInputStream	*xb_builder_source_get_istream	(XbBuilderSource	*self);
 gboolean	 xb_builder_source_funcs_node	(XbBuilderSource	*self,
 						 XbBuilderNode		*bn,
 						 GError			**error);
+XbBuilderSourceFlags xb_builder_source_get_flags(XbBuilderSource	*self);
 
 G_END_DECLS
 

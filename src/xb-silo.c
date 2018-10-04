@@ -663,7 +663,7 @@ xb_silo_new_from_xml (const gchar *xml, GError **error)
 {
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
 	g_return_val_if_fail (xml != NULL, NULL);
-	if (!xb_builder_import_xml (builder, xml, error))
+	if (!xb_builder_import_xml (builder, xml, XB_BUILDER_SOURCE_FLAG_NONE, error))
 		return NULL;
 	return xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, error);
 }

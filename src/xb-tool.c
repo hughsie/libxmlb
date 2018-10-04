@@ -352,12 +352,13 @@ xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 
 	for (guint i = 1; values[i] != NULL; i++) {
 		g_autoptr(GFile) file = g_file_new_for_path (values[i]);
-		if (!xb_builder_import_file (builder, file, NULL, error))
+		if (!xb_builder_import_file (builder, file,
+					     XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT,
+					     NULL, error))
 			return FALSE;
 	}
 	file_dst = g_file_new_for_path (values[0]);
 	silo = xb_builder_ensure (builder, file_dst,
-				  XB_BUILDER_COMPILE_FLAG_LITERAL_TEXT |
 				  XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID |
 				  XB_BUILDER_COMPILE_FLAG_SINGLE_LANG,
 				  NULL, error);
