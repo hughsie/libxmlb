@@ -1,0 +1,41 @@
+libxmlb Release Notes
+
+1. Write NEWS entries for libxmlb in the same format as usual.
+
+git shortlog 0.1.0.. | grep -i -v trivial | grep -v Merge > NEWS.new
+
+Version 0.1.0
+~~~~~~~~~~~~~
+Released: 2018-xx-xx
+
+New Features:
+Bugfixes:
+
+
+Commit changes to git:
+
+# MAKE SURE THESE ARE CORRECT
+export release_ver="0.1.0"
+
+git commit -a -m "Release libxmlb ${release_ver}"
+git tag -s -f -m "Release libxmlb ${release_ver}" "${release_ver}"
+<wait>
+git push --tags
+git push
+
+Generate the tarball:
+
+ninja dist
+
+Generate the additon verification metadata
+
+gpg -b -a meson-dist/libxmlb-${release_ver}.tar.xz
+
+Upload tarball:
+
+scp meson-dist/libxmlb-${release_ver}.tar.* hughsient@people.freedesktop.org:~/public_html/releases
+
+Do post release version bump in meson.build
+
+git commit -a -m "trivial: post release version bump"
+git push

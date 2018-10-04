@@ -93,7 +93,7 @@ xb_tool = executable(
     libxmlb,
   ],
   install : true,
-  install_dir : bindir
+  install_dir : libexecdir
 )
 
 pkgg = import('pkgconfig')

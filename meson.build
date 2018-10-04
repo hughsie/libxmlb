@@ -103,7 +103,7 @@ add_project_arguments('-DUSE_XMLB_VERSION_H', language : 'c')
 
 prefix = get_option('prefix')
 
-bindir = join_paths(prefix, get_option('bindir'))
+libexecdir = join_paths(prefix, get_option('libexecdir'))
 
 gio = dependency('gio-2.0', version : '>= 2.45.8')
 uuid = dependency('uuid')
