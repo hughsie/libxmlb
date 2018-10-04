@@ -815,8 +815,8 @@ xb_silo_machine_func_contains_cb (XbMachine *self,
 	/* TEXT:TEXT */
 	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&
 	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_TEXT) {
-		*result = xb_string_contains_fuzzy (xb_opcode_get_str (op2),
-						    xb_opcode_get_str (op1));
+		*result = xb_string_contains (xb_opcode_get_str (op2),
+					      xb_opcode_get_str (op1));
 		return TRUE;
 	}
 

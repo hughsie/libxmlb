@@ -79,7 +79,7 @@ xb_string_replace (GString *str, const gchar *search, const gchar *replace)
 }
 
 gboolean
-xb_string_contains_fuzzy (const gchar *text, const gchar *search)
+xb_string_contains (const gchar *text, const gchar *search)
 {
 	guint search_sz;
 	guint text_sz;
@@ -94,7 +94,7 @@ xb_string_contains_fuzzy (const gchar *text, const gchar *search)
 	if (search_sz > text_sz)
 		return FALSE;
 	for (guint i = 0; i < text_sz - search_sz + 1; i++) {
-		if (g_ascii_strncasecmp (text + i, search, search_sz) == 0)
+		if (strncmp (text + i, search, search_sz) == 0)
 			return TRUE;
 	}
 	return FALSE;
