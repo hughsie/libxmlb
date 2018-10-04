@@ -55,6 +55,10 @@ guint		 xb_silo_get_size			(XbSilo		*self);
 const gchar	*xb_silo_get_guid			(XbSilo		*self);
 XbNode		*xb_silo_get_root			(XbSilo		*self);
 gboolean	 xb_silo_is_valid			(XbSilo		*self);
+gboolean	 xb_silo_watch_file			(XbSilo		*self,
+							 GFile		*file,
+							 GCancellable	*cancellable,
+							 GError		**error);
 
 G_END_DECLS
 

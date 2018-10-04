@@ -85,10 +85,6 @@ guint		 xb_silo_node_get_depth		(XbSilo		*self,
 XbNode		*xb_silo_node_create		(XbSilo		*self,
 						 XbSiloNode	*sn);
 void		 xb_silo_invalidate		(XbSilo		*self);
-gboolean	 xb_silo_watch_file		(XbSilo		*self,
-						 GFile		*file,
-						 GCancellable	*cancellable,
-						 GError		**error);
 
 // FIXME xb-silo-export-private.h?
 gchar		*xb_silo_export_with_root	(XbSilo		*self,

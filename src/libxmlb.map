@@ -71,5 +71,6 @@ LIBXMLB_0.1.0 {
     xb_silo_query_first;
     xb_silo_save_to_file;
     xb_silo_to_string;
+    xb_silo_watch_file;
   local: *;
 };

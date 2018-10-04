@@ -513,6 +513,20 @@ xb_silo_watch_file_cb (GFileMonitor *monitor,
 	xb_silo_invalidate (silo);
 }
 
+/**
+ * xb_silo_watch_file:
+ * @self: a #XbSilo
+ * @file: a #GFile
+ * @cancellable: a #GCancellable, or %NULL
+ * @error: the #GError, or %NULL
+ *
+ * Adds a file monitor to the silo. If the file or directory for @file changes
+ * then the silo will be invalidated.
+ *
+ * Returns: %TRUE for success, otherwise @error is set.
+ *
+ * Since: 0.1.0
+ **/
 gboolean
 xb_silo_watch_file (XbSilo *self,
 		    GFile *file,

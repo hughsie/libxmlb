@@ -244,6 +244,7 @@ xb_builder_import_dir (XbBuilder *self,
 {
 	const gchar *fn;
 	g_autoptr(GDir) dir = g_dir_open (path, 0, error);
+	g_autoptr(GFile) parent = g_file_new_for_path (path);
 	if (dir == NULL)
 		return FALSE;
 	while ((fn = g_dir_read_name (dir)) != NULL) {
@@ -254,6 +255,11 @@ xb_builder_import_dir (XbBuilder *self,
 			if (!xb_builder_import_file (self, file, flags, cancellable, error))
 				return FALSE;
 		}
+	}
+	/* try to do what the user expects */
+	if (flags & XB_BUILDER_SOURCE_FLAG_WATCH_FILE) {
+		if (!xb_silo_watch_file (self->silo, parent, cancellable, error))
+			return FALSE;
 	}
 	return TRUE;
 }
