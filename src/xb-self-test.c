@@ -1063,6 +1063,12 @@ xb_threading_func (void)
 	g_autoptr(GString) xml = g_string_new (NULL);
 	g_autoptr(XbSilo) silo = NULL;
 
+#ifdef __s390x__
+	/* this is run with qemu and takes too much time */
+	g_test_skip ("s390 too slow, skipping");
+	return;
+#endif
+
 	/* create a huge document */
 	g_string_append (xml, "<components>");
 	for (guint i = 0; i < n_components; i++) {
@@ -1108,6 +1114,12 @@ xb_speed_func (void)
 	g_autoptr(GString) xml = g_string_new (NULL);
 	g_autoptr(GTimer) timer = g_timer_new ();
 	g_autoptr(XbSilo) silo = NULL;
+
+#ifdef __s390x__
+	/* this is run with qemu and takes too much time */
+	g_test_skip ("s390 too slow, skipping");
+	return;
+#endif
 
 	/* create a huge document */
 	g_string_append (xml, "<components>");
