@@ -21,12 +21,14 @@ G_DECLARE_FINAL_TYPE (XbBuilderSource, xb_builder_source, XB, BUILDER_SOURCE, GO
  * XbBuilderSourceFlags:
  * @XB_BUILDER_SOURCE_FLAG_NONE:		No extra flags to use
  * @XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT:	Do not attempt to repair XML whitespace
+ * @XB_BUILDER_SOURCE_FLAG_WATCH_FILE:		Watch the source file for changes
  *
  * The flags for converting to XML.
  **/
 typedef enum {
 	XB_BUILDER_SOURCE_FLAG_NONE		= 0,		/* Since: 0.1.0 */
 	XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT	= 1 << 0,	/* Since: 0.1.0 */
+	XB_BUILDER_SOURCE_FLAG_WATCH_FILE	= 1 << 1,	/* Since: 0.1.0 */
 	/*< private >*/
 	XB_BUILDER_SOURCE_FLAG_LAST
 } XbBuilderSourceFlags;

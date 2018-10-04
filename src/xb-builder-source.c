@@ -16,6 +16,7 @@
 struct _XbBuilderSource {
 	GObject			 parent_instance;
 	GInputStream		*istream;
+	GFile			*file;
 	GPtrArray		*node_items;	/* of XbBuilderSourceNodeFuncItem */
 	XbBuilderNode		*info;
 	gchar			*guid;
@@ -97,6 +98,7 @@ xb_builder_source_new_file (GFile *file,
 
 	/* success */
 	self->flags = flags;
+	self->file = g_object_ref (file);
 	return g_steal_pointer (&self);
 }
 
@@ -236,6 +238,13 @@ xb_builder_source_get_istream (XbBuilderSource *self)
 	return self->istream;
 }
 
+GFile *
+xb_builder_source_get_file (XbBuilderSource *self)
+{
+	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), NULL);
+	return self->file;
+}
+
 XbBuilderSourceFlags
 xb_builder_source_get_flags (XbBuilderSource *self)
 {
@@ -260,6 +269,8 @@ xb_builder_source_finalize (GObject *obj)
 		g_object_unref (self->istream);
 	if (self->info != NULL)
 		g_object_unref (self->info);
+	if (self->file != NULL)
+		g_object_unref (self->file);
 	g_ptr_array_unref (self->node_items);
 	g_free (self->guid);
 	g_free (self->prefix);

@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <glib-unix.h>
 #include <gio/gio.h>
 
 #include "xb-builder.h"
@@ -16,8 +17,11 @@
 #include "xb-node.h"
 
 typedef struct {
+	GCancellable		*cancellable;
+	GMainLoop		*loop;
 	GPtrArray		*cmd_array;
 	gboolean		 force;
+	gboolean		 wait;
 } XbToolPrivate;
 
 static void
@@ -27,6 +31,8 @@ xb_tool_private_free (XbToolPrivate *priv)
 		return;
 	if (priv->cmd_array != NULL)
 		g_ptr_array_unref (priv->cmd_array);
+	g_main_loop_unref (priv->loop);
+	g_object_unref (priv->cancellable);
 	g_free (priv);
 }
 
@@ -90,6 +96,14 @@ xb_tool_add (GPtrArray *array,
 		item->callback = callback;
 		g_ptr_array_add (array, item);
 	}
+}
+
+static void
+xb_tool_cancelled_cb (GCancellable *cancellable, gpointer user_data)
+{
+	XbToolPrivate *priv = (XbToolPrivate *) user_data;
+	g_print ("Cancelled!\n");
+	g_main_loop_quit (priv->loop);
 }
 
 static gchar *
@@ -327,6 +341,13 @@ xb_tool_query_file (XbToolPrivate *priv, gchar **values, GError **error)
 	return TRUE;
 }
 
+static void
+xb_tool_silo_invalidated_cb (XbSilo *silo, GParamSpec *pspec, gpointer user_data)
+{
+	XbToolPrivate *priv = (XbToolPrivate *) user_data;
+	g_main_loop_quit (priv->loop);
+}
+
 static gboolean
 xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 {
@@ -353,20 +374,40 @@ xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 	for (guint i = 1; values[i] != NULL; i++) {
 		g_autoptr(GFile) file = g_file_new_for_path (values[i]);
 		if (!xb_builder_import_file (builder, file,
+					     XB_BUILDER_SOURCE_FLAG_WATCH_FILE |
 					     XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT,
 					     NULL, error))
 			return FALSE;
 	}
 	file_dst = g_file_new_for_path (values[0]);
 	silo = xb_builder_ensure (builder, file_dst,
+				  XB_BUILDER_COMPILE_FLAG_WATCH_BLOB |
 				  XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID |
 				  XB_BUILDER_COMPILE_FLAG_SINGLE_LANG,
 				  NULL, error);
 	if (silo == NULL)
 		return FALSE;
 
+	/* wait for invalidation */
+	if (priv->wait) {
+		g_print ("Waiting for invalidation…\n");
+		g_signal_connect (silo, "notify::valid",
+				  G_CALLBACK (xb_tool_silo_invalidated_cb),
+				  priv);
+		g_main_loop_run (priv->loop);
+	}
+
 	/* success */
 	return TRUE;
+}
+
+static gboolean
+xb_tool_sigint_cb (gpointer user_data)
+{
+	XbToolPrivate *priv = (XbToolPrivate *) user_data;
+	g_debug ("Handling SIGINT");
+	g_cancellable_cancel (priv->cancellable);
+	return FALSE;
 }
 
 int
@@ -383,6 +424,8 @@ main (int argc, char *argv[])
 			"Print verbose debug statements", NULL },
 		{ "force", 'v', 0, G_OPTION_ARG_NONE, &priv->force,
 			"Force parsing of invalid files", NULL },
+		{ "wait", 'w', 0, G_OPTION_ARG_NONE, &priv->wait,
+			"Return only when the silo is no longer valid", NULL },
 		{ NULL}
 	};
 
@@ -418,6 +461,15 @@ main (int argc, char *argv[])
 		     /* TRANSLATORS: command description */
 		     "Compile XML to XMLb",
 		     xb_tool_compile);
+
+	/* do stuff on ctrl+c */
+	priv->loop = g_main_loop_new (NULL, FALSE);
+	priv->cancellable = g_cancellable_new ();
+	g_signal_connect (priv->cancellable, "cancelled",
+			  G_CALLBACK (xb_tool_cancelled_cb), priv);
+	g_unix_signal_add_full (G_PRIORITY_DEFAULT,
+				SIGINT, xb_tool_sigint_cb,
+				priv, NULL);
 
 	/* sort by command name */
 	g_ptr_array_sort (priv->cmd_array,

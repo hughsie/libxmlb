@@ -424,7 +424,6 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 	g_return_val_if_fail (locker != NULL, FALSE);
 
 	/* no longer valid */
-	g_hash_table_remove_all (self->file_monitors);
 	g_hash_table_remove_all (self->nodes);
 	g_hash_table_remove_all (self->strtab_tags);
 	g_clear_pointer (&self->guid, g_free);
@@ -502,11 +501,11 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 }
 
 static void
-xb_silo_file_monitor_cb (GFileMonitor *monitor,
-			 GFile *file,
-			 GFile *other_file,
-			 GFileMonitorEvent event_type,
-			 gpointer user_data)
+xb_silo_watch_file_cb (GFileMonitor *monitor,
+		       GFile *file,
+		       GFile *other_file,
+		       GFileMonitorEvent event_type,
+		       gpointer user_data)
 {
 	XbSilo *silo = XB_SILO (user_data);
 	g_autofree gchar *fn = g_file_get_path (file);
@@ -515,10 +514,10 @@ xb_silo_file_monitor_cb (GFileMonitor *monitor,
 }
 
 gboolean
-xb_silo_file_monitor_add (XbSilo *self,
-			  GFile *file,
-			  GCancellable *cancellable,
-			  GError **error)
+xb_silo_watch_file (XbSilo *self,
+		    GFile *file,
+		    GCancellable *cancellable,
+		    GError **error)
 {
 	XbSiloFileMonitorItem *item;
 	g_autofree gchar *fn = g_file_get_path (file);
@@ -526,8 +525,10 @@ xb_silo_file_monitor_add (XbSilo *self,
 
 	/* already exists */
 	item = g_hash_table_lookup (self->file_monitors, fn);
-	if (item != NULL)
+	if (item != NULL) {
+		g_debug ("already watching %s", fn);
 		return TRUE;
+	}
 
 	/* try to create */
 	file_monitor = g_file_monitor_file (file, G_FILE_MONITOR_NONE,
@@ -537,10 +538,11 @@ xb_silo_file_monitor_add (XbSilo *self,
 	g_file_monitor_set_rate_limit (file_monitor, 20);
 
 	/* add */
+	g_debug ("now watching %s", fn);
 	item = g_slice_new0 (XbSiloFileMonitorItem);
 	item->file_monitor = g_object_ref (file_monitor);
 	item->file_monitor_id = g_signal_connect (file_monitor, "changed",
-						  G_CALLBACK (xb_silo_file_monitor_cb), self);
+						  G_CALLBACK (xb_silo_watch_file_cb), self);
 	g_hash_table_insert (self->file_monitors, g_steal_pointer (&fn), item);
 	return TRUE;
 }
@@ -573,6 +575,8 @@ xb_silo_load_from_file (XbSilo *self,
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
 	/* no longer valid */
+	g_debug ("removing %u file monitors",
+		 g_hash_table_size (self->file_monitors));
 	g_hash_table_remove_all (self->file_monitors);
 	g_hash_table_remove_all (self->nodes);
 	g_hash_table_remove_all (self->strtab_tags);
@@ -588,7 +592,7 @@ xb_silo_load_from_file (XbSilo *self,
 
 	/* watch file for changes */
 	if (flags & XB_SILO_LOAD_FLAG_WATCH_BLOB) {
-		if (!xb_silo_file_monitor_add (self, file, cancellable, error))
+		if (!xb_silo_watch_file (self, file, cancellable, error))
 			return FALSE;
 	}
 

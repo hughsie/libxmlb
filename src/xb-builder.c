@@ -802,6 +802,33 @@ xb_builder_add_locale (XbBuilder *self, const gchar *locale)
 	xb_builder_append_guid (self, locale);
 }
 
+static gboolean
+xb_builder_watch_source (XbBuilder *self,
+			 XbBuilderSource *source,
+			 GCancellable *cancellable,
+			 GError **error)
+{
+	GFile *file = xb_builder_source_get_file (source);
+	if (file == NULL)
+		return TRUE;
+	if ((xb_builder_source_get_flags (source) & XB_BUILDER_SOURCE_FLAG_WATCH_FILE) == 0)
+		return TRUE;
+	if (!xb_silo_watch_file (self->silo, file, cancellable, error))
+		return FALSE;
+	return TRUE;
+}
+
+static gboolean
+xb_builder_watch_sources (XbBuilder *self, GCancellable *cancellable, GError **error)
+{
+	for (guint i = 0; i < self->sources->len; i++) {
+		XbBuilderSource *source = g_ptr_array_index (self->sources, i);
+		if (!xb_builder_watch_source (self, source, cancellable, error))
+			return FALSE;
+	}
+	return TRUE;
+}
+
 /**
  * xb_builder_compile:
  * @self: a #XbSilo
@@ -901,6 +928,10 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 						    xb_builder_source_get_guid (source));
 			return NULL;
 		}
+
+		/* watch the source */
+		if (!xb_builder_watch_source (self, source, cancellable, error))
+			return NULL;
 	}
 
 	/* only include the highest priority translation */
@@ -1009,7 +1040,7 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 	fn = g_file_get_path (file);
 	g_debug ("attempting to load %s", fn);
 	if (!xb_silo_load_from_file (silo_tmp, file,
-				     load_flags,
+				     XB_SILO_LOAD_FLAG_NONE,
 				     cancellable,
 				     &error_local)) {
 		g_debug ("failed to load silo: %s", error_local->message);
@@ -1031,8 +1062,19 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 			g_autoptr(GBytes) blob = xb_silo_get_bytes (silo_tmp);
 			g_debug ("loading silo with file contents");
 			if (!xb_silo_load_from_bytes (self->silo, blob,
-						      XB_SILO_LOAD_FLAG_NONE, error))
+						      load_flags, error))
 				return NULL;
+
+			/* ensure all the sources are watched */
+			if (!xb_builder_watch_sources (self, cancellable, error))
+				return NULL;
+
+			/* ensure backing file is watched for changes */
+			if (flags & XB_BUILDER_COMPILE_FLAG_WATCH_BLOB) {
+				if (!xb_silo_watch_file (self->silo, file,
+							 cancellable, error))
+					return NULL;
+			}
 			return g_object_ref (self->silo);
 		}
 	}
@@ -1046,8 +1088,8 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 
 	/* watch blob for changes */
 	if (flags & XB_BUILDER_COMPILE_FLAG_WATCH_BLOB) {
-		if (!xb_silo_file_monitor_add (silo_new, file, cancellable, error))
-			return FALSE;
+		if (!xb_silo_watch_file (silo_new, file, cancellable, error))
+			return NULL;
 	}
 
 	/* success */
