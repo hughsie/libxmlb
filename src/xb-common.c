@@ -99,3 +99,37 @@ xb_string_contains (const gchar *text, const gchar *search)
 	}
 	return FALSE;
 }
+
+/* ignore search matches that are not the start of the token */
+gboolean
+xb_string_search (const gchar *text, const gchar *search)
+{
+	guint search_sz;
+	guint text_sz;
+	gboolean is_sow = TRUE;
+
+	/* can't possibly match */
+	if (text == NULL || text[0] == '\0')
+		return FALSE;
+	if (search == NULL || search[0] == '\0')
+		return FALSE;
+
+	/* sanity check */
+	text_sz = strlen (text);
+	search_sz = strlen (search);
+	if (search_sz > text_sz)
+		return FALSE;
+	for (guint i = 0; i < text_sz - search_sz + 1; i++) {
+		if (!g_ascii_isalnum (text[i])) {
+			is_sow = TRUE;
+			continue;
+		}
+		if (!is_sow)
+			continue;
+		if (g_ascii_strncasecmp (text + i, search, search_sz) == 0)
+			return TRUE;
+		/* no longer the start of the word */
+		is_sow = FALSE;
+	}
+	return FALSE;
+}

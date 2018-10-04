@@ -8,6 +8,7 @@
 
 #include <gio/gio.h>
 
+#include "xb-common.h"
 #include "xb-builder.h"
 #include "xb-builder-node.h"
 #include "xb-machine.h"
@@ -52,6 +53,18 @@ xb_test_loop_quit (void)
 }
 
 static void
+xb_common_func (void)
+{
+	g_assert_true (xb_string_search ("gimp", "gimp"));
+	g_assert_true (xb_string_search ("GIMP", "gimp"));
+	g_assert_true (xb_string_search ("The GIMP", "gimp"));
+	g_assert_true (xb_string_search ("The GIMP Editor", "gimp"));
+	g_assert_false (xb_string_search ("gimp", ""));
+	g_assert_false (xb_string_search ("gimp", "imp"));
+	g_assert_false (xb_string_search ("the gimp editor", "imp"));
+}
+
+static void
 xb_predicate_func (void)
 {
 	g_autoptr(XbSilo) silo = xb_silo_new ();
@@ -82,9 +95,9 @@ xb_predicate_func (void)
 		{ "last()",
 		  "last()" },
 		{ "text()~='beef'",
-		  "text(),'beef',contains()" },
+		  "text(),'beef',search()" },
 		{ "@type~='dead'",
-		  "'type',attr(),'dead',contains()" },
+		  "'type',attr(),'dead',search()" },
 		{ "2",
 		  "2,position(),eq()" },
 		{ "text()=lower-case('firefox')",
@@ -840,7 +853,7 @@ xb_xpath_parent_func (void)
 	g_clear_object (&n);
 
 	/* fuzzy substring match */
-	n = xb_silo_query_first (silo, "components/component[@type~='ware']/pkgname", &error);
+	n = xb_silo_query_first (silo, "components/component[@type~='firm']/pkgname", &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (n);
 	g_assert_cmpstr (xb_node_get_text (n), ==, "colorhug-client");
@@ -1217,6 +1230,7 @@ main (int argc, char **argv)
 	g_setenv ("G_MESSAGES_DEBUG", "all", TRUE);
 
 	/* tests go here */
+	g_test_add_func ("/libxmlb/common", xb_common_func);
 	g_test_add_func ("/libxmlb/opcodes", xb_predicate_func);
 	g_test_add_func ("/libxmlb/builder", xb_builder_func);
 	g_test_add_func ("/libxmlb/builder{native-lang}", xb_builder_native_lang_func);

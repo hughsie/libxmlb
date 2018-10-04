@@ -831,6 +831,35 @@ xb_silo_machine_func_contains_cb (XbMachine *self,
 }
 
 static gboolean
+xb_silo_machine_func_search_cb (XbMachine *self,
+				GPtrArray *stack,
+				gboolean *result,
+				gpointer user_data,
+				gpointer exec_data,
+				GError **error)
+{
+	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
+	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
+
+	/* TEXT:TEXT */
+	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&
+	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_TEXT) {
+		*result = xb_string_search (xb_opcode_get_str (op2),
+					    xb_opcode_get_str (op1));
+		return TRUE;
+	}
+
+	/* fail */
+	g_set_error (error,
+		     G_IO_ERROR,
+		     G_IO_ERROR_NOT_SUPPORTED,
+		     "%s:%s types not supported",
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op1)),
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op2)));
+	return FALSE;
+}
+
+static gboolean
 xb_silo_machine_fixup_attr_text_cb (XbMachine *self,
 				    GPtrArray *opcodes,
 				    const gchar *text,
@@ -923,7 +952,9 @@ xb_silo_init (XbSilo *self)
 			       xb_silo_machine_func_position_cb, self, NULL);
 	xb_machine_add_method (self->machine, "contains", 2,
 			       xb_silo_machine_func_contains_cb, self, NULL);
-	xb_machine_add_operator (self->machine, "~=", "contains");
+	xb_machine_add_method (self->machine, "search", 2,
+			       xb_silo_machine_func_search_cb, self, NULL);
+	xb_machine_add_operator (self->machine, "~=", "search");
 	xb_machine_add_opcode_fixup (self->machine, "INTE",
 				     xb_silo_machine_fixup_position_cb, self, NULL);
 	xb_machine_add_opcode_fixup (self->machine, "TEXT,FUNC:attr",

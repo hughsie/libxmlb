@@ -16,6 +16,8 @@ guint		 xb_string_replace			(GString	*str,
 							 const gchar	*replace);
 gboolean	 xb_string_contains			(const gchar	*text,
 							 const gchar	*search);
+gboolean	 xb_string_search			(const gchar	*text,
+							 const gchar	*search);
 
 G_END_DECLS
 
