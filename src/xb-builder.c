@@ -13,12 +13,12 @@
 
 #include "xb-silo-private.h"
 #include "xb-builder.h"
-#include "xb-builder-import-private.h"
+#include "xb-builder-source-private.h"
 #include "xb-builder-node-private.h"
 
 struct _XbBuilder {
 	GObject			 parent_instance;
-	GPtrArray		*imports;	/* of XbBuilderImport */
+	GPtrArray		*sources;	/* of XbBuilderSource */
 	GPtrArray		*nodes;		/* of XbBuilderNode */
 	GPtrArray		*locales;	/* of str */
 	XbSilo			*silo;
@@ -169,21 +169,21 @@ xb_builder_compile_text_cb (GMarkupParseContext *context,
 }
 
 /**
- * xb_builder_import:
+ * xb_builder_import_source:
  * @self: a #XbSilo
- * @import: a #XbBuilderImport
+ * @source: a #XbBuilderSource
  *
- * Adds a #XbBuilderImport to the #XbBuilder.
+ * Adds a #XbBuilderSource to the #XbBuilder.
  *
  * Since: 0.1.0
  **/
 void
-xb_builder_import (XbBuilder *self, XbBuilderImport *import)
+xb_builder_import_source (XbBuilder *self, XbBuilderSource *source)
 {
 	g_return_if_fail (XB_IS_BUILDER (self));
-	g_return_if_fail (XB_IS_BUILDER_IMPORT (import));
-	xb_builder_append_guid (self, xb_builder_import_get_guid (import));
-	g_ptr_array_add (self->imports, g_object_ref (import));
+	g_return_if_fail (XB_IS_BUILDER_SOURCE (source));
+	xb_builder_append_guid (self, xb_builder_source_get_guid (source));
+	g_ptr_array_add (self->sources, g_object_ref (source));
 }
 
 /**
@@ -201,18 +201,18 @@ xb_builder_import (XbBuilder *self, XbBuilderImport *import)
 gboolean
 xb_builder_import_xml (XbBuilder *self, const gchar *xml, GError **error)
 {
-	g_autoptr(XbBuilderImport) import = NULL;
+	g_autoptr(XbBuilderSource) source = NULL;
 
 	g_return_val_if_fail (XB_IS_BUILDER (self), FALSE);
 	g_return_val_if_fail (xml != NULL, FALSE);
 
-	/* add import */
-	import = xb_builder_import_new_xml (xml, error);
-	if (import == NULL)
+	/* add source */
+	source = xb_builder_source_new_xml (xml, error);
+	if (source == NULL)
 		return FALSE;
 
 	/* success */
-	xb_builder_import (self, import);
+	xb_builder_import_source (self, source);
 	return TRUE;
 }
 
@@ -260,9 +260,9 @@ xb_builder_import_dir (XbBuilder *self,
  *
  * Adds an optionally compressed XML file to build a #XbSilo.
  *
- * If extra metadata is required on the import, create it manually using
- * xb_builder_import_new_file(), calling xb_builder_import_set_info() and then
- * xb_builder_import().
+ * If extra metadata is required on the source, create it manually using
+ * xb_builder_source_new_file(), calling xb_builder_source_set_info() and then
+ * xb_builder_import_source().
  *
  * Returns: %TRUE for success, otherwise @error is set.
  *
@@ -274,23 +274,23 @@ xb_builder_import_file (XbBuilder *self,
 			GCancellable *cancellable,
 			GError **error)
 {
-	g_autoptr(XbBuilderImport) import = NULL;
+	g_autoptr(XbBuilderSource) source = NULL;
 
 	g_return_val_if_fail (XB_IS_BUILDER (self), FALSE);
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
-	/* add import */
-	import = xb_builder_import_new_file (file, cancellable, error);
-	if (import == NULL)
+	/* add source */
+	source = xb_builder_source_new_file (file, cancellable, error);
+	if (source == NULL)
 		return FALSE;
 
 	/* success */
-	xb_builder_import (self, import);
+	xb_builder_import_source (self, source);
 	return TRUE;
 }
 
 typedef struct {
-	XbBuilderImport	*import;
+	XbBuilderSource	*source;
 	gboolean	 ret;
 	GError		*error;
 } XbBuilderNodeFuncHelper;
@@ -305,8 +305,8 @@ xb_builder_node_func_cb (GNode *n, gpointer data)
 	if (bn == NULL)
 		return FALSE;
 
-	/* run all node funcs on the import */
-	if (!xb_builder_import_node_func_run (helper->import, bn, &helper->error)) {
+	/* run all node funcs on the source */
+	if (!xb_builder_source_funcs_node (helper->source, bn, &helper->error)) {
 		helper->ret = FALSE;
 		return TRUE;
 	}
@@ -333,10 +333,10 @@ xb_builder_compile_fix_children_cb (GNode *n, gpointer user_data)
 }
 
 static gboolean
-xb_builder_node_func_call (XbBuilderImport *import, GNode *n, GError **error)
+xb_builder_node_func_call (XbBuilderSource *source, GNode *n, GError **error)
 {
 	XbBuilderNodeFuncHelper helper = {
-		.import = import,
+		.source = source,
 		.ret = TRUE,
 		.error = NULL,
 	};
@@ -352,13 +352,13 @@ xb_builder_node_func_call (XbBuilderImport *import, GNode *n, GError **error)
 }
 
 static gboolean
-xb_builder_compile_import (XbBuilderCompileHelper *helper,
-			   XbBuilderImport *import,
+xb_builder_compile_source (XbBuilderCompileHelper *helper,
+			   XbBuilderSource *source,
 			   GNode *root,
 			   GCancellable *cancellable,
 			   GError **error)
 {
-	GInputStream *istream = xb_builder_import_get_istream (import);
+	GInputStream *istream = xb_builder_source_get_istream (source);
 	gsize chunk_size = 32 * 1024;
 	gssize len;
 	XbBuilderNode *info;
@@ -371,7 +371,7 @@ xb_builder_compile_import (XbBuilderCompileHelper *helper,
 		xb_builder_compile_text_cb,
 		NULL, NULL };
 
-	/* add the import to a fake root in case it fails during processing */
+	/* add the source to a fake root in case it fails during processing */
 	helper->current = root_tmp;
 
 	/* parse */
@@ -402,12 +402,12 @@ xb_builder_compile_import (XbBuilderCompileHelper *helper,
 			 xb_builder_compile_fix_children_cb, NULL);
 
 	/* run any node functions */
-	if (!xb_builder_node_func_call (import, root_tmp, error))
+	if (!xb_builder_node_func_call (source, root_tmp, error))
 		return FALSE;
 
 	/* add any manually built nodes */
 	/* this is something we can query with later */
-	info = xb_builder_import_get_info (import);
+	info = xb_builder_source_get_info (source);
 	if (info != NULL)
 		xb_builder_compile_node_tree (helper->current->children, info);
 
@@ -850,17 +850,17 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	helper->strtab_hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 
 	/* build node tree */
-	for (guint i = 0; i < self->imports->len; i++) {
+	for (guint i = 0; i < self->sources->len; i++) {
 		GNode *root = NULL;
-		XbBuilderImport *import = g_ptr_array_index (self->imports, i);
+		XbBuilderSource *source = g_ptr_array_index (self->sources, i);
 		g_autoptr(GError) error_local = NULL;
 
 		/* find, or create the prefix */
-		if (xb_builder_import_get_prefix (import) != NULL) {
+		if (xb_builder_source_get_prefix (source) != NULL) {
 			for (GNode *c = helper->root->children; c != NULL; c = c->next) {
 				XbBuilderNode *bn = c->data;
 				if (g_strcmp0 (xb_builder_node_get_element (bn),
-					       xb_builder_import_get_prefix (import)) == 0) {
+					       xb_builder_source_get_prefix (source)) == 0) {
 					root = c;
 					break;
 				}
@@ -868,7 +868,7 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 
 			/* not found, so create */
 			if (root == NULL) {
-				XbBuilderNode *bn = xb_builder_node_new (xb_builder_import_get_prefix (import));
+				XbBuilderNode *bn = xb_builder_node_new (xb_builder_source_get_prefix (source));
 				root = g_node_insert_data (helper->root, -1, bn);
 			}
 		} else {
@@ -876,19 +876,19 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 			root = helper->root;
 		}
 
-		g_debug ("compiling %s…", xb_builder_import_get_guid (import));
-		if (!xb_builder_compile_import (helper, import, root,
+		g_debug ("compiling %s…", xb_builder_source_get_guid (source));
+		if (!xb_builder_compile_source (helper, source, root,
 						cancellable, &error_local)) {
 			if (flags & XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID) {
 				g_debug ("ignoring invalid file %s: %s",
-					 xb_builder_import_get_guid (import),
+					 xb_builder_source_get_guid (source),
 					 error_local->message);
 				continue;
 			}
 			g_propagate_prefixed_error (error,
 						    g_steal_pointer (&error_local),
 						    "failed to compile %s: ",
-						    xb_builder_import_get_guid (import));
+						    xb_builder_source_get_guid (source));
 			return NULL;
 		}
 	}
@@ -1066,7 +1066,7 @@ xb_builder_finalize (GObject *obj)
 {
 	XbBuilder *self = XB_BUILDER (obj);
 
-	g_ptr_array_unref (self->imports);
+	g_ptr_array_unref (self->sources);
 	g_ptr_array_unref (self->nodes);
 	g_ptr_array_unref (self->locales);
 	g_object_unref (self->silo);
@@ -1085,7 +1085,7 @@ xb_builder_class_init (XbBuilderClass *klass)
 static void
 xb_builder_init (XbBuilder *self)
 {
-	self->imports = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+	self->sources = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	self->nodes = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	self->locales = g_ptr_array_new_with_free_func (g_free);
 	self->silo = xb_silo_new ();

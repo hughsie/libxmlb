@@ -3,8 +3,8 @@ libxmlbstatic = static_library(
   sources : [
     'xb-common.c',
     'xb-builder.c',
-    'xb-builder-import.c',
     'xb-builder-node.c',
+    'xb-builder-source.c',
     'xb-machine.c',
     'xb-node.c',
     'xb-opcode.c',
@@ -37,7 +37,7 @@ install_headers(
 
 install_headers([
     'xb-builder.h',
-    'xb-builder-import.h',
+    'xb-builder-source.h',
     'xb-builder-node.h',
     'xb-node.h',
     'xb-silo-export.h',
@@ -55,8 +55,8 @@ libxmlb = shared_library(
   sources : [
     'xb-common.c',
     'xb-builder.c',
-    'xb-builder-import.c',
     'xb-builder-node.c',
+    'xb-builder-source.c',
     'xb-machine.c',
     'xb-opcode.c',
     'xb-node.c',
@@ -112,10 +112,10 @@ if get_option('introspection')
     sources : [
       'xb-builder.c',
       'xb-builder.h',
-      'xb-builder-import.c',
-      'xb-builder-import.h',
       'xb-builder-node.c',
       'xb-builder-node.h',
+      'xb-builder-source.c',
+      'xb-builder-source.h',
       'xb-node.c',
       'xb-node.h',
       'xb-silo.c',

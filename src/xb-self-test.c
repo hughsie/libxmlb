@@ -280,7 +280,7 @@ xb_builder_ensure_func (void)
 }
 
 static gboolean
-xb_builder_upgrade_appstream_cb (XbBuilderImport *self,
+xb_builder_upgrade_appstream_cb (XbBuilderSource *self,
 				 XbBuilderNode *bn,
 				 gpointer user_data,
 				 GError **error)
@@ -311,7 +311,7 @@ xb_builder_node_vfunc_func (void)
 	g_autofree gchar *xml2 = NULL;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
-	g_autoptr(XbBuilderImport) import = NULL;
+	g_autoptr(XbBuilderSource) source = NULL;
 	g_autoptr(XbSilo) silo = NULL;
 	const gchar *xml =
 		"  <application>\n"
@@ -319,11 +319,11 @@ xb_builder_node_vfunc_func (void)
 		"  </application>\n";
 
 	/* import some XML */
-	import = xb_builder_import_new_xml (xml, &error);
+	source = xb_builder_source_new_xml (xml, &error);
 	g_assert_no_error (error);
-	g_assert_nonnull (import);
-	xb_builder_import_add_node_func (import, xb_builder_upgrade_appstream_cb, NULL, NULL);
-	xb_builder_import (builder, import);
+	g_assert_nonnull (source);
+	xb_builder_source_add_node_func (source, xb_builder_upgrade_appstream_cb, NULL, NULL);
+	xb_builder_import_source (builder, source);
 	silo = xb_builder_compile (builder,
 				   XB_BUILDER_COMPILE_FLAG_NONE,
 				   NULL, &error);
@@ -958,8 +958,8 @@ xb_builder_node_info_func (void)
 	gboolean ret;
 	g_autofree gchar *xml = NULL;
 	g_autoptr(GError) error = NULL;
-	g_autoptr(XbBuilderImport) import1 = NULL;
-	g_autoptr(XbBuilderImport) import2 = NULL;
+	g_autoptr(XbBuilderSource) import1 = NULL;
+	g_autoptr(XbBuilderSource) import2 = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
 	g_autoptr(XbNode) n = NULL;
 	g_autoptr(XbBuilderNode) info1 = NULL;
@@ -978,18 +978,18 @@ xb_builder_node_info_func (void)
 
 	/* import the doc */
 	file = g_file_new_for_path (fn);
-	import1 = xb_builder_import_new_file (file, NULL, &error);
+	import1 = xb_builder_source_new_file (file, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (import1);
-	xb_builder_import_set_info (import1, info1);
-	xb_builder_import_set_prefix (import1, "local");
-	xb_builder_import (builder, import1);
-	import2 = xb_builder_import_new_file (file, NULL, &error);
+	xb_builder_source_set_info (import1, info1);
+	xb_builder_source_set_prefix (import1, "local");
+	xb_builder_import_source (builder, import1);
+	import2 = xb_builder_source_new_file (file, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (import2);
-	xb_builder_import_set_info (import2, info2);
-	xb_builder_import_set_prefix (import2, "local");
-	xb_builder_import (builder, import2);
+	xb_builder_source_set_info (import2, info2);
+	xb_builder_source_set_prefix (import2, "local");
+	xb_builder_import_source (builder, import2);
 	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);

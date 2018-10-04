@@ -26,6 +26,8 @@
       </para>
     </partintro>
     <xi:include href="xml/xb-builder.xml"/>
+    <xi:include href="xml/xb-builder-node.xml"/>
+    <xi:include href="xml/xb-builder-source.xml"/>
     <xi:include href="xml/xb-node.xml"/>
     <xi:include href="xml/xb-silo.xml"/>
     <xi:include href="xml/xb-silo-query.xml"/>
