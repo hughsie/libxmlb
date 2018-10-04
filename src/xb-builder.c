@@ -775,9 +775,11 @@ xb_builder_generate_guid (XbBuilder *self)
 void
 xb_builder_import_node (XbBuilder *self, XbBuilderNode *bn)
 {
+	g_autofree gchar *guid = g_strdup_printf ("bn@%p", bn);
 	g_return_if_fail (XB_IS_BUILDER (self));
 	g_return_if_fail (XB_IS_BUILDER_NODE (bn));
 	g_ptr_array_add (self->nodes, g_object_ref (bn));
+	xb_builder_append_guid (self, guid);
 }
 
 /**
