@@ -923,6 +923,7 @@ xb_silo_init (XbSilo *self)
 			       xb_silo_machine_func_position_cb, self, NULL);
 	xb_machine_add_method (self->machine, "contains", 2,
 			       xb_silo_machine_func_contains_cb, self, NULL);
+	xb_machine_add_operator (self->machine, "~=", "contains");
 	xb_machine_add_opcode_fixup (self->machine, "INTE",
 				     xb_silo_machine_fixup_position_cb, self, NULL);
 	xb_machine_add_opcode_fixup (self->machine, "TEXT,FUNC:attr",

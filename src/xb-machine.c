@@ -1211,7 +1211,6 @@ xb_machine_init (XbMachine *self)
 	xb_machine_add_operator (self, "!=", "ne");
 	xb_machine_add_operator (self, "<=", "le");
 	xb_machine_add_operator (self, ">=", "ge");
-	xb_machine_add_operator (self, "~=", "contains");
 	xb_machine_add_operator (self, "==", "eq");
 	xb_machine_add_operator (self, "=", "eq");
 	xb_machine_add_operator (self, ">", "gt");
