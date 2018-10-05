@@ -103,7 +103,7 @@ xb_builder_node_set_element (XbBuilderNode *self, const gchar *element)
 }
 
 /**
- * xb_builder_node_get_attribute:
+ * xb_builder_node_get_attr:
  * @self: a #XbBuilderNode
  * @name: attribute name, e.g. `type`
  *
@@ -114,7 +114,7 @@ xb_builder_node_set_element (XbBuilderNode *self, const gchar *element)
  * Since: 0.1.0
  **/
 const gchar *
-xb_builder_node_get_attribute (XbBuilderNode *self, const gchar *name)
+xb_builder_node_get_attr (XbBuilderNode *self, const gchar *name)
 {
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_BUILDER_NODE (self), NULL);

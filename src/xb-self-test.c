@@ -308,7 +308,7 @@ xb_builder_upgrade_appstream_cb (XbBuilderSource *self,
 		for (guint i = 0; i < children->len; i++) {
 			XbBuilderNode *bc = g_ptr_array_index (children, i);
 			if (g_strcmp0 (xb_builder_node_get_element (bc), "id") == 0) {
-				kind = g_strdup (xb_builder_node_get_attribute (bc, "type"));
+				kind = g_strdup (xb_builder_node_get_attr (bc, "type"));
 				xb_builder_node_remove_attr (bc, "type");
 				break;
 			}

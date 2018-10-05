@@ -55,8 +55,6 @@ gboolean	 xb_builder_node_has_flag	(XbBuilderNode		*self,
 						 XbBuilderNodeFlags	 flag);
 void		 xb_builder_node_add_flag	(XbBuilderNode		*self,
 						 XbBuilderNodeFlags	 flag);
-const gchar	*xb_builder_node_get_attribute	(XbBuilderNode		*self,
-						 const gchar		*name);
 const gchar	*xb_builder_node_get_element	(XbBuilderNode		*self);
 void		 xb_builder_node_set_element	(XbBuilderNode		*self,
 						 const gchar		*element);
@@ -64,6 +62,8 @@ const gchar	*xb_builder_node_get_text	(XbBuilderNode		*self);
 void		 xb_builder_node_set_text	(XbBuilderNode		*self,
 						 const gchar		*text,
 						 gssize			 text_len);
+const gchar	*xb_builder_node_get_attr	(XbBuilderNode		*self,
+						 const gchar		*name);
 void		 xb_builder_node_set_attr	(XbBuilderNode		*self,
 						 const gchar		*name,
 						 const gchar		*value);
