@@ -31,8 +31,8 @@ G_DEFINE_TYPE_WITH_PRIVATE (XbBuilder, xb_builder, G_TYPE_OBJECT)
 #define XB_SILO_APPENDBUF(str,data,sz)	g_string_append_len(str,(const gchar *)data, sz);
 
 typedef struct {
-	GNode			*root;
-	GNode			*current;
+	XbBuilderNode		*root;		/* transfer full */
+	XbBuilderNode		*current;	/* transfer none */
 	XbBuilderCompileFlags	 compile_flags;
 	XbBuilderSourceFlags	 source_flags;
 	GHashTable		*strtab_hash;
@@ -57,17 +57,6 @@ xb_builder_compile_add_to_strtab (XbBuilderCompileHelper *helper, const gchar *s
 	return idx;
 }
 
-static void
-xb_builder_compile_node_tree (GNode *parent, XbBuilderNode *bn)
-{
-	GNode *n = g_node_append_data (parent, g_object_ref (bn));
-	GPtrArray *children = xb_builder_node_get_children (bn);
-	for (guint i = 0; i < children->len; i++) {
-		XbBuilderNode *bn2 = g_ptr_array_index (children, i);
-		xb_builder_compile_node_tree (n, bn2);
-	}
-}
-
 static gint
 xb_builder_get_locale_priority (XbBuilderCompileHelper *helper, const gchar *locale)
 {
@@ -88,12 +77,11 @@ xb_builder_compile_start_element_cb (GMarkupParseContext *context,
 				     GError             **error)
 {
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *) user_data;
-	XbBuilderNode *bn = xb_builder_node_new (element_name);
-	XbBuilderNode *parent = helper->current->data;
+	g_autoptr(XbBuilderNode) bn = xb_builder_node_new (element_name);
 
 	/* parent node is being ignored */
-	if (parent != NULL &&
-	    xb_builder_node_has_flag (parent, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
+	if (helper->current != NULL &&
+	    xb_builder_node_has_flag (helper->current, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
 		xb_builder_node_add_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA);
 
 	/* check if we should ignore the locale */
@@ -107,8 +95,8 @@ xb_builder_compile_start_element_cb (GMarkupParseContext *context,
 			}
 		}
 		if (xml_lang == NULL) {
-			if (parent != NULL) {
-				gint prio = xb_builder_node_get_priority (parent);
+			if (helper->current != NULL) {
+				gint prio = xb_builder_node_get_priority (helper->current);
 				xb_builder_node_set_priority (bn, prio);
 			}
 		} else {
@@ -124,7 +112,10 @@ xb_builder_compile_start_element_cb (GMarkupParseContext *context,
 		for (guint i = 0; attr_names[i] != NULL; i++)
 			xb_builder_node_set_attr (bn, attr_names[i], attr_values[i]);
 	}
-	helper->current = g_node_append_data (helper->current, bn);
+
+	/* add to tree */
+	xb_builder_node_add_child (helper->current, bn);
+	helper->current = bn;
 }
 
 static void
@@ -134,7 +125,15 @@ xb_builder_compile_end_element_cb (GMarkupParseContext *context,
 				  GError             **error)
 {
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *) user_data;
-	helper->current = helper->current->parent;
+	g_autoptr(XbBuilderNode) parent = xb_builder_node_get_parent (helper->current);
+	if (parent == NULL) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_INVALID_DATA,
+				     "Mismatched XML; no parent");
+		return;
+	}
+	helper->current = parent;
 }
 
 static void
@@ -145,7 +144,7 @@ xb_builder_compile_text_cb (GMarkupParseContext *context,
 			   GError             **error)
 {
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *) user_data;
-	XbBuilderNode *bn = helper->current->data;
+	XbBuilderNode *bn = helper->current;
 	guint i;
 
 	/* no data */
@@ -319,13 +318,12 @@ typedef struct {
 } XbBuilderNodeFuncHelper;
 
 static gboolean
-xb_builder_node_func_cb (GNode *n, gpointer data)
+xb_builder_node_func_cb (XbBuilderNode *bn, gpointer data)
 {
-	XbBuilderNode *bn = n->data;
 	XbBuilderNodeFuncHelper *helper = (XbBuilderNodeFuncHelper *) data;
 
 	/* root node */
-	if (bn == NULL)
+	if (xb_builder_node_get_element (bn) == NULL)
 		return FALSE;
 
 	/* run all node funcs on the source */
@@ -339,24 +337,7 @@ xb_builder_node_func_cb (GNode *n, gpointer data)
 }
 
 static gboolean
-xb_builder_compile_fix_children_cb (GNode *n, gpointer user_data)
-{
-	XbBuilderNode *bn = n->data;
-
-	/* root node */
-	if (bn == NULL)
-		return FALSE;
-
-	/* add children from the node tree as children of the builder node */
-	for (GNode *c = n->children; c != NULL; c = c->next) {
-		XbBuilderNode *bc = c->data;
-		xb_builder_node_add_child (bn, bc);
-	}
-	return FALSE;
-}
-
-static gboolean
-xb_builder_node_func_call (XbBuilderSource *source, GNode *n, GError **error)
+xb_builder_node_func_call (XbBuilderSource *source, XbBuilderNode *bn, GError **error)
 {
 	XbBuilderNodeFuncHelper helper = {
 		.source = source,
@@ -365,8 +346,8 @@ xb_builder_node_func_call (XbBuilderSource *source, GNode *n, GError **error)
 	};
 
 	/* call the builder node vfuncs */
-	g_node_traverse (n, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
-			 xb_builder_node_func_cb, &helper);
+	xb_builder_node_traverse (bn, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
+				  xb_builder_node_func_cb, &helper);
 	if (!helper.ret) {
 		g_propagate_error (error, helper.error);
 		return FALSE;
@@ -377,17 +358,18 @@ xb_builder_node_func_call (XbBuilderSource *source, GNode *n, GError **error)
 static gboolean
 xb_builder_compile_source (XbBuilderCompileHelper *helper,
 			   XbBuilderSource *source,
-			   GNode *root,
+			   XbBuilderNode *root,
 			   GCancellable *cancellable,
 			   GError **error)
 {
 	GInputStream *istream = xb_builder_source_get_istream (source);
+	GPtrArray *children;
+	XbBuilderNode *info;
 	gsize chunk_size = 32 * 1024;
 	gssize len;
-	XbBuilderNode *info;
 	g_autofree gchar *data = NULL;
 	g_autoptr(GMarkupParseContext) ctx = NULL;
-	g_autoptr(GNode) root_tmp = g_node_new (NULL);
+	g_autoptr(XbBuilderNode) root_tmp = xb_builder_node_new (NULL);
 	const GMarkupParser parser = {
 		xb_builder_compile_start_element_cb,
 		xb_builder_compile_end_element_cb,
@@ -421,24 +403,26 @@ xb_builder_compile_source (XbBuilderCompileHelper *helper,
 		return FALSE;
 	}
 
-	/* set up the child pointers in the builder nodes */
-	g_node_traverse (root_tmp, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
-			 xb_builder_compile_fix_children_cb, NULL);
-
 	/* run any node functions */
 	if (!xb_builder_node_func_call (source, root_tmp, error))
 		return FALSE;
 
-	/* add any manually built nodes */
 	/* this is something we can query with later */
 	info = xb_builder_source_get_info (source);
-	if (info != NULL)
-		xb_builder_compile_node_tree (helper->current->children, info);
+	if (info != NULL) {
+		children = xb_builder_node_get_children (helper->current);
+		for (guint i = 0; i < children->len; i++) {
+			XbBuilderNode *bn = g_ptr_array_index (children, i);
+			xb_builder_node_add_child (bn, info);
+		}
+	}
 
-	/* add this to the main document */
-	for (GNode *c = root_tmp->children; c != NULL; c = c->next) {
-		g_node_unlink (c);
-		g_node_append (root, c);
+	/* add the children to the main document */
+	children = xb_builder_node_get_children (root_tmp);
+	for (guint i = 0; i < children->len; i++) {
+		g_autoptr(XbBuilderNode) bn = g_object_ref (g_ptr_array_index (children, i));
+		xb_builder_node_unlink (bn);
+		xb_builder_node_add_child (root, bn);
 	}
 
 	/* success */
@@ -446,14 +430,13 @@ xb_builder_compile_source (XbBuilderCompileHelper *helper,
 }
 
 static gboolean
-xb_builder_strtab_element_names_cb (GNode *n, gpointer user_data)
+xb_builder_strtab_element_names_cb (XbBuilderNode *bn, gpointer user_data)
 {
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *) user_data;
-	XbBuilderNode *bn = n->data;
 	const gchar *tmp;
 
 	/* root node */
-	if (bn == NULL)
+	if (xb_builder_node_get_element (bn) == NULL)
 		return FALSE;
 	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
 		return FALSE;
@@ -463,14 +446,13 @@ xb_builder_strtab_element_names_cb (GNode *n, gpointer user_data)
 }
 
 static gboolean
-xb_builder_strtab_attr_name_cb (GNode *n, gpointer user_data)
+xb_builder_strtab_attr_name_cb (XbBuilderNode *bn, gpointer user_data)
 {
 	GPtrArray *attrs;
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *) user_data;
-	XbBuilderNode *bn = n->data;
 
 	/* root node */
-	if (bn == NULL)
+	if (xb_builder_node_get_element (bn) == NULL)
 		return FALSE;
 	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
 		return FALSE;
@@ -483,14 +465,13 @@ xb_builder_strtab_attr_name_cb (GNode *n, gpointer user_data)
 }
 
 static gboolean
-xb_builder_strtab_attr_value_cb (GNode *n, gpointer user_data)
+xb_builder_strtab_attr_value_cb (XbBuilderNode *bn, gpointer user_data)
 {
 	GPtrArray *attrs;
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *) user_data;
-	XbBuilderNode *bn = n->data;
 
 	/* root node */
-	if (bn == NULL)
+	if (xb_builder_node_get_element (bn) == NULL)
 		return FALSE;
 	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
 		return FALSE;
@@ -503,14 +484,13 @@ xb_builder_strtab_attr_value_cb (GNode *n, gpointer user_data)
 }
 
 static gboolean
-xb_builder_strtab_text_cb (GNode *n, gpointer user_data)
+xb_builder_strtab_text_cb (XbBuilderNode *bn, gpointer user_data)
 {
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *) user_data;
-	XbBuilderNode *bn = n->data;
 	const gchar *tmp;
 
 	/* root node */
-	if (bn == NULL)
+	if (xb_builder_node_get_element (bn) == NULL)
 		return FALSE;
 	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
 		return FALSE;
@@ -522,16 +502,17 @@ xb_builder_strtab_text_cb (GNode *n, gpointer user_data)
 }
 
 static gboolean
-xb_builder_xml_lang_prio_cb (GNode *n, gpointer user_data)
+xb_builder_xml_lang_prio_cb (XbBuilderNode *bn, gpointer user_data)
 {
 	GPtrArray *nodes_to_destroy = (GPtrArray *) user_data;
-	XbBuilderNode *bn = n->data;
 	XbBuilderNode *bn_best = bn;
 	gint prio_best = 0;
 	g_autoptr(GPtrArray) nodes = g_ptr_array_new ();
+	GPtrArray *siblings;
+	g_autoptr(XbBuilderNode) parent = xb_builder_node_get_parent (bn);
 
 	/* root node */
-	if (bn == NULL)
+	if (xb_builder_node_get_element (bn) == NULL)
 		return FALSE;
 
 	/* already ignored */
@@ -539,18 +520,12 @@ xb_builder_xml_lang_prio_cb (GNode *n, gpointer user_data)
 		return FALSE;
 
 	/* get all the siblings with the same name */
-	g_ptr_array_add (nodes, n);
-	for (GNode *n2 = n->prev; n2 != NULL; n2 = n2->prev) {
-		XbBuilderNode *bn2 = n2->data;
+	siblings = xb_builder_node_get_children (parent);
+	for (guint i = 0; i < siblings->len; i++) {
+		XbBuilderNode *bn2 = g_ptr_array_index (siblings, i);
 		if (g_strcmp0 (xb_builder_node_get_element (bn),
 			       xb_builder_node_get_element (bn2)) == 0)
-			g_ptr_array_add (nodes, n2);
-	}
-	for (GNode *n2 = n->next; n2 != NULL; n2 = n2->next) {
-		XbBuilderNode *bn2 = n2->data;
-		if (g_strcmp0 (xb_builder_node_get_element (bn),
-			       xb_builder_node_get_element (bn2)) == 0)
-			g_ptr_array_add (nodes, n2);
+			g_ptr_array_add (nodes, bn2);
 	}
 
 	/* only one thing, so bail early */
@@ -559,8 +534,7 @@ xb_builder_xml_lang_prio_cb (GNode *n, gpointer user_data)
 
 	/* find the best locale */
 	for (guint i = 0; i < nodes->len; i++) {
-		GNode *n2 = g_ptr_array_index (nodes, i);
-		XbBuilderNode *bn2 = n2->data;
+		XbBuilderNode *bn2 = g_ptr_array_index (nodes, i);
 		if (xb_builder_node_get_priority (bn2) > prio_best) {
 			prio_best = xb_builder_node_get_priority (bn2);
 			bn_best = bn2;
@@ -569,10 +543,9 @@ xb_builder_xml_lang_prio_cb (GNode *n, gpointer user_data)
 
 	/* add any nodes not as good as the bext locale to the kill list */
 	for (guint i = 0; i < nodes->len; i++) {
-		GNode *n2 = g_ptr_array_index (nodes, i);
-		XbBuilderNode *bn2 = n2->data;
+		XbBuilderNode *bn2 = g_ptr_array_index (nodes, i);
 		if (xb_builder_node_get_priority (bn2) < xb_builder_node_get_priority (bn_best))
-			g_ptr_array_add (nodes_to_destroy, n2);
+			g_ptr_array_add (nodes_to_destroy, bn2);
 
 		/* never visit this node again */
 		xb_builder_node_set_priority (bn2, -2);
@@ -582,13 +555,12 @@ xb_builder_xml_lang_prio_cb (GNode *n, gpointer user_data)
 }
 
 static gboolean
-xb_builder_nodetab_size_cb (GNode *n, gpointer user_data)
+xb_builder_nodetab_size_cb (XbBuilderNode *bn, gpointer user_data)
 {
 	guint32 *sz = (guint32 *) user_data;
-	XbBuilderNode *bn = n->data;
 
 	/* root node */
-	if (bn == NULL)
+	if (xb_builder_node_get_element (bn) == NULL)
 		return FALSE;
 	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
 		return FALSE;
@@ -600,19 +572,18 @@ xb_builder_nodetab_size_cb (GNode *n, gpointer user_data)
 
 typedef struct {
 	GString		*buf;
-	guint		 level;
 } XbBuilderNodetabHelper;
 
 static void
 xb_builder_nodetab_write_sentinel (XbBuilderNodetabHelper *helper)
 {
-	XbSiloNode n = {
+	XbSiloNode sn = {
 		.is_node	= FALSE,
 		.has_text	= FALSE,
 		.nr_attrs	= 0,
 	};
-//	g_debug ("SENT @%u", helper->buf->len);
-	XB_SILO_APPENDBUF (helper->buf, &n, xb_silo_node_get_size (&n));
+//	g_debug ("SENT @%u", (guint) helper->buf->len);
+	XB_SILO_APPENDBUF (helper->buf, &sn, xb_silo_node_get_size (&sn));
 }
 
 static void
@@ -632,7 +603,8 @@ xb_builder_nodetab_write_node (XbBuilderNodetabHelper *helper, XbBuilderNode *bn
 	/* save this so we can set up the ->next pointers correctly */
 	xb_builder_node_set_offset (bn, helper->buf->len);
 
-//	g_debug ("NODE @%u (%s)", helper->buf->len, bn->element_name);
+//	g_debug ("NODE @%u (%s)", (guint) helper->buf->len, xb_builder_node_get_element (bn));
+
 	/* add to the buf */
 	if (sn.has_text) {
 		XB_SILO_APPENDBUF (helper->buf, &sn, sizeof(XbSiloNode));
@@ -651,27 +623,31 @@ xb_builder_nodetab_write_node (XbBuilderNodetabHelper *helper, XbBuilderNode *bn
 	}
 }
 
-static gboolean
-xb_builder_nodetab_write_cb (GNode *n, gpointer user_data)
+static void
+xb_builder_nodetab_write (XbBuilderNodetabHelper *helper, XbBuilderNode *bn)
 {
-	XbBuilderNodetabHelper *helper = (XbBuilderNodetabHelper *) user_data;
-	XbBuilderNode *bn = n->data;
-	guint depth;
+	GPtrArray *children;
 
-	/* root node */
-	if (bn == NULL)
-		return FALSE;
+	/* ignore this */
 	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
-		return FALSE;
+		return;
 
-	depth = g_node_depth (n);
-	for (guint i = helper->level; i >= depth; i--)
+	/* element */
+	if (xb_builder_node_get_element (bn) != NULL)
+		xb_builder_nodetab_write_node (helper, bn);
+
+	/* children */
+	children = xb_builder_node_get_children (bn);
+	for (guint i = 0; i < children->len; i++) {
+		XbBuilderNode *bc = g_ptr_array_index (children, i);
+		xb_builder_nodetab_write (helper, bc);
+	}
+
+	/* sentinel */
+	if (xb_builder_node_get_element (bn) != NULL)
 		xb_builder_nodetab_write_sentinel (helper);
-	xb_builder_nodetab_write_node (helper, bn);
-
-	helper->level = depth;
-	return FALSE;
 }
+
 
 static XbSiloNode *
 xb_builder_get_node (GString *str, guint32 off)
@@ -680,15 +656,16 @@ xb_builder_get_node (GString *str, guint32 off)
 }
 
 static gboolean
-xb_builder_nodetab_fix_cb (GNode *n, gpointer user_data)
+xb_builder_nodetab_fix_cb (XbBuilderNode *bn, gpointer user_data)
 {
+	GPtrArray *siblings;
 	XbBuilderNodetabHelper *helper = (XbBuilderNodetabHelper *) user_data;
-	XbBuilderNode *bn = n->data;
 	XbSiloNode *sn;
-	GNode *n2;
+	gboolean found = FALSE;
+	g_autoptr(XbBuilderNode) parent = xb_builder_node_get_parent (bn);
 
 	/* root node */
-	if (bn == NULL)
+	if (xb_builder_node_get_element (bn) == NULL)
 		return FALSE;
 	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
 		return FALSE;
@@ -699,34 +676,25 @@ xb_builder_nodetab_fix_cb (GNode *n, gpointer user_data)
 		return FALSE;
 
 	/* set the parent if the node has one */
-	n2 = n->parent;
-	if (n2 != NULL) {
-		XbBuilderNode *bn2 = n2->data;
-		if (bn2 != NULL)
-			sn->parent = xb_builder_node_get_offset (bn2);
-	}
+	if (xb_builder_node_get_element (parent) != NULL)
+		sn->parent = xb_builder_node_get_offset (parent);
 
-	/* set ->next if the node has one */ 
-	n2 = g_node_next_sibling (n);
-	while (n2 != NULL) {
-		XbBuilderNode *bn2 = n2->data;
+	/* set ->next if the node has one */
+	siblings = xb_builder_node_get_children (parent);
+	for (guint i = 0; i < siblings->len; i++) {
+		XbBuilderNode *bn2 = g_ptr_array_index (siblings, i);
+		if (bn2 == bn) {
+			found = TRUE;
+			continue;
+		}
+		if (!found)
+			continue;
 		if (!xb_builder_node_has_flag (bn2, XB_BUILDER_NODE_FLAG_IGNORE_CDATA)) {
 			sn->next = xb_builder_node_get_offset (bn2);
 			break;
 		}
-		n2 = g_node_next_sibling (n2);
 	}
 
-	return FALSE;
-}
-
-static gboolean
-xb_builder_destroy_node_cb (GNode *n, gpointer user_data)
-{
-	XbBuilderNode *bn = n->data;
-	if (bn == NULL)
-		return FALSE;
-	g_object_unref (bn);
 	return FALSE;
 }
 
@@ -735,9 +703,7 @@ xb_builder_compile_helper_free (XbBuilderCompileHelper *helper)
 {
 	g_hash_table_unref (helper->strtab_hash);
 	g_string_free (helper->strtab, TRUE);
-	g_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
-			 xb_builder_destroy_node_cb, NULL);
-	g_node_destroy (helper->root);
+	g_object_unref (helper->root);
 	g_free (helper);
 }
 
@@ -881,7 +847,6 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 		.guid		= { 0x0 },
 	};
 	XbBuilderNodetabHelper nodetab_helper = {
-		.level = 0,
 		.buf = NULL,
 	};
 	g_autoptr(GPtrArray) nodes_to_destroy = g_ptr_array_new ();
@@ -905,36 +870,26 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	/* create helper used for compiling */
 	helper = g_new0 (XbBuilderCompileHelper, 1);
 	helper->compile_flags = flags;
-	helper->root = g_node_new (NULL);
+	helper->root = xb_builder_node_new (NULL);
 	helper->locales = priv->locales;
 	helper->strtab = g_string_new (NULL);
 	helper->strtab_hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 
 	/* build node tree */
 	for (guint i = 0; i < priv->sources->len; i++) {
-		GNode *root = NULL;
 		XbBuilderSource *source = g_ptr_array_index (priv->sources, i);
+		const gchar *prefix = xb_builder_source_get_prefix (source);
+		g_autoptr(XbBuilderNode) root = NULL;
 		g_autoptr(GError) error_local = NULL;
 
 		/* find, or create the prefix */
-		if (xb_builder_source_get_prefix (source) != NULL) {
-			for (GNode *c = helper->root->children; c != NULL; c = c->next) {
-				XbBuilderNode *bn = c->data;
-				if (g_strcmp0 (xb_builder_node_get_element (bn),
-					       xb_builder_source_get_prefix (source)) == 0) {
-					root = c;
-					break;
-				}
-			}
-
-			/* not found, so create */
-			if (root == NULL) {
-				XbBuilderNode *bn = xb_builder_node_new (xb_builder_source_get_prefix (source));
-				root = g_node_insert_data (helper->root, -1, bn);
-			}
+		if (prefix != NULL) {
+			root = xb_builder_node_get_child (helper->root, prefix, NULL);
+			if (root == NULL)
+				root = xb_builder_node_insert (helper->root, prefix, NULL);
 		} else {
 			/* don't allow damaged XML files to ruin all the next ones */
-			root = helper->root;
+			root = g_object_ref (helper->root);
 		}
 
 		g_debug ("compiling %s…", xb_builder_source_get_guid (source));
@@ -960,37 +915,35 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 
 	/* only include the highest priority translation */
 	if (flags & XB_BUILDER_COMPILE_FLAG_SINGLE_LANG) {
-		g_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
-				 xb_builder_xml_lang_prio_cb, nodes_to_destroy);
+		xb_builder_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
+					  xb_builder_xml_lang_prio_cb, nodes_to_destroy);
 		for (guint i = 0; i < nodes_to_destroy->len; i++) {
-			GNode *n = g_ptr_array_index (nodes_to_destroy, i);
-			g_node_traverse (n, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
-					 xb_builder_destroy_node_cb, NULL);
-			g_node_destroy (n);
+			XbBuilderNode *bn = g_ptr_array_index (nodes_to_destroy, i);
+			xb_builder_node_unlink (bn);
 		}
 	}
 
 	/* add any manually build nodes */
 	for (guint i = 0; i < priv->nodes->len; i++) {
 		XbBuilderNode *bn = g_ptr_array_index (priv->nodes, i);
-		xb_builder_compile_node_tree (helper->root, bn);
+		xb_builder_node_add_child (helper->root, bn);
 	}
 
 	/* get the size of the nodetab */
-	g_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
-			 xb_builder_nodetab_size_cb, &nodetabsz);
+	xb_builder_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
+				  xb_builder_nodetab_size_cb, &nodetabsz);
 	buf = g_string_sized_new (nodetabsz);
 
 	/* add element names, attr name, attr value, then text to the strtab */
-	g_node_traverse (helper->root, G_LEVEL_ORDER, G_TRAVERSE_ALL, -1,
-			 xb_builder_strtab_element_names_cb, helper);
+	xb_builder_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
+				  xb_builder_strtab_element_names_cb, helper);
 	hdr.strtab_ntags = g_hash_table_size (helper->strtab_hash);
-	g_node_traverse (helper->root, G_LEVEL_ORDER, G_TRAVERSE_ALL, -1,
-			 xb_builder_strtab_attr_name_cb, helper);
-	g_node_traverse (helper->root, G_LEVEL_ORDER, G_TRAVERSE_ALL, -1,
-			 xb_builder_strtab_attr_value_cb, helper);
-	g_node_traverse (helper->root, G_LEVEL_ORDER, G_TRAVERSE_ALL, -1,
-			 xb_builder_strtab_text_cb, helper);
+	xb_builder_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
+				  xb_builder_strtab_attr_name_cb, helper);
+	xb_builder_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
+				  xb_builder_strtab_attr_value_cb, helper);
+	xb_builder_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
+				  xb_builder_strtab_text_cb, helper);
 
 	/* add the initial header */
 	hdr.strtab = nodetabsz;
@@ -1003,16 +956,11 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 
 	/* write nodes to the nodetab */
 	nodetab_helper.buf = buf;
-	g_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
-			 xb_builder_nodetab_write_cb, &nodetab_helper);
-	if (nodetab_helper.level > 0) {
-		for (guint i = nodetab_helper.level - 1; i > 0; i--)
-			xb_builder_nodetab_write_sentinel (&nodetab_helper);
-	}
+	xb_builder_nodetab_write (&nodetab_helper, helper->root);
 
 	/* set all the ->next and ->parent offsets */
-	g_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
-			 xb_builder_nodetab_fix_cb, &nodetab_helper);
+	xb_builder_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
+				  xb_builder_nodetab_fix_cb, &nodetab_helper);
 
 	/* append the string table */
 	XB_SILO_APPENDBUF (buf, helper->strtab->str, helper->strtab->len);

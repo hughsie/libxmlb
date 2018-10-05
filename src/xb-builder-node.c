@@ -23,6 +23,7 @@ typedef struct {
 	guint32			 element_idx;
 	gchar			*text;
 	guint32			 text_idx;
+	XbBuilderNode		*parent;	/* noref */
 	GPtrArray		*children;	/* of XbBuilderNode */
 	GPtrArray		*attrs;		/* of XbBuilderNodeAttr */
 } XbBuilderNodePrivate;
@@ -296,6 +297,26 @@ xb_builder_node_remove_attr (XbBuilderNode *self, const gchar *name)
 }
 
 /**
+ * xb_builder_node_depth:
+ * @self: a #XbBuilderNode
+ *
+ * Gets the depth of the node tree, where 0 is the root node.
+ *
+ * Since: 0.1.1
+ **/
+guint
+xb_builder_node_depth (XbBuilderNode *self)
+{
+	for (guint i = 0; ; i++) {
+		XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+		if (priv->parent == NULL)
+			return i;
+		self = priv->parent;
+	}
+	return 0;
+}
+
+/**
  * xb_builder_node_add_child:
  * @self: A XbBuilderNode
  * @child: A XbBuilderNode
@@ -308,9 +329,77 @@ void
 xb_builder_node_add_child (XbBuilderNode *self, XbBuilderNode *child)
 {
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+	XbBuilderNodePrivate *priv_child = GET_PRIVATE (child);
 	g_return_if_fail (XB_IS_BUILDER_NODE (self));
 	g_return_if_fail (XB_IS_BUILDER_NODE (child));
+	g_return_if_fail (priv_child->parent == NULL);
+
+	/* no refcount */
+	priv_child->parent = self;
+	g_object_add_weak_pointer (G_OBJECT (self), (gpointer *) &priv_child->parent);
+
 	g_ptr_array_add (priv->children, g_object_ref (child));
+}
+
+/**
+ * xb_builder_node_remove_child:
+ * @self: A XbBuilderNode
+ * @child: A XbBuilderNode
+ *
+ * Removes a child builder node.
+ *
+ * Since: 0.1.1
+ **/
+void
+xb_builder_node_remove_child (XbBuilderNode *self, XbBuilderNode *child)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+	XbBuilderNodePrivate *priv_child = GET_PRIVATE (child);
+
+	/* no refcount */
+	g_object_remove_weak_pointer (G_OBJECT (self), (gpointer *) &priv_child->parent);
+	priv_child->parent = NULL;
+
+	g_ptr_array_remove (priv->children, child);
+}
+
+/**
+ * xb_builder_node_unlink:
+ * @self: a #XbBuilderNode
+ *
+ * Unlinks a #XbBuilderNode from a tree, resulting in two separate trees.
+ *
+ * Since: 0.1.1
+ **/
+void
+xb_builder_node_unlink (XbBuilderNode *self)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+	g_return_if_fail (XB_IS_BUILDER_NODE (self));
+	if (priv->parent == NULL)
+		return;
+	xb_builder_node_remove_child (priv->parent, self);
+	priv->parent = NULL;
+}
+
+/**
+ * xb_builder_node_get_parent:
+ * @self: a #XbBuilderNode
+ *
+ * Gets the parent node for the current node.
+ *
+ * Returns: (transfer full): a new #XbBuilderNode, or %NULL no parent exists.
+ *
+ * Since: 0.1.1
+ **/
+XbBuilderNode *
+xb_builder_node_get_parent (XbBuilderNode *self)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+	g_return_val_if_fail (XB_IS_BUILDER_NODE (self), NULL);
+	if (priv->parent == NULL)
+		return NULL;
+	return g_object_ref (priv->parent);
 }
 
 /**
@@ -360,6 +449,88 @@ xb_builder_node_get_child (XbBuilderNode *self, const gchar *element, const gcha
 		return g_object_ref (child);
 	}
 	return NULL;
+}
+
+typedef struct {
+	gint				 max_depth;
+	XbBuilderNodeTraverseFunc	 func;
+	gpointer			 user_data;
+	GTraverseFlags			 flags;
+	GTraverseType			 order;
+} XbBuilderNodeTraverseHelper;
+
+static void
+xb_builder_node_traverse_cb (XbBuilderNodeTraverseHelper *helper,
+			     XbBuilderNode *bn,
+			     gint depth)
+{
+	GPtrArray *children = xb_builder_node_get_children (bn);
+
+	/* only leaves */
+	if (helper->flags == G_TRAVERSE_LEAVES &&
+	    children->len > 0)
+		return;
+
+	/* only non-leaves */
+	if (helper->flags == G_TRAVERSE_NON_LEAVES &&
+	    children->len == 0)
+		return;
+
+	/* in too deep */
+	if (helper->max_depth > 0 && depth > helper->max_depth)
+		return;
+
+	/* recurse */
+	if (helper->order == G_PRE_ORDER) {
+		if (helper->func (bn, helper->user_data))
+			return;
+	}
+	for (guint i = 0; i < children->len; i++) {
+		XbBuilderNode *bc = g_ptr_array_index (children, i);
+		xb_builder_node_traverse_cb (helper, bc, depth + 1);
+	}
+	if (helper->order == G_POST_ORDER) {
+		if (helper->func (bn, helper->user_data))
+			return;
+	}
+}
+
+/**
+ * xb_builder_node_traverse:
+ * @self: a #XbBuilderNode
+ * @order: a #GTraverseType, e.g. %G_PRE_ORDER
+ * @flags: a #GTraverseFlags, e.g. %G_TRAVERSE_ALL
+ * @max_depth: the maximum depth of the traversal, or -1 for no limit
+ * @func: (scope call): a #XbBuilderNodeTraverseFunc
+ * @user_data: user pointer to pass to @func, or %NULL
+ *
+ * Traverses a tree starting from @self. It calls the given function for each
+ * node visited.
+ *
+ * The traversal can be halted at any point by returning TRUE from @func.
+ *
+ * Since: 0.1.1
+ **/
+void
+xb_builder_node_traverse (XbBuilderNode *self,
+			  GTraverseType order,
+			  GTraverseFlags flags,
+			  gint max_depth,
+			  XbBuilderNodeTraverseFunc func,
+			  gpointer user_data)
+{
+	XbBuilderNodeTraverseHelper helper = {
+		.max_depth = max_depth,
+		.order = order,
+		.flags = flags,
+		.func = func,
+		.user_data = user_data,
+	};
+	if (order == G_PRE_ORDER || order == G_POST_ORDER) {
+		xb_builder_node_traverse_cb (&helper, self, 0);
+		return;
+	}
+	g_critical ("order %u not supported", order);
 }
 
 /* private */

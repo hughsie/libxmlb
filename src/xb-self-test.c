@@ -953,24 +953,28 @@ xb_builder_node_func (void)
 	g_autofree gchar *xml = NULL;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbBuilderNode) root = xb_builder_node_new (NULL);
 	g_autoptr(XbBuilderNode) component = NULL;
 	g_autoptr(XbBuilderNode) components = NULL;
 	g_autoptr(XbBuilderNode) id = NULL;
 	g_autoptr(XbSilo) silo = NULL;
 
 	/* create a simple document */
-	components = xb_builder_node_insert (NULL, "components",
+	components = xb_builder_node_insert (root, "components",
 					     "origin", "lvfs",
 					     NULL);
+	g_assert_cmpint (xb_builder_node_depth (components), ==, 1);
 	component = xb_builder_node_insert (components, "component", NULL);
+	g_assert_cmpint (xb_builder_node_depth (component), ==, 2);
 	xb_builder_node_set_attr (component, "type", "desktop");
 	id = xb_builder_node_new ("id");
 	xb_builder_node_add_child (component, id);
 	xb_builder_node_set_text (id, "gimp.desktop", -1);
 	xb_builder_node_insert_text (component, "icon", "dave", "type", "stock", NULL);
+	g_assert_cmpint (xb_builder_node_depth (id), ==, 3);
 
 	/* import the doc */
-	xb_builder_import_node (builder, components);
+	xb_builder_import_node (builder, root);
 	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);

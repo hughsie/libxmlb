@@ -42,6 +42,9 @@ typedef enum {
 	XB_BUILDER_NODE_FLAG_LAST
 } XbBuilderNodeFlags;
 
+typedef gboolean (*XbBuilderNodeTraverseFunc)	(XbBuilderNode		*bn,
+						 gpointer		 user_data);
+
 XbBuilderNode	*xb_builder_node_new		(const gchar		*element);
 XbBuilderNode	*xb_builder_node_insert		(XbBuilderNode		*parent,
 						 const gchar		*element,
@@ -71,10 +74,21 @@ void		 xb_builder_node_remove_attr	(XbBuilderNode		*self,
 						 const gchar		*name);
 void		 xb_builder_node_add_child	(XbBuilderNode		*self,
 						 XbBuilderNode		*child);
+void		 xb_builder_node_remove_child	(XbBuilderNode		*self,
+						 XbBuilderNode		*child);
 GPtrArray	*xb_builder_node_get_children	(XbBuilderNode		*self);
 XbBuilderNode	*xb_builder_node_get_child	(XbBuilderNode		*self,
 						 const gchar		*element,
 						 const gchar		*text);
+void		 xb_builder_node_unlink		(XbBuilderNode		*self);
+XbBuilderNode	*xb_builder_node_get_parent	(XbBuilderNode		*self);
+guint		 xb_builder_node_depth		(XbBuilderNode		*self);
+void		 xb_builder_node_traverse	(XbBuilderNode		*self,
+						 GTraverseType		 order,
+						 GTraverseFlags		 flags,
+						 gint			 max_depth,
+						 XbBuilderNodeTraverseFunc func,
+						 gpointer		 user_data);
 
 G_END_DECLS
 
