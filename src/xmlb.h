@@ -7,6 +7,8 @@
 #ifndef __XMLB_H
 #define __XMLB_H
 
+#define __LIBXMLB_H_INSIDE__
+
 #include <libxmlb/xb-builder.h>
 #include <libxmlb/xb-builder-node.h>
 #include <libxmlb/xb-builder-source.h>
@@ -17,5 +19,7 @@
 #include <libxmlb/xb-silo.h>
 #include <libxmlb/xb-silo-query.h>
 #include <libxmlb/xb-version.h>
+
+#undef __LIBXMLB_H_INSIDE__
 
 #endif /* __XMLB_H */
