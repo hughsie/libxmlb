@@ -59,6 +59,8 @@ typedef struct {
  * @flags: #XbMachineDebugFlags, e.g. %XB_MACHINE_DEBUG_FLAG_SHOW_STACK
  *
  * Sets the debug level of the virtual machine.
+ *
+ * Since: 0.1.1
  **/
 void
 xb_machine_set_debug_flags (XbMachine *self, XbMachineDebugFlags flags)
@@ -81,7 +83,7 @@ xb_machine_set_debug_flags (XbMachine *self, XbMachineDebugFlags flags)
  * using xb_machine_parse(). Common operators like `<=` and `=` are built-in
  * and do not have to be added manually.
  *
- * Returns: a new #XbOpcode, or %NULL
+ * Since: 0.1.1
  **/
 void
 xb_machine_add_operator (XbMachine *self, const gchar *str, const gchar *name)
@@ -115,7 +117,7 @@ xb_machine_add_operator (XbMachine *self, const gchar *str, const gchar *name)
  * You need to add a custom function using xb_machine_add_method() before using
  * methods that may reference it, for example xb_machine_add_opcode_fixup().
  *
- * Returns: a new #XbOpcode, or %NULL
+ * Since: 0.1.1
  **/
 void
 xb_machine_add_method (XbMachine *self,
@@ -154,7 +156,7 @@ xb_machine_add_method (XbMachine *self,
  * to add support for a nonstandard feature, for instance supporting missing
  * attributes to functions.
  *
- * Returns: a new #XbOpcode, or %NULL
+ * Since: 0.1.1
  **/
 void
 xb_machine_add_opcode_fixup (XbMachine *self,
@@ -180,6 +182,8 @@ xb_machine_add_opcode_fixup (XbMachine *self,
  *
  * Adds a text handler. This allows the virtual machine to support nonstandard
  * encoding or shorthand mnemonics for standard functions.
+ *
+ * Since: 0.1.1
  **/
 void
 xb_machine_add_text_handler (XbMachine *self,
@@ -217,6 +221,8 @@ xb_machine_find_func (XbMachine *self, const gchar *func_name)
  * added using xb_machine_add_method().
  *
  * Returns: a new #XbOpcode, or %NULL
+ *
+ * Since: 0.1.1
  **/
 XbOpcode *
 xb_machine_opcode_func_new (XbMachine *self, const gchar *func_name)
@@ -443,7 +449,9 @@ xb_machine_parse_part (XbMachine *self,
  * and new functions and mnemonics can be added using xb_machine_add_method()
  * and xb_machine_add_text_handler().
  *
- * Returns: (transfer container) (element-type #XbOpcode): opcodes, or %NULL on error
+ * Returns: (transfer container) (element-type XbOpcode): opcodes, or %NULL on error
+ *
+ * Since: 0.1.1
  **/
 GPtrArray *
 xb_machine_parse (XbMachine *self,
@@ -576,6 +584,8 @@ xb_machine_run_func (XbMachine *self,
  * Returns a string representing the specific opcode.
  *
  * Returns: text
+ *
+ * Since: 0.1.1
  **/
 gchar *
 xb_machine_opcode_to_string (XbMachine *self, XbOpcode *opcode)
@@ -606,6 +616,8 @@ xb_machine_opcode_to_string (XbMachine *self, XbOpcode *opcode)
  * Returns a string representing a set of opcodes.
  *
  * Returns: text
+ *
+ * Since: 0.1.1
  **/
 gchar *
 xb_machine_opcodes_to_string (XbMachine *self, GPtrArray *opcodes)
@@ -639,6 +651,8 @@ xb_machine_opcodes_to_string (XbMachine *self, GPtrArray *opcodes)
  * created the #XbMachine.
  *
  * Returns: a new #XbOpcode, or %NULL
+ *
+ * Since: 0.1.1
  **/
 gboolean
 xb_machine_run (XbMachine *self,
@@ -707,11 +721,13 @@ xb_machine_run (XbMachine *self,
 /**
  * xb_machine_stack_pop:
  * @self: a #XbMachine
- * @stack: (element-kind XbOpcode): the working stack
+ * @stack: (element-type XbOpcode): the working stack
  *
  * Pops an opcode from the stack.
  *
  * Returns: (transfer full): a new #XbOpcode, or %NULL
+ *
+ * Since: 0.1.1
  **/
 XbOpcode *
 xb_machine_stack_pop (XbMachine *self, GPtrArray *stack)
@@ -735,10 +751,12 @@ xb_machine_stack_pop (XbMachine *self, GPtrArray *stack)
 /**
  * xb_machine_stack_push:
  * @self: a #XbMachine
- * @stack: (element-kind XbOpcode): the working stack
+ * @stack: (element-type XbOpcode): the working stack
  * @opcode: a #XbOpcode
  *
  * Adds an opcode to the stack.
+ *
+ * Since: 0.1.1
  **/
 void
 xb_machine_stack_push (XbMachine *self, GPtrArray *stack, XbOpcode *opcode)
@@ -756,10 +774,12 @@ xb_machine_stack_push (XbMachine *self, GPtrArray *stack, XbOpcode *opcode)
 /**
  * xb_machine_stack_push_text:
  * @self: a #XbMachine
- * @stack: (element-kind XbOpcode): the working stack
+ * @stack: (element-type XbOpcode): the working stack
  * @str: text literal
  *
  * Adds a text literal to the stack, copying @str.
+ *
+ * Since: 0.1.1
  **/
 void
 xb_machine_stack_push_text (XbMachine *self, GPtrArray *stack, const gchar *str)
@@ -775,10 +795,12 @@ xb_machine_stack_push_text (XbMachine *self, GPtrArray *stack, const gchar *str)
 /**
  * xb_machine_stack_push_text_static:
  * @self: a #XbMachine
- * @stack: (element-kind XbOpcode): the working stack
+ * @stack: (element-type XbOpcode): the working stack
  * @str: text literal
  *
  * Adds static text literal to the stack.
+ *
+ * Since: 0.1.1
  **/
 void
 xb_machine_stack_push_text_static (XbMachine *self, GPtrArray *stack, const gchar *str)
@@ -794,10 +816,12 @@ xb_machine_stack_push_text_static (XbMachine *self, GPtrArray *stack, const gcha
 /**
  * xb_machine_stack_push_text_steal:
  * @self: a #XbMachine
- * @stack: (element-kind XbOpcode): the working stack
+ * @stack: (element-type XbOpcode): the working stack
  * @str: text literal
  *
  * Adds a stolen text literal to the stack.
+ *
+ * Since: 0.1.1
  **/
 void
 xb_machine_stack_push_text_steal (XbMachine *self, GPtrArray *stack, gchar *str)
@@ -813,10 +837,12 @@ xb_machine_stack_push_text_steal (XbMachine *self, GPtrArray *stack, gchar *str)
 /**
  * xb_machine_stack_push_integer:
  * @self: a #XbMachine
- * @stack: (element-kind XbOpcode): the working stack
+ * @stack: (element-type XbOpcode): the working stack
  * @val: interger literal
  *
  * Adds an integer literal to the stack.
+ *
+ * Since: 0.1.1
  **/
 void
 xb_machine_stack_push_integer (XbMachine *self, GPtrArray *stack, guint32 val)
@@ -1262,6 +1288,8 @@ xb_machine_class_init (XbMachineClass *klass)
  * Creates a new virtual machine.
  *
  * Returns: a new #XbMachine
+ *
+ * Since: 0.1.1
  **/
 XbMachine *
 xb_machine_new (void)

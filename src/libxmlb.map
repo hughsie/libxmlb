@@ -74,3 +74,28 @@ LIBXMLB_0.1.0 {
     xb_silo_watch_file;
   local: *;
 };
+
+LIBXMLB_0.1.1 {
+  global:
+    xb_machine_add_method;
+    xb_machine_add_opcode_fixup;
+    xb_machine_add_operator;
+    xb_machine_add_text_handler;
+    xb_machine_get_type;
+    xb_machine_new;
+    xb_machine_opcode_func_new;
+    xb_machine_opcode_to_string;
+    xb_machine_opcodes_to_string;
+    xb_machine_parse;
+    xb_machine_run;
+    xb_machine_set_debug_flags;
+    xb_machine_stack_pop;
+    xb_machine_stack_push;
+    xb_machine_stack_push_integer;
+    xb_machine_stack_push_text;
+    xb_machine_stack_push_text_static;
+    xb_machine_stack_push_text_steal;
+    xb_opcode_kind_from_string;
+    xb_opcode_kind_to_string;
+  local: *;
+} LIBXMLB_0.1.0;

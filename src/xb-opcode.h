@@ -11,16 +11,27 @@ G_BEGIN_DECLS
 
 #include <glib-object.h>
 
+/**
+ * XbOpcodeKind:
+ * @XB_OPCODE_KIND_UNKNOWN:			Unknown opcode
+ * @XB_OPCODE_KIND_FUNCTION:			An operator
+ * @XB_OPCODE_KIND_TEXT:			A text operand
+ * @XB_OPCODE_KIND_INTEGER:			An integer operand
+ *
+ * The kinds of opcode.
+ **/
 typedef enum {
 	XB_OPCODE_KIND_UNKNOWN,
 	XB_OPCODE_KIND_FUNCTION,
 	XB_OPCODE_KIND_TEXT,
 	XB_OPCODE_KIND_INTEGER,
+	/*< private >*/
 	XB_OPCODE_KIND_LAST
 } XbOpcodeKind;
 
 typedef struct _XbOpcode XbOpcode;
 
+GType		 xb_opcode_get_type		(void);
 const gchar	*xb_opcode_kind_to_string	(XbOpcodeKind	 kind);
 XbOpcodeKind	 xb_opcode_kind_from_string	(const gchar	*str);
 

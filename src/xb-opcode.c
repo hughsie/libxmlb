@@ -27,6 +27,8 @@ struct _XbOpcode {
  * Converts the opcode kind to a string.
  *
  * Returns: opcode kind, e.g. `FUNC`
+ *
+ * Since: 0.1.1
  **/
 const gchar *
 xb_opcode_kind_to_string (XbOpcodeKind kind)
@@ -47,6 +49,8 @@ xb_opcode_kind_to_string (XbOpcodeKind kind)
  * Converts a string to an opcode kind.
  *
  * Returns: a #XbOpcodeKind, e.g. %XB_OPCODE_KIND_TEXT
+ *
+ * Since: 0.1.1
  **/
 XbOpcodeKind
 xb_opcode_kind_from_string (const gchar *str)
@@ -67,6 +71,8 @@ xb_opcode_kind_from_string (const gchar *str)
  * Gets the opcode kind.
  *
  * Returns: a #XbOpcodeKind, e.g. %XB_OPCODE_KIND_INTEGER
+ *
+ * Since: 0.1.1
  **/
 XbOpcodeKind
 xb_opcode_get_kind (XbOpcode *self)
@@ -82,6 +88,8 @@ xb_opcode_get_kind (XbOpcode *self)
  * a index into the string table or a literal integer.
  *
  * Returns: value, or 0 for unset.
+ *
+ * Since: 0.1.1
  **/
 guint32
 xb_opcode_get_val (XbOpcode *self)
@@ -96,6 +104,8 @@ xb_opcode_get_val (XbOpcode *self)
  * Gets the string value stored on the opcode.
  *
  * Returns: a string, or %NULL if unset
+ *
+ * Since: 0.1.1
  **/
 const gchar *
 xb_opcode_get_str (XbOpcode *self)
@@ -109,6 +119,8 @@ xb_opcode_get_str (XbOpcode *self)
  *
  * Decrements the reference count of the opcode, freeing the object when the
  * refcount drops to zero.
+ *
+ * Since: 0.1.1
  **/
 void
 xb_opcode_unref (XbOpcode *self)
@@ -128,6 +140,8 @@ xb_opcode_unref (XbOpcode *self)
  * Increments the refcount of the opcode.
  *
  * Returns: (transfer none): the original @self #XbOpcode instance
+ *
+ * Since: 0.1.1
  **/
 XbOpcode *
 xb_opcode_ref (XbOpcode *self)
@@ -143,6 +157,8 @@ xb_opcode_ref (XbOpcode *self)
  * Creates a new text literal opcode.
  *
  * Returns: (transfer full): a #XbOpcode
+ *
+ * Since: 0.1.1
  **/
 XbOpcode *
 xb_opcode_text_new (const gchar *str)
@@ -163,6 +179,8 @@ xb_opcode_text_new (const gchar *str)
  * outlive the #XbOpcode lifecycle.
  *
  * Returns: (transfer full): a #XbOpcode
+ *
+ * Since: 0.1.1
  **/
 XbOpcode *
 xb_opcode_text_new_static (const gchar *str)
@@ -182,6 +200,8 @@ xb_opcode_text_new_static (const gchar *str)
  * finalized g_free() will be called on @str.
  *
  * Returns: (transfer full): a #XbOpcode
+ *
+ * Since: 0.1.1
  **/
 XbOpcode *
 xb_opcode_text_new_steal (gchar *str)
@@ -195,13 +215,15 @@ xb_opcode_text_new_steal (gchar *str)
 }
 
 /**
- * xb_opcode_func_new:
+ * xb_opcode_func_new: (skip):
  * @func: a function index
  *
  * Creates an opcode for a specific function. Custom functions can be registered
  * using xb_machine_add_func() and retrieved using xb_machine_opcode_func_new().
  *
  * Returns: (transfer full): a #XbOpcode
+ *
+ * Since: 0.1.1
  **/
 XbOpcode *
 xb_opcode_func_new (guint32 func)
@@ -220,6 +242,8 @@ xb_opcode_func_new (guint32 func)
  * Creates an opcode with an literal integer.
  *
  * Returns: (transfer full): a #XbOpcode
+ *
+ * Since: 0.1.1
  **/
 XbOpcode *
 xb_opcode_integer_new (guint32 val)
@@ -229,4 +253,16 @@ xb_opcode_integer_new (guint32 val)
 	self->kind = XB_OPCODE_KIND_INTEGER;
 	self->val = val;
 	return self;
+}
+
+GType
+xb_opcode_get_type (void)
+{
+	static GType type = 0;
+	if (G_UNLIKELY (!type)) {
+		type = g_boxed_type_register_static ("XbOpcode",
+						     (GBoxedCopyFunc) xb_opcode_ref,
+						     (GBoxedFreeFunc) xb_opcode_unref);
+	}
+	return type;
 }

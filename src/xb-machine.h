@@ -28,10 +28,19 @@ struct _XbMachineClass {
 	void (*_xb_reserved7)		(void);
 };
 
+/**
+ * XbMachineDebugFlags:
+ * @XB_MACHINE_DEBUG_FLAG_NONE:			No debug flags to use
+ * @XB_MACHINE_DEBUG_FLAG_SHOW_STACK:		Show the stack addition and removal
+ * @XB_MACHINE_DEBUG_FLAG_SHOW_PARSING:		Show the XPath predicate parsing
+ *
+ * The flags to control the amount of debugging is generated.
+ **/
 typedef enum {
 	XB_MACHINE_DEBUG_FLAG_NONE		= 0,
 	XB_MACHINE_DEBUG_FLAG_SHOW_STACK	= 1 << 0,
 	XB_MACHINE_DEBUG_FLAG_SHOW_PARSING	= 1 << 1,
+	/*< private >*/
 	XB_MACHINE_DEBUG_FLAG_LAST
 } XbMachineDebugFlags;
 
