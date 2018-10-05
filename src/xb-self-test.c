@@ -641,6 +641,13 @@ xb_xpath_func (void)
 	g_assert_cmpstr (xb_node_get_text (n), ==, "gimp.desktop");
 	g_clear_object (&n);
 
+	/* query with type-conversion */
+	n = xb_silo_query_first (silo, "components/component[position()=number('2')]/id", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "org.hughski.ColorHug2.firmware");
+	g_clear_object (&n);
+
 	/* query with backtrack */
 	g_debug ("\n%s", xml);
 	n = xb_silo_query_first (silo, "components/component[@type='firmware']/id[text()='org.hughski.ColorHug2.firmware']", &error);
