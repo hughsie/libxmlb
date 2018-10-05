@@ -14,17 +14,17 @@
 #include "xb-machine.h"
 #include "xb-opcode.h"
 
-struct _XbMachine
-{
+typedef struct {
 	GObject			 parent_instance;
 	XbMachineDebugFlags	 debug_flags;
-	GPtrArray		*methods;		/* of XbMachineMethodItem */
+	GPtrArray		*methods;	/* of XbMachineMethodItem */
 	GPtrArray		*operators;	/* of XbMachineOperator */
 	GPtrArray		*text_handlers;	/* of XbMachineTextHandlerItem */
 	GHashTable		*opcode_fixup;	/* of str[XbMachineOpcodeFixupItem] */
-};
+} XbMachinePrivate;
 
-G_DEFINE_TYPE (XbMachine, xb_machine, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (XbMachine, xb_machine, G_TYPE_OBJECT)
+#define GET_PRIVATE(o) (xb_machine_get_instance_private (o))
 
 typedef struct {
 	gchar			*str;
@@ -63,8 +63,9 @@ typedef struct {
 void
 xb_machine_set_debug_flags (XbMachine *self, XbMachineDebugFlags flags)
 {
+	XbMachinePrivate *priv = GET_PRIVATE (self);
 	g_return_if_fail (XB_IS_MACHINE (self));
-	self->debug_flags = flags;
+	priv->debug_flags = flags;
 }
 
 /**
@@ -86,6 +87,7 @@ void
 xb_machine_add_operator (XbMachine *self, const gchar *str, const gchar *name)
 {
 	XbMachineOperator *op;
+	XbMachinePrivate *priv = GET_PRIVATE (self);
 
 	g_return_if_fail (XB_IS_MACHINE (self));
 	g_return_if_fail (str != NULL);
@@ -95,7 +97,7 @@ xb_machine_add_operator (XbMachine *self, const gchar *str, const gchar *name)
 	op->str = g_strdup (str);
 	op->strsz = strlen (str);
 	op->name = g_strdup (name);
-	g_ptr_array_add (self->operators, op);
+	g_ptr_array_add (priv->operators, op);
 }
 
 /**
@@ -124,19 +126,20 @@ xb_machine_add_method (XbMachine *self,
 		       GDestroyNotify user_data_free)
 {
 	XbMachineMethodItem *item;
+	XbMachinePrivate *priv = GET_PRIVATE (self);
 
 	g_return_if_fail (XB_IS_MACHINE (self));
 	g_return_if_fail (name != NULL);
 	g_return_if_fail (method_cb != NULL);
 
 	item = g_slice_new0 (XbMachineMethodItem);
-	item->idx = self->methods->len;
+	item->idx = priv->methods->len;
 	item->name = g_strdup (name);
 	item->n_opcodes = n_opcodes;
 	item->method_cb = method_cb;
 	item->user_data = user_data;
 	item->user_data_free = user_data_free;
-	g_ptr_array_add (self->methods, item);
+	g_ptr_array_add (priv->methods, item);
 }
 
 /**
@@ -161,10 +164,11 @@ xb_machine_add_opcode_fixup (XbMachine *self,
 			     GDestroyNotify user_data_free)
 {
 	XbMachineOpcodeFixupItem *item = g_slice_new0 (XbMachineOpcodeFixupItem);
+	XbMachinePrivate *priv = GET_PRIVATE (self);
 	item->fixup_cb = fixup_cb;
 	item->user_data = user_data;
 	item->user_data_free = user_data_free;
-	g_hash_table_insert (self->opcode_fixup, g_strdup (opcodes_sig), item);
+	g_hash_table_insert (priv->opcode_fixup, g_strdup (opcodes_sig), item);
 }
 
 /**
@@ -184,17 +188,19 @@ xb_machine_add_text_handler (XbMachine *self,
 			     GDestroyNotify user_data_free)
 {
 	XbMachineTextHandlerItem *item = g_slice_new0 (XbMachineTextHandlerItem);
+	XbMachinePrivate *priv = GET_PRIVATE (self);
 	item->handler_cb = handler_cb;
 	item->user_data = user_data;
 	item->user_data_free = user_data_free;
-	g_ptr_array_add (self->text_handlers, item);
+	g_ptr_array_add (priv->text_handlers, item);
 }
 
 static XbMachineMethodItem *
 xb_machine_find_func (XbMachine *self, const gchar *func_name)
 {
-	for (guint i = 0; i < self->methods->len; i++) {
-		XbMachineMethodItem *item = g_ptr_array_index (self->methods, i);
+	XbMachinePrivate *priv = GET_PRIVATE (self);
+	for (guint i = 0; i < priv->methods->len; i++) {
+		XbMachineMethodItem *item = g_ptr_array_index (priv->methods, i);
 		if (g_strcmp0 (item->name, func_name) == 0)
 			return item;
 	}
@@ -253,6 +259,7 @@ xb_machine_parse_add_text_raw (XbMachine *self,
 			       const gchar *str,
 			       GError **error)
 {
+	XbMachinePrivate *priv = GET_PRIVATE (self);
 	guint64 val;
 	gsize text_len;
 
@@ -268,8 +275,8 @@ xb_machine_parse_add_text_raw (XbMachine *self,
 		return TRUE;
 
 	/* do any additional handlers */
-	for (guint i = 0; i < self->text_handlers->len; i++) {
-		XbMachineTextHandlerItem *item = g_ptr_array_index (self->text_handlers, i);
+	for (guint i = 0; i < priv->text_handlers->len; i++) {
+		XbMachineTextHandlerItem *item = g_ptr_array_index (priv->text_handlers, i);
 		gboolean handled = FALSE;
 		if (!item->handler_cb (self, opcodes, str, &handled, item->user_data, error))
 			return FALSE;
@@ -318,6 +325,7 @@ xb_machine_parse_section (XbMachine *self,
 			  guint level,
 			  GError **error)
 {
+	XbMachinePrivate *priv = GET_PRIVATE (self);
 	g_autoptr(GString) acc = g_string_new (NULL);
 
 	/* sanity check */
@@ -333,7 +341,7 @@ xb_machine_parse_section (XbMachine *self,
 
 	/* build accumulator until hitting either bracket, then recurse */
 	for (gssize i = start; i < text_len; i++) {
-		if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_PARSING)
+		if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_PARSING)
 			g_debug ("@%u, >%c", level, text[i]);
 		if (text[i] == ',')
 			continue;
@@ -379,12 +387,13 @@ static gchar *
 xb_machine_get_opcodes_sig (XbMachine *self, GPtrArray *opcodes)
 {
 	GString *str = g_string_new (NULL);
+	XbMachinePrivate *priv = GET_PRIVATE (self);
 	for (guint i = 0; i < opcodes->len; i++) {
 		XbOpcode *opcode = g_ptr_array_index (opcodes, i);
 		g_assert (opcode != NULL);
 		if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_FUNCTION) {
 			XbMachineMethodItem *item;
-			item = g_ptr_array_index (self->methods, xb_opcode_get_val (opcode));
+			item = g_ptr_array_index (priv->methods, xb_opcode_get_val (opcode));
 			if (item == NULL) {
 				g_string_append (str, "FUNC:???,");
 			} else {
@@ -443,6 +452,7 @@ xb_machine_parse (XbMachine *self,
 		  GError **error)
 {
 	XbMachineOpcodeFixupItem *item;
+	XbMachinePrivate *priv = GET_PRIVATE (self);
 	g_autoptr(GPtrArray) opcodes = NULL;
 	g_autofree gchar *opcodes_sig = NULL;
 
@@ -463,8 +473,8 @@ xb_machine_parse (XbMachine *self,
 	/* look for foo=bar */
 	opcodes = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_opcode_unref);
 	for (gssize i = 0; i < text_len && opcodes->len == 0; i++) {
-		for (guint j = 0; j < self->operators->len; j++) {
-			XbMachineOperator *op = g_ptr_array_index (self->operators, j);
+		for (guint j = 0; j < priv->operators->len; j++) {
+			XbMachineOperator *op = g_ptr_array_index (priv->operators, j);
 			if (strncmp (text + i, op->str, op->strsz) == 0) {
 				XbOpcode *opcode = NULL;
 
@@ -502,7 +512,7 @@ xb_machine_parse (XbMachine *self,
 
 	/* do any fixups */
 	opcodes_sig = xb_machine_get_opcodes_sig (self, opcodes);
-	item = g_hash_table_lookup (self->opcode_fixup, opcodes_sig);
+	item = g_hash_table_lookup (priv->opcode_fixup, opcodes_sig);
 	if (item != NULL) {
 		if (!item->fixup_cb (self, opcodes, item->user_data, error))
 			return NULL;
@@ -532,10 +542,11 @@ xb_machine_run_func (XbMachine *self,
 		     gpointer exec_data,
 		     GError **error)
 {
-	XbMachineMethodItem *item = g_ptr_array_index (self->methods, xb_opcode_get_val (opcode));
+	XbMachinePrivate *priv = GET_PRIVATE (self);
+	XbMachineMethodItem *item = g_ptr_array_index (priv->methods, xb_opcode_get_val (opcode));
 
 	/* optional debugging */
-	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
 		g_autofree gchar *str = xb_machine_opcode_to_string (self, opcode);
 		g_debug ("running: %s", str);
 		xb_machine_debug_show_stack (self, stack);
@@ -569,12 +580,14 @@ xb_machine_run_func (XbMachine *self,
 gchar *
 xb_machine_opcode_to_string (XbMachine *self, XbOpcode *opcode)
 {
+	XbMachinePrivate *priv = GET_PRIVATE (self);
+
 	g_return_val_if_fail (XB_IS_MACHINE (self), NULL);
 	g_return_val_if_fail (opcode != NULL, NULL);
 
 	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_FUNCTION) {
 		XbMachineMethodItem *item;
-		item = g_ptr_array_index (self->methods, xb_opcode_get_val (opcode));
+		item = g_ptr_array_index (priv->methods, xb_opcode_get_val (opcode));
 		return g_strdup_printf ("%s()", item->name);
 	}
 	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_TEXT)
@@ -703,17 +716,18 @@ xb_machine_run (XbMachine *self,
 XbOpcode *
 xb_machine_stack_pop (XbMachine *self, GPtrArray *stack)
 {
+	XbMachinePrivate *priv = GET_PRIVATE (self);
 	XbOpcode *opcode;
 	if (stack->len == 0)
 		return NULL;
 	opcode = g_ptr_array_index (stack, stack->len - 1);
-	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
 		g_autofree gchar *str = xb_machine_opcode_to_string (self, opcode);
 		g_debug ("popping: %s", str);
 	}
 	xb_opcode_ref (opcode);
 	g_ptr_array_remove_index (stack, stack->len - 1);
-	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		xb_machine_debug_show_stack (self, stack);
 	return opcode;
 }
@@ -729,12 +743,13 @@ xb_machine_stack_pop (XbMachine *self, GPtrArray *stack)
 void
 xb_machine_stack_push (XbMachine *self, GPtrArray *stack, XbOpcode *opcode)
 {
-	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
+	XbMachinePrivate *priv = GET_PRIVATE (self);
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
 		g_autofree gchar *str = xb_machine_opcode_to_string (self, opcode);
 		g_debug ("pushing: %s", str);
 	}
 	g_ptr_array_add (stack, xb_opcode_ref (opcode));
-	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		xb_machine_debug_show_stack (self, stack);
 }
 
@@ -749,10 +764,11 @@ xb_machine_stack_push (XbMachine *self, GPtrArray *stack, XbOpcode *opcode)
 void
 xb_machine_stack_push_text (XbMachine *self, GPtrArray *stack, const gchar *str)
 {
-	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	XbMachinePrivate *priv = GET_PRIVATE (self);
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		g_debug ("pushing: %s", str);
 	g_ptr_array_add (stack, xb_opcode_text_new (str));
-	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		xb_machine_debug_show_stack (self, stack);
 }
 
@@ -767,10 +783,11 @@ xb_machine_stack_push_text (XbMachine *self, GPtrArray *stack, const gchar *str)
 void
 xb_machine_stack_push_text_static (XbMachine *self, GPtrArray *stack, const gchar *str)
 {
-	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	XbMachinePrivate *priv = GET_PRIVATE (self);
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		g_debug ("pushing: %s", str);
 	g_ptr_array_add (stack, xb_opcode_text_new_static (str));
-	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		xb_machine_debug_show_stack (self, stack);
 }
 
@@ -785,10 +802,11 @@ xb_machine_stack_push_text_static (XbMachine *self, GPtrArray *stack, const gcha
 void
 xb_machine_stack_push_text_steal (XbMachine *self, GPtrArray *stack, gchar *str)
 {
-	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	XbMachinePrivate *priv = GET_PRIVATE (self);
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		g_debug ("pushing: %s", str);
 	g_ptr_array_add (stack, xb_opcode_text_new_steal (str));
-	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		xb_machine_debug_show_stack (self, stack);
 }
 
@@ -803,10 +821,11 @@ xb_machine_stack_push_text_steal (XbMachine *self, GPtrArray *stack, gchar *str)
 void
 xb_machine_stack_push_integer (XbMachine *self, GPtrArray *stack, guint32 val)
 {
-	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	XbMachinePrivate *priv = GET_PRIVATE (self);
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		g_debug ("pushing: %u", val);
 	g_ptr_array_add (stack, xb_opcode_integer_new (val));
-	if (self->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		xb_machine_debug_show_stack (self, stack);
 }
 
@@ -1191,10 +1210,11 @@ xb_machine_operator_free (XbMachineOperator *op)
 static void
 xb_machine_init (XbMachine *self)
 {
-	self->methods = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_func_free);
-	self->operators = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_operator_free);
-	self->text_handlers = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_text_handler_free);
-	self->opcode_fixup = g_hash_table_new_full (g_str_hash, g_str_equal,
+	XbMachinePrivate *priv = GET_PRIVATE (self);
+	priv->methods = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_func_free);
+	priv->operators = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_operator_free);
+	priv->text_handlers = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_text_handler_free);
+	priv->opcode_fixup = g_hash_table_new_full (g_str_hash, g_str_equal,
 						     g_free, (GDestroyNotify) xb_machine_opcode_fixup_free);
 
 	/* build-in functions */
@@ -1221,10 +1241,11 @@ static void
 xb_machine_finalize (GObject *obj)
 {
 	XbMachine *self = XB_MACHINE (obj);
-	g_ptr_array_unref (self->methods);
-	g_ptr_array_unref (self->operators);
-	g_ptr_array_unref (self->text_handlers);
-	g_hash_table_unref (self->opcode_fixup);
+	XbMachinePrivate *priv = GET_PRIVATE (self);
+	g_ptr_array_unref (priv->methods);
+	g_ptr_array_unref (priv->operators);
+	g_ptr_array_unref (priv->text_handlers);
+	g_hash_table_unref (priv->opcode_fixup);
 	G_OBJECT_CLASS (xb_machine_parent_class)->finalize (obj);
 }
 

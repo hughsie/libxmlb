@@ -17,7 +17,19 @@ G_BEGIN_DECLS
 
 #define XB_TYPE_BUILDER (xb_builder_get_type ())
 
-G_DECLARE_FINAL_TYPE (XbBuilder, xb_builder, XB, BUILDER, GObject)
+G_DECLARE_DERIVABLE_TYPE (XbBuilder, xb_builder, XB, BUILDER, GObject)
+
+struct _XbBuilderClass {
+	GObjectClass			 parent_class;
+	/*< private >*/
+	void (*_xb_reserved1)		(void);
+	void (*_xb_reserved2)		(void);
+	void (*_xb_reserved3)		(void);
+	void (*_xb_reserved4)		(void);
+	void (*_xb_reserved5)		(void);
+	void (*_xb_reserved6)		(void);
+	void (*_xb_reserved7)		(void);
+};
 
 /**
  * XbBuilderCompileFlags:

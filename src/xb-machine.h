@@ -14,7 +14,19 @@ G_BEGIN_DECLS
 #include "xb-opcode.h"
 
 #define XB_TYPE_MACHINE (xb_machine_get_type ())
-G_DECLARE_FINAL_TYPE (XbMachine, xb_machine, XB, MACHINE, GObject)
+G_DECLARE_DERIVABLE_TYPE (XbMachine, xb_machine, XB, MACHINE, GObject)
+
+struct _XbMachineClass {
+	GObjectClass			 parent_class;
+	/*< private >*/
+	void (*_xb_reserved1)		(void);
+	void (*_xb_reserved2)		(void);
+	void (*_xb_reserved3)		(void);
+	void (*_xb_reserved4)		(void);
+	void (*_xb_reserved5)		(void);
+	void (*_xb_reserved6)		(void);
+	void (*_xb_reserved7)		(void);
+};
 
 typedef enum {
 	XB_MACHINE_DEBUG_FLAG_NONE		= 0,

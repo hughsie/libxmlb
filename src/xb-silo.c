@@ -18,8 +18,7 @@
 #include "xb-opcode.h"
 #include "xb-silo-private.h"
 
-struct _XbSilo
-{
+typedef struct {
 	GObject			 parent_instance;
 	GMappedFile		*mmap;
 	gchar			*guid;
@@ -33,14 +32,15 @@ struct _XbSilo
 	GMutex			 nodes_mutex;
 	GHashTable		*file_monitors;	/* of fn:XbSiloFileMonitorItem */
 	XbMachine		*machine;
-};
+} XbSiloPrivate;
 
 typedef struct {
 	GFileMonitor		*file_monitor;
 	gulong			 file_monitor_id;
 } XbSiloFileMonitorItem;
 
-G_DEFINE_TYPE (XbSilo, xb_silo, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (XbSilo, xb_silo, G_TYPE_OBJECT)
+#define GET_PRIVATE(o) (xb_silo_get_instance_private (o))
 
 enum {
 	PROP_0,
@@ -53,32 +53,35 @@ enum {
 const gchar *
 xb_silo_from_strtab (XbSilo *self, guint32 offset)
 {
+	XbSiloPrivate *priv = GET_PRIVATE (self);
 	if (offset == XB_SILO_UNSET)
 		return NULL;
-	if (offset >= self->datasz - self->strtab) {
+	if (offset >= priv->datasz - priv->strtab) {
 		g_critical ("strtab+offset is outside the data range for %u", offset);
 		return NULL;
 	}
-	return (const gchar *) (self->data + self->strtab + offset);
+	return (const gchar *) (priv->data + priv->strtab + offset);
 }
 
 /* private */
 inline XbSiloNode *
 xb_silo_get_node (XbSilo *self, guint32 off)
 {
-	return (XbSiloNode *) (self->data + off);
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	return (XbSiloNode *) (priv->data + off);
 }
 
 /* private */
 XbSiloAttr *
 xb_silo_get_attr (XbSilo *self, guint32 off, guint8 idx)
 {
+	XbSiloPrivate *priv = GET_PRIVATE (self);
 	XbSiloNode *n = xb_silo_get_node (self, off);
 	off += sizeof(XbSiloNode);
 	off += sizeof(XbSiloAttr) * idx;
 	if (!n->has_text)
 		off -= sizeof(guint32);
-	return (XbSiloAttr *) (self->data + off);
+	return (XbSiloAttr *) (priv->data + off);
 }
 
 /* private */
@@ -100,23 +103,26 @@ xb_silo_node_get_size (XbSiloNode *n)
 guint32
 xb_silo_get_offset_for_node (XbSilo *self, XbSiloNode *n)
 {
-	return ((const guint8 *) n) - self->data;
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	return ((const guint8 *) n) - priv->data;
 }
 
 /* private */
 guint32
 xb_silo_get_strtab (XbSilo *self)
 {
-	return self->strtab;
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	return priv->strtab;
 }
 
 /* private */
 XbSiloNode *
 xb_silo_get_sroot (XbSilo *self)
 {
-	if (self->blob == NULL)
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	if (priv->blob == NULL)
 		return NULL;
-	if (g_bytes_get_size (self->blob) <= sizeof(XbSiloHeader))
+	if (g_bytes_get_size (priv->blob) <= sizeof(XbSiloHeader))
 		return NULL;
 	return xb_silo_get_node (self, sizeof(XbSiloHeader));
 }
@@ -175,8 +181,9 @@ xb_silo_get_root (XbSilo *self)
 guint32
 xb_silo_get_strtab_idx (XbSilo *self, const gchar *element)
 {
+	XbSiloPrivate *priv = GET_PRIVATE (self);
 	gpointer value = NULL;
-	if (!g_hash_table_lookup_extended (self->strtab_tags, element, NULL, &value))
+	if (!g_hash_table_lookup_extended (priv->strtab_tags, element, NULL, &value))
 		return XB_SILO_UNSET;
 	return GPOINTER_TO_UINT (value);
 }
@@ -197,16 +204,17 @@ gchar *
 xb_silo_to_string (XbSilo *self, GError **error)
 {
 	guint32 off = sizeof(XbSiloHeader);
-	XbSiloHeader *hdr = (XbSiloHeader *) self->data;
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	XbSiloHeader *hdr = (XbSiloHeader *) priv->data;
 	g_autoptr(GString) str = g_string_new (NULL);
 
 	g_return_val_if_fail (XB_IS_SILO (self), NULL);
 
 	g_string_append_printf (str, "magic:        %08x\n", (guint) hdr->magic);
-	g_string_append_printf (str, "guid:         %s\n", self->guid);
+	g_string_append_printf (str, "guid:         %s\n", priv->guid);
 	g_string_append_printf (str, "strtab:       @%" G_GUINT32_FORMAT "\n", hdr->strtab);
 	g_string_append_printf (str, "strtab_ntags: %" G_GUINT16_FORMAT "\n", hdr->strtab_ntags);
-	while (off < self->strtab) {
+	while (off < priv->strtab) {
 		XbSiloNode *n = xb_silo_get_node (self, off);
 		if (n->is_node) {
 			g_string_append_printf (str, "NODE @%" G_GUINT32_FORMAT "\n", off);
@@ -236,7 +244,7 @@ xb_silo_to_string (XbSilo *self, GError **error)
 
 	/* add strtab */
 	g_string_append_printf (str, "STRTAB @%" G_GUINT32_FORMAT "\n", hdr->strtab);
-	for (off = 0; off < self->datasz - hdr->strtab;) {
+	for (off = 0; off < priv->datasz - hdr->strtab;) {
 		const gchar *tmp = xb_silo_from_strtab (self, off);
 		if (tmp == NULL)
 			break;
@@ -295,12 +303,13 @@ xb_silo_node_get_attr (XbSilo *self, XbSiloNode *n, const gchar *name)
 guint
 xb_silo_get_size (XbSilo *self)
 {
+	XbSiloPrivate *priv = GET_PRIVATE (self);
 	guint32 off = sizeof(XbSiloHeader);
 	guint nodes_cnt = 0;
 
 	g_return_val_if_fail (XB_IS_SILO (self), 0);
 
-	while (off < self->strtab) {
+	while (off < priv->strtab) {
 		XbSiloNode *n = xb_silo_get_node (self, off);
 		if (n->is_node)
 			nodes_cnt += 1;
@@ -326,16 +335,18 @@ xb_silo_get_size (XbSilo *self)
 gboolean
 xb_silo_is_valid (XbSilo *self)
 {
+	XbSiloPrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
-	return self->valid;
+	return priv->valid;
 }
 
 void
 xb_silo_invalidate (XbSilo *self)
 {
-	if (!self->valid)
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	if (!priv->valid)
 		return;
-	self->valid = FALSE;
+	priv->valid = FALSE;
 	g_object_notify (G_OBJECT (self), "valid");
 }
 
@@ -366,10 +377,11 @@ xb_silo_node_get_depth (XbSilo *self, XbSiloNode *n)
 GBytes *
 xb_silo_get_bytes (XbSilo *self)
 {
+	XbSiloPrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_SILO (self), NULL);
-	if (self->blob == NULL)
+	if (priv->blob == NULL)
 		return NULL;
-	return g_bytes_ref (self->blob);
+	return g_bytes_ref (priv->blob);
 }
 
 /**
@@ -385,16 +397,18 @@ xb_silo_get_bytes (XbSilo *self)
 const gchar *
 xb_silo_get_guid (XbSilo *self)
 {
+	XbSiloPrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_SILO (self), NULL);
-	return self->guid;
+	return priv->guid;
 }
 
 /* private */
 XbMachine *
 xb_silo_get_machine (XbSilo *self)
 {
+	XbSiloPrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_SILO (self), NULL);
-	return self->machine;
+	return priv->machine;
 }
 
 /**
@@ -414,28 +428,29 @@ gboolean
 xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GError **error)
 {
 	XbSiloHeader *hdr;
+	XbSiloPrivate *priv = GET_PRIVATE (self);
 	gsize sz = 0;
 	gchar guid[UUID_STR_LEN] = { '\0' };
 	guint32 off = 0;
-	g_autoptr(GMutexLocker) locker = g_mutex_locker_new (&self->nodes_mutex);
+	g_autoptr(GMutexLocker) locker = g_mutex_locker_new (&priv->nodes_mutex);
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (blob != NULL, FALSE);
 	g_return_val_if_fail (locker != NULL, FALSE);
 
 	/* no longer valid */
-	g_hash_table_remove_all (self->nodes);
-	g_hash_table_remove_all (self->strtab_tags);
-	g_clear_pointer (&self->guid, g_free);
+	g_hash_table_remove_all (priv->nodes);
+	g_hash_table_remove_all (priv->strtab_tags);
+	g_clear_pointer (&priv->guid, g_free);
 
 	/* refcount internally */
-	if (self->blob != NULL)
-		g_bytes_unref (self->blob);
-	self->blob = g_bytes_ref (blob);
+	if (priv->blob != NULL)
+		g_bytes_unref (priv->blob);
+	priv->blob = g_bytes_ref (blob);
 
 	/* update pointers into blob */
-	self->data = g_bytes_get_data (self->blob, &sz);
-	self->datasz = (guint32) sz;
+	priv->data = g_bytes_get_data (priv->blob, &sz);
+	priv->datasz = (guint32) sz;
 
 	/* check size */
 	if (sz < sizeof(XbSiloHeader)) {
@@ -447,7 +462,7 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 	}
 
 	/* check header magic */
-	hdr = (XbSiloHeader *) self->data;
+	hdr = (XbSiloHeader *) priv->data;
 	if ((flags & XB_SILO_LOAD_FLAG_NO_MAGIC) == 0) {
 		if (hdr->magic != XB_SILO_MAGIC_BYTES) {
 			g_set_error_literal (error,
@@ -467,11 +482,11 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 
 	/* get GUID */
 	uuid_unparse (hdr->guid, guid);
-	self->guid = g_strdup (guid);
+	priv->guid = g_strdup (guid);
 
 	/* check strtab */
-	self->strtab = hdr->strtab;
-	if (self->strtab > self->datasz) {
+	priv->strtab = hdr->strtab;
+	if (priv->strtab > priv->datasz) {
 		g_set_error_literal (error,
 				     G_IO_ERROR,
 				     G_IO_ERROR_INVALID_DATA,
@@ -489,14 +504,14 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 					     "strtab_ntags incorrect");
 			return FALSE;
 		}
-		g_hash_table_insert (self->strtab_tags,
+		g_hash_table_insert (priv->strtab_tags,
 				     (gpointer) tmp,
 				     GUINT_TO_POINTER (off));
 		off += strlen (tmp) + 1;
 	}
 
 	/* success */
-	self->valid = TRUE;
+	priv->valid = TRUE;
 	return TRUE;
 }
 
@@ -534,11 +549,12 @@ xb_silo_watch_file (XbSilo *self,
 		    GError **error)
 {
 	XbSiloFileMonitorItem *item;
+	XbSiloPrivate *priv = GET_PRIVATE (self);
 	g_autofree gchar *fn = g_file_get_path (file);
 	g_autoptr(GFileMonitor) file_monitor = NULL;
 
 	/* already exists */
-	item = g_hash_table_lookup (self->file_monitors, fn);
+	item = g_hash_table_lookup (priv->file_monitors, fn);
 	if (item != NULL) {
 		g_debug ("already watching %s", fn);
 		return TRUE;
@@ -557,7 +573,7 @@ xb_silo_watch_file (XbSilo *self,
 	item->file_monitor = g_object_ref (file_monitor);
 	item->file_monitor_id = g_signal_connect (file_monitor, "changed",
 						  G_CALLBACK (xb_silo_watch_file_cb), self);
-	g_hash_table_insert (self->file_monitors, g_steal_pointer (&fn), item);
+	g_hash_table_insert (priv->file_monitors, g_steal_pointer (&fn), item);
 	return TRUE;
 }
 
@@ -582,6 +598,7 @@ xb_silo_load_from_file (XbSilo *self,
 			GCancellable *cancellable,
 			GError **error)
 {
+	XbSiloPrivate *priv = GET_PRIVATE (self);
 	g_autofree gchar *fn = NULL;
 	g_autoptr(GBytes) blob = NULL;
 
@@ -590,17 +607,17 @@ xb_silo_load_from_file (XbSilo *self,
 
 	/* no longer valid */
 	g_debug ("removing %u file monitors",
-		 g_hash_table_size (self->file_monitors));
-	g_hash_table_remove_all (self->file_monitors);
-	g_hash_table_remove_all (self->nodes);
-	g_hash_table_remove_all (self->strtab_tags);
-	g_clear_pointer (&self->guid, g_free);
+		 g_hash_table_size (priv->file_monitors));
+	g_hash_table_remove_all (priv->file_monitors);
+	g_hash_table_remove_all (priv->nodes);
+	g_hash_table_remove_all (priv->strtab_tags);
+	g_clear_pointer (&priv->guid, g_free);
 
 	fn = g_file_get_path (file);
-	self->mmap = g_mapped_file_new (fn, FALSE, error);
-	if (self->mmap == NULL)
+	priv->mmap = g_mapped_file_new (fn, FALSE, error);
+	if (priv->mmap == NULL)
 		return FALSE;
-	blob = g_mapped_file_get_bytes (self->mmap);
+	blob = g_mapped_file_get_bytes (priv->mmap);
 	if (!xb_silo_load_from_bytes (self, blob, flags, error))
 		return FALSE;
 
@@ -633,13 +650,14 @@ xb_silo_save_to_file (XbSilo *self,
 		      GCancellable *cancellable,
 		      GError **error)
 {
+	XbSiloPrivate *priv = GET_PRIVATE (self);
 	g_autoptr(GFile) file_parent = NULL;
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
 	/* invalid */
-	if (self->data == NULL) {
+	if (priv->data == NULL) {
 		g_set_error_literal (error,
 				     G_IO_ERROR,
 				     G_IO_ERROR_NOT_INITIALIZED,
@@ -659,8 +677,8 @@ xb_silo_save_to_file (XbSilo *self,
 
 	/* save and then rename */
 	return g_file_replace_contents (file,
-					(const gchar *) self->data,
-					(gsize) self->datasz, NULL, FALSE,
+					(const gchar *) priv->data,
+					(gsize) priv->datasz, NULL, FALSE,
 					G_FILE_CREATE_NONE, NULL,
 					cancellable, error);
 }
@@ -691,18 +709,19 @@ XbNode *
 xb_silo_node_create (XbSilo *self, XbSiloNode *sn)
 {
 	XbNode *n;
-	g_autoptr(GMutexLocker) locker = g_mutex_locker_new (&self->nodes_mutex);
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	g_autoptr(GMutexLocker) locker = g_mutex_locker_new (&priv->nodes_mutex);
 
 	g_return_val_if_fail (locker != NULL, NULL);
 
 	/* does already exist */
-	n = g_hash_table_lookup (self->nodes, sn);
+	n = g_hash_table_lookup (priv->nodes, sn);
 	if (n != NULL)
 		return g_object_ref (n);
 
 	/* create and add */
 	n = xb_node_new (self, sn);
-	g_hash_table_insert (self->nodes, sn, g_object_ref (n));
+	g_hash_table_insert (priv->nodes, sn, g_object_ref (n));
 	return n;
 }
 
@@ -900,12 +919,13 @@ static void
 xb_silo_get_property (GObject *obj, guint prop_id, GValue *value, GParamSpec *pspec)
 {
 	XbSilo *self = XB_SILO (obj);
+	XbSiloPrivate *priv = GET_PRIVATE (self);
 	switch (prop_id) {
 	case PROP_GUID:
-		g_value_set_string (value, self->guid);
+		g_value_set_string (value, priv->guid);
 		break;
 	case PROP_VALID:
-		g_value_set_boolean (value, self->valid);
+		g_value_set_boolean (value, priv->valid);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (obj, prop_id, pspec);
@@ -917,10 +937,11 @@ static void
 xb_silo_set_property (GObject *obj, guint prop_id, const GValue *value, GParamSpec *pspec)
 {
 	XbSilo *self = XB_SILO (obj);
+	XbSiloPrivate *priv = GET_PRIVATE (self);
 	switch (prop_id) {
 	case PROP_GUID:
-		g_free (self->guid);
-		self->guid = g_value_dup_string (value);
+		g_free (priv->guid);
+		priv->guid = g_value_dup_string (value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (obj, prop_id, pspec);
@@ -931,35 +952,36 @@ xb_silo_set_property (GObject *obj, guint prop_id, const GValue *value, GParamSp
 static void
 xb_silo_init (XbSilo *self)
 {
-	self->file_monitors = g_hash_table_new_full (g_str_hash, g_str_equal,
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	priv->file_monitors = g_hash_table_new_full (g_str_hash, g_str_equal,
 						     g_free, (GDestroyNotify) xb_silo_file_monitor_item_free);
-	self->nodes = g_hash_table_new_full (g_direct_hash, g_direct_equal,
+	priv->nodes = g_hash_table_new_full (g_direct_hash, g_direct_equal,
 					     NULL, (GDestroyNotify) g_object_unref);
-	self->strtab_tags = g_hash_table_new (g_str_hash, g_str_equal);
+	priv->strtab_tags = g_hash_table_new (g_str_hash, g_str_equal);
 
-	g_mutex_init (&self->nodes_mutex);
+	g_mutex_init (&priv->nodes_mutex);
 
-	self->machine = xb_machine_new ();
-	xb_machine_add_method (self->machine, "attr", 1,
+	priv->machine = xb_machine_new ();
+	xb_machine_add_method (priv->machine, "attr", 1,
 			       xb_silo_machine_func_attr_cb, self, NULL);
-	xb_machine_add_method (self->machine, "text", 0,
+	xb_machine_add_method (priv->machine, "text", 0,
 			       xb_silo_machine_func_text_cb, self, NULL);
-	xb_machine_add_method (self->machine, "first", 0,
+	xb_machine_add_method (priv->machine, "first", 0,
 			       xb_silo_machine_func_first_cb, self, NULL);
-	xb_machine_add_method (self->machine, "last", 0,
+	xb_machine_add_method (priv->machine, "last", 0,
 			       xb_silo_machine_func_last_cb, self, NULL);
-	xb_machine_add_method (self->machine, "position", 0,
+	xb_machine_add_method (priv->machine, "position", 0,
 			       xb_silo_machine_func_position_cb, self, NULL);
-	xb_machine_add_method (self->machine, "contains", 2,
+	xb_machine_add_method (priv->machine, "contains", 2,
 			       xb_silo_machine_func_contains_cb, self, NULL);
-	xb_machine_add_method (self->machine, "search", 2,
+	xb_machine_add_method (priv->machine, "search", 2,
 			       xb_silo_machine_func_search_cb, self, NULL);
-	xb_machine_add_operator (self->machine, "~=", "search");
-	xb_machine_add_opcode_fixup (self->machine, "INTE",
+	xb_machine_add_operator (priv->machine, "~=", "search");
+	xb_machine_add_opcode_fixup (priv->machine, "INTE",
 				     xb_silo_machine_fixup_position_cb, self, NULL);
-	xb_machine_add_opcode_fixup (self->machine, "TEXT,FUNC:attr",
+	xb_machine_add_opcode_fixup (priv->machine, "TEXT,FUNC:attr",
 				     xb_silo_machine_fixup_attr_exists_cb, self, NULL);
-	xb_machine_add_text_handler (self->machine,
+	xb_machine_add_text_handler (priv->machine,
 				     xb_silo_machine_fixup_attr_text_cb, self, NULL);
 }
 
@@ -967,18 +989,19 @@ static void
 xb_silo_finalize (GObject *obj)
 {
 	XbSilo *self = XB_SILO (obj);
+	XbSiloPrivate *priv = GET_PRIVATE (self);
 
-	g_mutex_clear (&self->nodes_mutex);
+	g_mutex_clear (&priv->nodes_mutex);
 
-	g_free (self->guid);
-	g_object_unref (self->machine);
-	g_hash_table_unref (self->file_monitors);
-	g_hash_table_unref (self->nodes);
-	g_hash_table_unref (self->strtab_tags);
-	if (self->mmap != NULL)
-		g_mapped_file_unref (self->mmap);
-	if (self->blob != NULL)
-		g_bytes_unref (self->blob);
+	g_free (priv->guid);
+	g_object_unref (priv->machine);
+	g_hash_table_unref (priv->file_monitors);
+	g_hash_table_unref (priv->nodes);
+	g_hash_table_unref (priv->strtab_tags);
+	if (priv->mmap != NULL)
+		g_mapped_file_unref (priv->mmap);
+	if (priv->blob != NULL)
+		g_bytes_unref (priv->blob);
 	G_OBJECT_CLASS (xb_silo_parent_class)->finalize (obj);
 }
 

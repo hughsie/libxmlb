@@ -13,7 +13,7 @@
 
 #include "xb-builder-source-private.h"
 
-struct _XbBuilderSource {
+typedef struct {
 	GObject			 parent_instance;
 	GInputStream		*istream;
 	GFile			*file;
@@ -22,9 +22,10 @@ struct _XbBuilderSource {
 	gchar			*guid;
 	gchar			*prefix;
 	XbBuilderSourceFlags	 flags;
-};
+} XbBuilderSourcePrivate;
 
-G_DEFINE_TYPE (XbBuilderSource, xb_builder_source, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (XbBuilderSource, xb_builder_source, G_TYPE_OBJECT)
+#define GET_PRIVATE(o) (xb_builder_source_get_instance_private (o))
 
 typedef struct {
 	XbBuilderSourceNodeFunc		 func;
@@ -58,6 +59,7 @@ xb_builder_source_new_file (GFile *file,
 	g_autoptr(GFileInfo) fileinfo = NULL;
 	g_autoptr(GInputStream) istream = NULL;
 	g_autoptr(XbBuilderSource) self = g_object_new (XB_TYPE_BUILDER_SOURCE, NULL);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
 
 	/* create input stream */
 	istream = G_INPUT_STREAM (g_file_read (file, cancellable, error));
@@ -77,16 +79,16 @@ xb_builder_source_new_file (GFile *file,
 	/* add data to GUID */
 	fn = g_file_get_path (file);
 	mtime = g_file_info_get_attribute_uint64 (fileinfo, G_FILE_ATTRIBUTE_TIME_MODIFIED);
-	self->guid = g_strdup_printf ("%s:%" G_GUINT64_FORMAT, fn, mtime);
+	priv->guid = g_strdup_printf ("%s:%" G_GUINT64_FORMAT, fn, mtime);
 
 	/* decompress if required */
 	content_type = g_file_info_get_attribute_string (fileinfo, G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE);
 	if (g_strcmp0 (content_type, "application/gzip") == 0 ||
 	    g_strcmp0 (content_type, "application/x-gzip") == 0) {
 		conv = G_CONVERTER (g_zlib_decompressor_new (G_ZLIB_COMPRESSOR_FORMAT_GZIP));
-		self->istream = g_converter_input_stream_new (istream, conv);
+		priv->istream = g_converter_input_stream_new (istream, conv);
 	} else if (g_strcmp0 (content_type, "application/xml") == 0) {
-		self->istream = g_object_ref (istream);
+		priv->istream = g_object_ref (istream);
 	} else {
 		g_set_error (error,
 			     G_IO_ERROR,
@@ -97,8 +99,8 @@ xb_builder_source_new_file (GFile *file,
 	}
 
 	/* success */
-	self->flags = flags;
-	self->file = g_object_ref (file);
+	priv->flags = flags;
+	priv->file = g_object_ref (file);
 	return g_steal_pointer (&self);
 }
 
@@ -114,8 +116,9 @@ xb_builder_source_new_file (GFile *file,
 void
 xb_builder_source_set_info (XbBuilderSource *self, XbBuilderNode *info)
 {
+	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
 	g_return_if_fail (XB_IS_BUILDER_SOURCE (self));
-	g_set_object (&self->info, info);
+	g_set_object (&priv->info, info);
 }
 
 /**
@@ -131,9 +134,10 @@ xb_builder_source_set_info (XbBuilderSource *self, XbBuilderNode *info)
 void
 xb_builder_source_set_prefix (XbBuilderSource *self, const gchar *prefix)
 {
+	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
 	g_return_if_fail (XB_IS_BUILDER_SOURCE (self));
-	g_free (self->prefix);
-	self->prefix = g_strdup (prefix);
+	g_free (priv->prefix);
+	priv->prefix = g_strdup (prefix);
 }
 
 /**
@@ -154,19 +158,20 @@ xb_builder_source_new_xml (const gchar *xml, XbBuilderSourceFlags flags, GError 
 	g_autoptr(XbBuilderSource) self = g_object_new (XB_TYPE_BUILDER_SOURCE, NULL);
 	g_autoptr(GBytes) blob = NULL;
 	g_autoptr(GChecksum) csum = g_checksum_new (G_CHECKSUM_SHA1);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
 
 	/* add a GUID of the SHA1 hash of the entire string */
 	g_checksum_update (csum, (const guchar *) xml, -1);
-	self->guid = g_strdup (g_checksum_get_string (csum));
+	priv->guid = g_strdup (g_checksum_get_string (csum));
 
 	/* create input stream */
 	blob = g_bytes_new (xml, strlen (xml));
-	self->istream = g_memory_input_stream_new_from_bytes (blob);
-	if (self->istream == NULL)
+	priv->istream = g_memory_input_stream_new_from_bytes (blob);
+	if (priv->istream == NULL)
 		return NULL;
 
 	/* success */
-	self->flags = flags;
+	priv->flags = flags;
 	return g_steal_pointer (&self);
 }
 
@@ -188,6 +193,7 @@ xb_builder_source_add_node_func (XbBuilderSource *self,
 				 GDestroyNotify user_data_free)
 {
 	XbBuilderSourceNodeFuncItem *item;
+	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
 
 	g_return_if_fail (XB_IS_BUILDER_SOURCE (self));
 	g_return_if_fail (func != NULL);
@@ -196,14 +202,15 @@ xb_builder_source_add_node_func (XbBuilderSource *self,
 	item->func = func;
 	item->user_data = user_data;
 	item->user_data_free = user_data_free;
-	g_ptr_array_add (self->node_items, item);
+	g_ptr_array_add (priv->node_items, item);
 }
 
 gboolean
 xb_builder_source_funcs_node (XbBuilderSource *self, XbBuilderNode *bn, GError **error)
 {
-	for (guint i = 0; i < self->node_items->len; i++) {
-		XbBuilderSourceNodeFuncItem *item = g_ptr_array_index (self->node_items, i);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
+	for (guint i = 0; i < priv->node_items->len; i++) {
+		XbBuilderSourceNodeFuncItem *item = g_ptr_array_index (priv->node_items, i);
 		if (!item->func (self, bn, item->user_data, error))
 			return FALSE;
 	}
@@ -213,43 +220,49 @@ xb_builder_source_funcs_node (XbBuilderSource *self, XbBuilderNode *bn, GError *
 const gchar *
 xb_builder_source_get_guid (XbBuilderSource *self)
 {
+	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), NULL);
-	return self->guid;
+	return priv->guid;
 }
 
 const gchar *
 xb_builder_source_get_prefix (XbBuilderSource *self)
 {
+	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), NULL);
-	return self->prefix;
+	return priv->prefix;
 }
 
 XbBuilderNode *
 xb_builder_source_get_info (XbBuilderSource *self)
 {
+	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), NULL);
-	return self->info;
+	return priv->info;
 }
 
 GInputStream *
 xb_builder_source_get_istream (XbBuilderSource *self)
 {
+	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), NULL);
-	return self->istream;
+	return priv->istream;
 }
 
 GFile *
 xb_builder_source_get_file (XbBuilderSource *self)
 {
+	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), NULL);
-	return self->file;
+	return priv->file;
 }
 
 XbBuilderSourceFlags
 xb_builder_source_get_flags (XbBuilderSource *self)
 {
+	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), 0);
-	return self->flags;
+	return priv->flags;
 }
 
 static void
@@ -264,16 +277,17 @@ static void
 xb_builder_source_finalize (GObject *obj)
 {
 	XbBuilderSource *self = XB_BUILDER_SOURCE (obj);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
 
-	if (self->istream != NULL)
-		g_object_unref (self->istream);
-	if (self->info != NULL)
-		g_object_unref (self->info);
-	if (self->file != NULL)
-		g_object_unref (self->file);
-	g_ptr_array_unref (self->node_items);
-	g_free (self->guid);
-	g_free (self->prefix);
+	if (priv->istream != NULL)
+		g_object_unref (priv->istream);
+	if (priv->info != NULL)
+		g_object_unref (priv->info);
+	if (priv->file != NULL)
+		g_object_unref (priv->file);
+	g_ptr_array_unref (priv->node_items);
+	g_free (priv->guid);
+	g_free (priv->prefix);
 
 	G_OBJECT_CLASS (xb_builder_source_parent_class)->finalize (obj);
 }
@@ -288,5 +302,6 @@ xb_builder_source_class_init (XbBuilderSourceClass *klass)
 static void
 xb_builder_source_init (XbBuilderSource *self)
 {
-	self->node_items = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_builder_import_node_func_free);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
+	priv->node_items = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_builder_import_node_func_free);
 }

@@ -16,16 +16,17 @@
 #include "xb-builder-source-private.h"
 #include "xb-builder-node-private.h"
 
-struct _XbBuilder {
+typedef struct {
 	GObject			 parent_instance;
 	GPtrArray		*sources;	/* of XbBuilderSource */
 	GPtrArray		*nodes;		/* of XbBuilderNode */
 	GPtrArray		*locales;	/* of str */
 	XbSilo			*silo;
 	GString			*guid;
-};
+} XbBuilderPrivate;
 
-G_DEFINE_TYPE (XbBuilder, xb_builder, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (XbBuilder, xb_builder, G_TYPE_OBJECT)
+#define GET_PRIVATE(o) (xb_builder_get_instance_private (o))
 
 #define XB_SILO_APPENDBUF(str,data,sz)	g_string_append_len(str,(const gchar *)data, sz);
 
@@ -181,10 +182,11 @@ xb_builder_compile_text_cb (GMarkupParseContext *context,
 void
 xb_builder_import_source (XbBuilder *self, XbBuilderSource *source)
 {
+	XbBuilderPrivate *priv = GET_PRIVATE (self);
 	g_return_if_fail (XB_IS_BUILDER (self));
 	g_return_if_fail (XB_IS_BUILDER_SOURCE (source));
 	xb_builder_append_guid (self, xb_builder_source_get_guid (source));
-	g_ptr_array_add (self->sources, g_object_ref (source));
+	g_ptr_array_add (priv->sources, g_object_ref (source));
 }
 
 /**
@@ -242,9 +244,14 @@ xb_builder_import_dir (XbBuilder *self,
 		       GCancellable *cancellable,
 		       GError **error)
 {
+	XbBuilderPrivate *priv = GET_PRIVATE (self);
 	const gchar *fn;
-	g_autoptr(GDir) dir = g_dir_open (path, 0, error);
-	g_autoptr(GFile) parent = g_file_new_for_path (path);
+	g_autoptr(GDir) dir = NULL;
+
+	g_return_val_if_fail (XB_IS_BUILDER (self), FALSE);
+	g_return_val_if_fail (path != NULL, FALSE);
+
+	dir = g_dir_open (path, 0, error);
 	if (dir == NULL)
 		return FALSE;
 	while ((fn = g_dir_read_name (dir)) != NULL) {
@@ -258,7 +265,8 @@ xb_builder_import_dir (XbBuilder *self,
 	}
 	/* try to do what the user expects */
 	if (flags & XB_BUILDER_SOURCE_FLAG_WATCH_FILE) {
-		if (!xb_silo_watch_file (self->silo, parent, cancellable, error))
+		g_autoptr(GFile) parent = g_file_new_for_path (path);
+		if (!xb_silo_watch_file (priv->silo, parent, cancellable, error))
 			return FALSE;
 	}
 	return TRUE;
@@ -753,12 +761,13 @@ _uuid_generate_sha1 (uuid_t out, const uuid_t ns, const char *name, size_t len)
 static gchar *
 xb_builder_generate_guid (XbBuilder *self)
 {
+	XbBuilderPrivate *priv = GET_PRIVATE (self);
 	uuid_t ns;
 	uuid_t guid;
 	gchar guid_tmp[UUID_STR_LEN] = { '\0' };
 
 	uuid_clear (ns);
-	_uuid_generate_sha1 (guid, ns, self->guid->str, self->guid->len);
+	_uuid_generate_sha1 (guid, ns, priv->guid->str, priv->guid->len);
 	uuid_unparse (guid, guid_tmp);
 	return g_strdup (guid_tmp);
 }
@@ -775,10 +784,11 @@ xb_builder_generate_guid (XbBuilder *self)
 void
 xb_builder_import_node (XbBuilder *self, XbBuilderNode *bn)
 {
+	XbBuilderPrivate *priv = GET_PRIVATE (self);
 	g_autofree gchar *guid = g_strdup_printf ("bn@%p", bn);
 	g_return_if_fail (XB_IS_BUILDER (self));
 	g_return_if_fail (XB_IS_BUILDER_NODE (bn));
-	g_ptr_array_add (self->nodes, g_object_ref (bn));
+	g_ptr_array_add (priv->nodes, g_object_ref (bn));
 	xb_builder_append_guid (self, guid);
 }
 
@@ -795,16 +805,19 @@ xb_builder_import_node (XbBuilder *self, XbBuilderNode *bn)
 void
 xb_builder_add_locale (XbBuilder *self, const gchar *locale)
 {
+	XbBuilderPrivate *priv = GET_PRIVATE (self);
+
 	g_return_if_fail (XB_IS_BUILDER (self));
 	g_return_if_fail (locale != NULL);
+
 	if (g_str_has_suffix (locale, ".UTF-8"))
 		return;
-	for (guint i = 0; i < self->locales->len; i++) {
-		const gchar *locale_tmp = g_ptr_array_index (self->locales, i);
+	for (guint i = 0; i < priv->locales->len; i++) {
+		const gchar *locale_tmp = g_ptr_array_index (priv->locales, i);
 		if (g_strcmp0 (locale_tmp, locale) == 0)
 			return;
 	}
-	g_ptr_array_add (self->locales, g_strdup (locale));
+	g_ptr_array_add (priv->locales, g_strdup (locale));
 
 	/* if the user changes LANG, the blob is no longer valid */
 	xb_builder_append_guid (self, locale);
@@ -816,12 +829,13 @@ xb_builder_watch_source (XbBuilder *self,
 			 GCancellable *cancellable,
 			 GError **error)
 {
+	XbBuilderPrivate *priv = GET_PRIVATE (self);
 	GFile *file = xb_builder_source_get_file (source);
 	if (file == NULL)
 		return TRUE;
 	if ((xb_builder_source_get_flags (source) & XB_BUILDER_SOURCE_FLAG_WATCH_FILE) == 0)
 		return TRUE;
-	if (!xb_silo_watch_file (self->silo, file, cancellable, error))
+	if (!xb_silo_watch_file (priv->silo, file, cancellable, error))
 		return FALSE;
 	return TRUE;
 }
@@ -829,8 +843,9 @@ xb_builder_watch_source (XbBuilder *self,
 static gboolean
 xb_builder_watch_sources (XbBuilder *self, GCancellable *cancellable, GError **error)
 {
-	for (guint i = 0; i < self->sources->len; i++) {
-		XbBuilderSource *source = g_ptr_array_index (self->sources, i);
+	XbBuilderPrivate *priv = GET_PRIVATE (self);
+	for (guint i = 0; i < priv->sources->len; i++) {
+		XbBuilderSource *source = g_ptr_array_index (priv->sources, i);
 		if (!xb_builder_watch_source (self, source, cancellable, error))
 			return FALSE;
 	}
@@ -853,6 +868,7 @@ xb_builder_watch_sources (XbBuilder *self, GCancellable *cancellable, GError **e
 XbSilo *
 xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *cancellable, GError **error)
 {
+	XbBuilderPrivate *priv = GET_PRIVATE (self);
 	guint32 nodetabsz = sizeof(XbSiloHeader);
 	g_autoptr(GBytes) blob = NULL;
 	g_autoptr(GString) buf = NULL;
@@ -878,7 +894,7 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 		flags |= XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS;
 
 	/* the builder needs to know the locales */
-	if (self->locales->len == 0 && (flags & XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS)) {
+	if (priv->locales->len == 0 && (flags & XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS)) {
 		g_set_error_literal (error,
 				     G_IO_ERROR,
 				     G_IO_ERROR_INVALID_DATA,
@@ -890,14 +906,14 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	helper = g_new0 (XbBuilderCompileHelper, 1);
 	helper->compile_flags = flags;
 	helper->root = g_node_new (NULL);
-	helper->locales = self->locales;
+	helper->locales = priv->locales;
 	helper->strtab = g_string_new (NULL);
 	helper->strtab_hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 
 	/* build node tree */
-	for (guint i = 0; i < self->sources->len; i++) {
+	for (guint i = 0; i < priv->sources->len; i++) {
 		GNode *root = NULL;
-		XbBuilderSource *source = g_ptr_array_index (self->sources, i);
+		XbBuilderSource *source = g_ptr_array_index (priv->sources, i);
 		g_autoptr(GError) error_local = NULL;
 
 		/* find, or create the prefix */
@@ -955,8 +971,8 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	}
 
 	/* add any manually build nodes */
-	for (guint i = 0; i < self->nodes->len; i++) {
-		XbBuilderNode *bn = g_ptr_array_index (self->nodes, i);
+	for (guint i = 0; i < priv->nodes->len; i++) {
+		XbBuilderNode *bn = g_ptr_array_index (priv->nodes, i);
 		xb_builder_compile_node_tree (helper->root, bn);
 	}
 
@@ -978,10 +994,10 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 
 	/* add the initial header */
 	hdr.strtab = nodetabsz;
-	if (self->guid->len > 0) {
+	if (priv->guid->len > 0) {
 		uuid_t ns;
 		uuid_clear (ns);
-		_uuid_generate_sha1 (hdr.guid, ns, self->guid->str, self->guid->len);
+		_uuid_generate_sha1 (hdr.guid, ns, priv->guid->str, priv->guid->len);
 	}
 	XB_SILO_APPENDBUF (buf, &hdr, sizeof(XbSiloHeader));
 
@@ -1003,11 +1019,11 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 
 	/* create data */
 	blob = g_bytes_new (buf->str, buf->len);
-	if (!xb_silo_load_from_bytes (self->silo, blob, XB_SILO_LOAD_FLAG_NONE, error))
+	if (!xb_silo_load_from_bytes (priv->silo, blob, XB_SILO_LOAD_FLAG_NONE, error))
 		return NULL;
 
 	/* success */
-	return g_object_ref (self->silo);
+	return g_object_ref (priv->silo);
 }
 
 /**
@@ -1031,6 +1047,7 @@ XbSilo *
 xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 		   GCancellable *cancellable, GError **error)
 {
+	XbBuilderPrivate *priv = GET_PRIVATE (self);
 	XbSiloLoadFlags load_flags = XB_SILO_LOAD_FLAG_NONE;
 	g_autofree gchar *fn = NULL;
 	g_autoptr(XbSilo) silo_tmp = xb_silo_new ();
@@ -1056,20 +1073,20 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 		g_autofree gchar *guid = xb_builder_generate_guid (self);
 		g_debug ("file: %s, current:%s, cached: %s",
 			 xb_silo_get_guid (silo_tmp), guid,
-			 xb_silo_get_guid (self->silo));
+			 xb_silo_get_guid (priv->silo));
 
 		/* GUIDs match exactly with the thing that's already loaded */
 		if (g_strcmp0 (xb_silo_get_guid (silo_tmp),
-			       xb_silo_get_guid (self->silo)) == 0) {
+			       xb_silo_get_guid (priv->silo)) == 0) {
 			g_debug ("returning unchanged silo");
-			return g_object_ref (self->silo);
+			return g_object_ref (priv->silo);
 		}
 
 		/* reload the cached silo with the new file data */
 		if (g_strcmp0 (xb_silo_get_guid (silo_tmp), guid) == 0) {
 			g_autoptr(GBytes) blob = xb_silo_get_bytes (silo_tmp);
 			g_debug ("loading silo with file contents");
-			if (!xb_silo_load_from_bytes (self->silo, blob,
+			if (!xb_silo_load_from_bytes (priv->silo, blob,
 						      load_flags, error))
 				return NULL;
 
@@ -1079,11 +1096,11 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 
 			/* ensure backing file is watched for changes */
 			if (flags & XB_BUILDER_COMPILE_FLAG_WATCH_BLOB) {
-				if (!xb_silo_watch_file (self->silo, file,
+				if (!xb_silo_watch_file (priv->silo, file,
 							 cancellable, error))
 					return NULL;
 			}
-			return g_object_ref (self->silo);
+			return g_object_ref (priv->silo);
 		}
 	}
 
@@ -1116,21 +1133,23 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 void
 xb_builder_append_guid (XbBuilder *self, const gchar *guid)
 {
-	if (self->guid->len > 0)
-		g_string_append (self->guid, "&");
-	g_string_append (self->guid, guid);
+	XbBuilderPrivate *priv = GET_PRIVATE (self);
+	if (priv->guid->len > 0)
+		g_string_append (priv->guid, "&");
+	g_string_append (priv->guid, guid);
 }
 
 static void
 xb_builder_finalize (GObject *obj)
 {
 	XbBuilder *self = XB_BUILDER (obj);
+	XbBuilderPrivate *priv = GET_PRIVATE (self);
 
-	g_ptr_array_unref (self->sources);
-	g_ptr_array_unref (self->nodes);
-	g_ptr_array_unref (self->locales);
-	g_object_unref (self->silo);
-	g_string_free (self->guid, TRUE);
+	g_ptr_array_unref (priv->sources);
+	g_ptr_array_unref (priv->nodes);
+	g_ptr_array_unref (priv->locales);
+	g_object_unref (priv->silo);
+	g_string_free (priv->guid, TRUE);
 
 	G_OBJECT_CLASS (xb_builder_parent_class)->finalize (obj);
 }
@@ -1145,11 +1164,12 @@ xb_builder_class_init (XbBuilderClass *klass)
 static void
 xb_builder_init (XbBuilder *self)
 {
-	self->sources = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
-	self->nodes = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
-	self->locales = g_ptr_array_new_with_free_func (g_free);
-	self->silo = xb_silo_new ();
-	self->guid = g_string_new (NULL);
+	XbBuilderPrivate *priv = GET_PRIVATE (self);
+	priv->sources = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+	priv->nodes = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+	priv->locales = g_ptr_array_new_with_free_func (g_free);
+	priv->silo = xb_silo_new ();
+	priv->guid = g_string_new (NULL);
 }
 
 /**

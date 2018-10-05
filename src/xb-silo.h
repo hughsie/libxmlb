@@ -14,7 +14,19 @@ G_BEGIN_DECLS
 #include "xb-node.h"
 
 #define XB_TYPE_SILO (xb_silo_get_type ())
-G_DECLARE_FINAL_TYPE (XbSilo, xb_silo, XB, SILO, GObject)
+G_DECLARE_DERIVABLE_TYPE (XbSilo, xb_silo, XB, SILO, GObject)
+
+struct _XbSiloClass {
+	GObjectClass			 parent_class;
+	/*< private >*/
+	void (*_xb_reserved1)		(void);
+	void (*_xb_reserved2)		(void);
+	void (*_xb_reserved3)		(void);
+	void (*_xb_reserved4)		(void);
+	void (*_xb_reserved5)		(void);
+	void (*_xb_reserved6)		(void);
+	void (*_xb_reserved7)		(void);
+};
 
 /**
  * XbSiloLoadFlags:

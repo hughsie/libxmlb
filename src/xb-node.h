@@ -12,7 +12,19 @@ G_BEGIN_DECLS
 #include <glib-object.h>
 
 #define XB_TYPE_NODE (xb_node_get_type ())
-G_DECLARE_FINAL_TYPE (XbNode, xb_node, XB, NODE, GObject)
+G_DECLARE_DERIVABLE_TYPE (XbNode, xb_node, XB, NODE, GObject)
+
+struct _XbNodeClass {
+	GObjectClass			 parent_class;
+	/*< private >*/
+	void (*_xb_reserved1)		(void);
+	void (*_xb_reserved2)		(void);
+	void (*_xb_reserved3)		(void);
+	void (*_xb_reserved4)		(void);
+	void (*_xb_reserved5)		(void);
+	void (*_xb_reserved6)		(void);
+	void (*_xb_reserved7)		(void);
+};
 
 /**
  * XbNodeExportFlags:
