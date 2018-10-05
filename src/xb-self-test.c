@@ -303,15 +303,11 @@ xb_builder_upgrade_appstream_cb (XbBuilderSource *self,
 				 GError **error)
 {
 	if (g_strcmp0 (xb_builder_node_get_element (bn), "application") == 0) {
-		GPtrArray *children = xb_builder_node_get_children (bn);
+		g_autoptr(XbBuilderNode) id = xb_builder_node_get_child (bn, "id", NULL);
 		g_autofree gchar *kind = NULL;
-		for (guint i = 0; i < children->len; i++) {
-			XbBuilderNode *bc = g_ptr_array_index (children, i);
-			if (g_strcmp0 (xb_builder_node_get_element (bc), "id") == 0) {
-				kind = g_strdup (xb_builder_node_get_attr (bc, "type"));
-				xb_builder_node_remove_attr (bc, "type");
-				break;
-			}
+		if (id != NULL) {
+			kind = g_strdup (xb_builder_node_get_attr (id, "type"));
+			xb_builder_node_remove_attr (id, "type");
 		}
 		if (kind != NULL)
 			xb_builder_node_set_attr (bn, "type", kind);

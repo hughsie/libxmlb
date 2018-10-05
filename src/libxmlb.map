@@ -77,6 +77,7 @@ LIBXMLB_0.1.0 {
 
 LIBXMLB_0.1.1 {
   global:
+    xb_builder_node_get_child;
     xb_machine_add_method;
     xb_machine_add_opcode_fixup;
     xb_machine_add_operator;

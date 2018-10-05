@@ -331,6 +331,37 @@ xb_builder_node_get_children (XbBuilderNode *self)
 	return priv->children;
 }
 
+/**
+ * xb_builder_node_get_child:
+ * @self: a #XbBuilderNode
+ * @element: An element name, e.g. "url"
+ * @text: (allow-none): node text, e.g. "gimp.desktop"
+ *
+ * Finds a child builder node by the element name, and optionally text value.
+ *
+ * Returns: (transfer full): a new #XbBuilderNode, or %NULL if not found
+ *
+ * Since: 0.1.1
+ **/
+XbBuilderNode *
+xb_builder_node_get_child (XbBuilderNode *self, const gchar *element, const gchar *text)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+
+	g_return_val_if_fail (XB_IS_BUILDER_NODE (self), NULL);
+	g_return_val_if_fail (element != NULL, NULL);
+
+	for (guint i = 0; i < priv->children->len; i++) {
+		XbBuilderNode *child = g_ptr_array_index (priv->children, i);
+		if (g_strcmp0 (xb_builder_node_get_element (child), element) != 0)
+			continue;
+		if (text != NULL && g_strcmp0 (xb_builder_node_get_text (child), text) != 0)
+			continue;
+		return g_object_ref (child);
+	}
+	return NULL;
+}
+
 /* private */
 guint32
 xb_builder_node_get_offset (XbBuilderNode *self)
