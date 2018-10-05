@@ -324,11 +324,11 @@ xb_silo_get_size (XbSilo *self)
  * xb_silo_is_valid:
  * @self: a #XbSilo
  *
- * Checks is the silo is valid. THe usual reason the silo is invalidated is
+ * Checks is the silo is valid. The usual reason the silo is invalidated is
  * when the backing mmapped file has changed, or one of the imported files have
  * been modified.
  *
- * Returns: %TRUE
+ * Returns: %TRUE if valid
  *
  * Since: 0.1.0
  **/
@@ -340,6 +340,14 @@ xb_silo_is_valid (XbSilo *self)
 	return priv->valid;
 }
 
+/**
+ * xb_silo_invalidate:
+ * @self: a #XbSilo
+ *
+ * Invalidates a silo. Future calls xb_silo_is_valid() will return %FALSE.
+ *
+ * Since: 0.1.1
+ **/
 void
 xb_silo_invalidate (XbSilo *self)
 {

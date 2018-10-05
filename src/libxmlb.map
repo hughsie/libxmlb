@@ -103,5 +103,6 @@ LIBXMLB_0.1.1 {
     xb_machine_stack_push_text_steal;
     xb_opcode_kind_from_string;
     xb_opcode_kind_to_string;
+    xb_silo_invalidate;
   local: *;
 } LIBXMLB_0.1.0;
