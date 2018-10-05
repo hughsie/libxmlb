@@ -99,8 +99,6 @@ add_global_link_arguments(
   language: 'c'
 )
 
-add_project_arguments('-DUSE_XMLB_VERSION_H', language : 'c')
-
 prefix = get_option('prefix')
 
 libexecdir = join_paths(prefix, get_option('libexecdir'))

@@ -16,9 +16,6 @@
 #include <libxmlb/xb-silo-export.h>
 #include <libxmlb/xb-silo.h>
 #include <libxmlb/xb-silo-query.h>
-
-#ifdef USE_XMLB_VERSION_H
 #include <libxmlb/xb-version.h>
-#endif
 
 #endif /* __XMLB_H */
