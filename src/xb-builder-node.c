@@ -379,7 +379,6 @@ xb_builder_node_unlink (XbBuilderNode *self)
 	if (priv->parent == NULL)
 		return;
 	xb_builder_node_remove_child (priv->parent, self);
-	priv->parent = NULL;
 }
 
 /**
