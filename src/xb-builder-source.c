@@ -217,12 +217,18 @@ xb_builder_source_funcs_node (XbBuilderSource *self, XbBuilderNode *bn, GError *
 	return TRUE;
 }
 
-const gchar *
+gchar *
 xb_builder_source_get_guid (XbBuilderSource *self)
 {
 	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
+	GString *str = g_string_new (priv->guid);
+
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), NULL);
-	return priv->guid;
+
+	/* append prefix */
+	if (priv->prefix != NULL)
+		g_string_append_printf (str, ":prefix=%s", priv->prefix);
+	return g_string_free (str, FALSE);
 }
 
 const gchar *

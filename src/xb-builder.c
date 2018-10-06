@@ -182,9 +182,14 @@ void
 xb_builder_import_source (XbBuilder *self, XbBuilderSource *source)
 {
 	XbBuilderPrivate *priv = GET_PRIVATE (self);
+	g_autofree gchar *guid = NULL;
+
 	g_return_if_fail (XB_IS_BUILDER (self));
 	g_return_if_fail (XB_IS_BUILDER_SOURCE (source));
-	xb_builder_append_guid (self, xb_builder_source_get_guid (source));
+
+	/* get latest GUID */
+	guid = xb_builder_source_get_guid (source);
+	xb_builder_append_guid (self, guid);
 	g_ptr_array_add (priv->sources, g_object_ref (source));
 }
 
@@ -879,6 +884,7 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	for (guint i = 0; i < priv->sources->len; i++) {
 		XbBuilderSource *source = g_ptr_array_index (priv->sources, i);
 		const gchar *prefix = xb_builder_source_get_prefix (source);
+		g_autofree gchar *source_guid = xb_builder_source_get_guid (source);
 		g_autoptr(XbBuilderNode) root = NULL;
 		g_autoptr(GError) error_local = NULL;
 
@@ -892,19 +898,19 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 			root = g_object_ref (helper->root);
 		}
 
-		g_debug ("compiling %s…", xb_builder_source_get_guid (source));
+		g_debug ("compiling %s…", source_guid);
 		if (!xb_builder_compile_source (helper, source, root,
 						cancellable, &error_local)) {
 			if (flags & XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID) {
 				g_debug ("ignoring invalid file %s: %s",
-					 xb_builder_source_get_guid (source),
+					 source_guid,
 					 error_local->message);
 				continue;
 			}
 			g_propagate_prefixed_error (error,
 						    g_steal_pointer (&error_local),
 						    "failed to compile %s: ",
-						    xb_builder_source_get_guid (source));
+						    source_guid);
 			return NULL;
 		}
 
