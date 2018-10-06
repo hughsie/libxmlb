@@ -32,6 +32,8 @@ typedef struct {
 	GMutex			 nodes_mutex;
 	GHashTable		*file_monitors;	/* of fn:XbSiloFileMonitorItem */
 	XbMachine		*machine;
+	XbSiloProfileFlags	 profile_flags;
+	GString			*profile_str;
 } XbSiloPrivate;
 
 typedef struct {
@@ -48,6 +50,38 @@ enum {
 	PROP_VALID,
 	PROP_LAST
 };
+
+/* private */
+void
+xb_silo_add_profile (XbSilo *self, GTimer *timer, const gchar *fmt, ...)
+{
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	va_list args;
+	g_autoptr(GString) str = g_string_new (NULL);
+
+	/* nothing to do */
+	if (!priv->profile_flags)
+		return;
+
+	/* add duration */
+	g_string_append_printf (str, "%.2fms", g_timer_elapsed (timer, NULL) * 1000);
+	for (guint i = str->len; i < 12; i++)
+		g_string_append (str, " ");
+
+	/* add varargs */
+	va_start (args, fmt);
+	g_string_append_vprintf (str, fmt, args);
+	va_end (args);
+
+	/* do the right thing */
+	if (priv->profile_flags & XB_SILO_PROFILE_FLAG_DEBUG)
+		g_debug ("%s", str->str);
+	if (priv->profile_flags & XB_SILO_PROFILE_FLAG_APPEND)
+		g_string_append_printf (priv->profile_str, "%s\n", str->str);
+
+	/* reset automatically */
+	g_timer_reset (timer);
+}
 
 /* private */
 const gchar *
@@ -441,6 +475,7 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 	gchar guid[UUID_STR_LEN] = { '\0' };
 	guint32 off = 0;
 	g_autoptr(GMutexLocker) locker = g_mutex_locker_new (&priv->nodes_mutex);
+	g_autoptr(GTimer) timer = g_timer_new ();
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (blob != NULL, FALSE);
@@ -518,9 +553,48 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 		off += strlen (tmp) + 1;
 	}
 
+	/* profile */
+	xb_silo_add_profile (self, timer, "parse blob");
+
 	/* success */
 	priv->valid = TRUE;
 	return TRUE;
+}
+
+/**
+ * xb_silo_get_profile_string:
+ * @self: a #XbSilo
+ *
+ * Returns the profiling data. This will only return profiling text if the silo
+ * was loaded with %XB_SILO_LOAD_FLAG_PROFILE.
+ *
+ * Returns: text profiling data
+ *
+ * Since: 0.1.1
+ **/
+const gchar *
+xb_silo_get_profile_string (XbSilo *self)
+{
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	g_return_val_if_fail (XB_IS_SILO (self), NULL);
+	return priv->profile_str->str;
+}
+
+/**
+ * xb_silo_set_profile_flags:
+ * @self: a #XbSilo
+ * @profile_flags: some #XbSiloProfileFlags, e.g. %XB_SILO_PROFILE_FLAG_DEBUG
+ *
+ * Enables or disables the collection of profiling data.
+ *
+ * Since: 0.1.1
+ **/
+void
+xb_silo_set_profile_flags (XbSilo *self, XbSiloProfileFlags profile_flags)
+{
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	g_return_if_fail (XB_IS_SILO (self));
+	priv->profile_flags = profile_flags;
 }
 
 static void
@@ -609,6 +683,7 @@ xb_silo_load_from_file (XbSilo *self,
 	XbSiloPrivate *priv = GET_PRIVATE (self);
 	g_autofree gchar *fn = NULL;
 	g_autoptr(GBytes) blob = NULL;
+	g_autoptr(GTimer) timer = g_timer_new ();
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
@@ -636,6 +711,7 @@ xb_silo_load_from_file (XbSilo *self,
 	}
 
 	/* success */
+	xb_silo_add_profile (self, timer, "loaded file");
 	return TRUE;
 }
 
@@ -660,6 +736,7 @@ xb_silo_save_to_file (XbSilo *self,
 {
 	XbSiloPrivate *priv = GET_PRIVATE (self);
 	g_autoptr(GFile) file_parent = NULL;
+	g_autoptr(GTimer) timer = g_timer_new ();
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
@@ -684,11 +761,15 @@ xb_silo_save_to_file (XbSilo *self,
 	}
 
 	/* save and then rename */
-	return g_file_replace_contents (file,
-					(const gchar *) priv->data,
-					(gsize) priv->datasz, NULL, FALSE,
-					G_FILE_CREATE_NONE, NULL,
-					cancellable, error);
+	if (!g_file_replace_contents (file,
+				      (const gchar *) priv->data,
+				      (gsize) priv->datasz, NULL, FALSE,
+				      G_FILE_CREATE_NONE, NULL,
+				      cancellable, error)) {
+		return FALSE;
+	}
+	xb_silo_add_profile (self, timer, "save file");
+	return TRUE;
 }
 
 /**
@@ -1086,6 +1167,7 @@ xb_silo_init (XbSilo *self)
 	priv->nodes = g_hash_table_new_full (g_direct_hash, g_direct_equal,
 					     NULL, (GDestroyNotify) g_object_unref);
 	priv->strtab_tags = g_hash_table_new (g_str_hash, g_str_equal);
+	priv->profile_str = g_string_new (NULL);
 
 	g_mutex_init (&priv->nodes_mutex);
 
@@ -1130,6 +1212,7 @@ xb_silo_finalize (GObject *obj)
 	g_mutex_clear (&priv->nodes_mutex);
 
 	g_free (priv->guid);
+	g_string_free (priv->profile_str, TRUE);
 	g_object_unref (priv->machine);
 	g_hash_table_unref (priv->file_monitors);
 	g_hash_table_unref (priv->nodes);

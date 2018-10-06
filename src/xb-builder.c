@@ -22,6 +22,7 @@ typedef struct {
 	GPtrArray		*nodes;		/* of XbBuilderNode */
 	GPtrArray		*locales;	/* of str */
 	XbSilo			*silo;
+	XbSiloProfileFlags	 profile_flags;
 	GString			*guid;
 } XbBuilderPrivate;
 
@@ -31,6 +32,7 @@ G_DEFINE_TYPE_WITH_PRIVATE (XbBuilder, xb_builder, G_TYPE_OBJECT)
 #define XB_SILO_APPENDBUF(str,data,sz)	g_string_append_len(str,(const gchar *)data, sz);
 
 typedef struct {
+	XbSilo			*silo;
 	XbBuilderNode		*root;		/* transfer full */
 	XbBuilderNode		*current;	/* transfer none */
 	XbBuilderCompileFlags	 compile_flags;
@@ -373,7 +375,9 @@ xb_builder_compile_source (XbBuilderCompileHelper *helper,
 	gsize chunk_size = 32 * 1024;
 	gssize len;
 	g_autofree gchar *data = NULL;
+	g_autofree gchar *guid = xb_builder_source_get_guid (source);
 	g_autoptr(GMarkupParseContext) ctx = NULL;
+	g_autoptr(GTimer) timer = g_timer_new ();
 	g_autoptr(XbBuilderNode) root_tmp = xb_builder_node_new (NULL);
 	const GMarkupParser parser = {
 		xb_builder_compile_start_element_cb,
@@ -431,6 +435,7 @@ xb_builder_compile_source (XbBuilderCompileHelper *helper,
 	}
 
 	/* success */
+	xb_silo_add_profile (helper->silo, timer, "compile %s", guid);
 	return TRUE;
 }
 
@@ -855,6 +860,7 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 		.buf = NULL,
 	};
 	g_autoptr(GPtrArray) nodes_to_destroy = g_ptr_array_new ();
+	g_autoptr(GTimer) timer = g_timer_new ();
 	g_autoptr(XbBuilderCompileHelper) helper = NULL;
 
 	g_return_val_if_fail (XB_IS_BUILDER (self), NULL);
@@ -876,6 +882,7 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	helper = g_new0 (XbBuilderCompileHelper, 1);
 	helper->compile_flags = flags;
 	helper->root = xb_builder_node_new (NULL);
+	helper->silo = priv->silo;
 	helper->locales = priv->locales;
 	helper->strtab = g_string_new (NULL);
 	helper->strtab_hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
@@ -927,6 +934,7 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 			XbBuilderNode *bn = g_ptr_array_index (nodes_to_destroy, i);
 			xb_builder_node_unlink (bn);
 		}
+		xb_silo_add_profile (priv->silo, timer, "filter single-lang");
 	}
 
 	/* add any manually build nodes */
@@ -939,17 +947,22 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	xb_builder_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
 				  xb_builder_nodetab_size_cb, &nodetabsz);
 	buf = g_string_sized_new (nodetabsz);
+	xb_silo_add_profile (priv->silo, timer, "get size nodetab");
 
 	/* add element names, attr name, attr value, then text to the strtab */
 	xb_builder_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
 				  xb_builder_strtab_element_names_cb, helper);
 	hdr.strtab_ntags = g_hash_table_size (helper->strtab_hash);
+	xb_silo_add_profile (priv->silo, timer, "adding strtab element");
 	xb_builder_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
 				  xb_builder_strtab_attr_name_cb, helper);
+	xb_silo_add_profile (priv->silo, timer, "adding strtab attr name");
 	xb_builder_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
 				  xb_builder_strtab_attr_value_cb, helper);
+	xb_silo_add_profile (priv->silo, timer, "adding strtab attr value");
 	xb_builder_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
 				  xb_builder_strtab_text_cb, helper);
+	xb_silo_add_profile (priv->silo, timer, "adding strtab text");
 
 	/* add the initial header */
 	hdr.strtab = nodetabsz;
@@ -963,13 +976,16 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	/* write nodes to the nodetab */
 	nodetab_helper.buf = buf;
 	xb_builder_nodetab_write (&nodetab_helper, helper->root);
+	xb_silo_add_profile (priv->silo, timer, "writing nodetab");
 
 	/* set all the ->next and ->parent offsets */
 	xb_builder_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
 				  xb_builder_nodetab_fix_cb, &nodetab_helper);
+	xb_silo_add_profile (priv->silo, timer, "fixing ->parent and ->next");
 
 	/* append the string table */
 	XB_SILO_APPENDBUF (buf, helper->strtab->str, helper->strtab->len);
+	xb_silo_add_profile (priv->silo, timer, "appending strtab");
 
 	/* create data */
 	blob = g_bytes_new (buf->str, buf->len);
@@ -1014,6 +1030,9 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 	/* watch the blob, so propagate flags */
 	if (flags & XB_BUILDER_COMPILE_FLAG_WATCH_BLOB)
 		load_flags |= XB_SILO_LOAD_FLAG_WATCH_BLOB;
+
+	/* profile new silo if needed */
+	xb_silo_set_profile_flags (silo_tmp, priv->profile_flags);
 
 	/* load the file and peek at the GUIDs */
 	fn = g_file_get_path (file);
@@ -1091,6 +1110,24 @@ xb_builder_append_guid (XbBuilder *self, const gchar *guid)
 	if (priv->guid->len > 0)
 		g_string_append (priv->guid, "&");
 	g_string_append (priv->guid, guid);
+}
+
+/**
+ * xb_builder_set_profile_flags:
+ * @self: a #XbBuilder
+ * @profile_flags: some #XbSiloProfileFlags, e.g. %XB_SILO_PROFILE_FLAG_DEBUG
+ *
+ * Enables or disables the collection of profiling data.
+ *
+ * Since: 0.1.1
+ **/
+void
+xb_builder_set_profile_flags (XbBuilder *self, XbSiloProfileFlags profile_flags)
+{
+	XbBuilderPrivate *priv = GET_PRIVATE (self);
+	g_return_if_fail (XB_IS_BUILDER (self));
+	priv->profile_flags = profile_flags;
+	xb_silo_set_profile_flags (priv->silo, profile_flags);
 }
 
 static void

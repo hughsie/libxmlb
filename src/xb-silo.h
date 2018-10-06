@@ -44,6 +44,22 @@ typedef enum {
 	XB_SILO_LOAD_FLAG_LAST
 } XbSiloLoadFlags;
 
+/**
+ * XbSiloProfileFlags:
+ * @XB_SILO_PROFILE_FLAG_NONE:			No extra flags to use
+ * @XB_SILO_PROFILE_FLAG_DEBUG:			Output profiling as debug
+ * @XB_SILO_PROFILE_FLAG_APPEND:		Save profiling in an appended string
+ *
+ * The flags used when profiling a silo.
+ **/
+typedef enum {
+	XB_SILO_PROFILE_FLAG_NONE	= 0,			/* Since: 0.1.1 */
+	XB_SILO_PROFILE_FLAG_DEBUG	= 1 << 0,		/* Since: 0.1.1 */
+	XB_SILO_PROFILE_FLAG_APPEND	= 1 << 1,		/* Since: 0.1.1 */
+	/*< private >*/
+	XB_SILO_PROFILE_FLAG_LAST
+} XbSiloProfileFlags;
+
 XbSilo		*xb_silo_new				(void);
 XbSilo		*xb_silo_new_from_xml			(const gchar	*xml,
 							 GError		**error);
@@ -72,6 +88,9 @@ gboolean	 xb_silo_watch_file			(XbSilo		*self,
 							 GFile		*file,
 							 GCancellable	*cancellable,
 							 GError		**error);
+void		 xb_silo_set_profile_flags		(XbSilo		*self,
+							 XbSiloProfileFlags profile_flags);
+const gchar	*xb_silo_get_profile_string		(XbSilo		*self);
 
 G_END_DECLS
 

@@ -379,6 +379,7 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 	g_auto(GStrv) split = NULL;
 	g_autoptr(GHashTable) results_hash = g_hash_table_new (g_direct_hash, g_direct_equal);
 	g_autoptr(GPtrArray) results = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+	g_autoptr(GTimer) timer = g_timer_new ();
 	XbSiloQueryData query_data = {
 		.sn = NULL,
 		.position = 0,
@@ -440,6 +441,8 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 		return NULL;
 	}
 
+	/* profile */
+	xb_silo_add_profile (self, timer, "query");
 	return g_steal_pointer (&results);
 }
 

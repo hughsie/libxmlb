@@ -83,6 +83,8 @@ XbSilo		*xb_builder_ensure		(XbBuilder		*self,
 						 GError			**error);
 void		 xb_builder_add_locale		(XbBuilder		*self,
 						 const gchar		*locale);
+void		 xb_builder_set_profile_flags	(XbBuilder		*self,
+						 XbSiloProfileFlags	 profile_flags);
 
 G_END_DECLS
 

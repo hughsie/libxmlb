@@ -22,6 +22,7 @@ typedef struct {
 	GPtrArray		*cmd_array;
 	gboolean		 force;
 	gboolean		 wait;
+	gboolean		 profile;
 } XbToolPrivate;
 
 static void
@@ -264,6 +265,8 @@ xb_tool_query (XbToolPrivate *priv, gchar **values, GError **error)
 
 	/* load blob */
 	file = g_file_new_for_path (values[0]);
+	xb_silo_set_profile_flags (silo, priv->profile ? XB_SILO_PROFILE_FLAG_APPEND :
+							 XB_SILO_PROFILE_FLAG_NONE);
 	if (!xb_silo_load_from_file (silo, file, XB_SILO_LOAD_FLAG_NONE, NULL, error))
 		return FALSE;
 
@@ -286,6 +289,10 @@ xb_tool_query (XbToolPrivate *priv, gchar **values, GError **error)
 			return FALSE;
 		g_print ("RESULT: %s\n", xml);
 	}
+
+	/* profile */
+	if (priv->profile)
+		g_print ("%s", xb_silo_get_profile_string (silo));
 
 	return TRUE;
 }
@@ -338,6 +345,10 @@ xb_tool_query_file (XbToolPrivate *priv, gchar **values, GError **error)
 		}
 	}
 
+	/* profile */
+	if (priv->profile)
+		g_print ("%s", xb_silo_get_profile_string (silo));
+
 	return TRUE;
 }
 
@@ -380,6 +391,9 @@ xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 			return FALSE;
 	}
 	file_dst = g_file_new_for_path (values[0]);
+	xb_builder_set_profile_flags (builder,
+				      priv->profile ? XB_SILO_PROFILE_FLAG_APPEND :
+						      XB_SILO_PROFILE_FLAG_NONE);
 	silo = xb_builder_ensure (builder, file_dst,
 				  XB_BUILDER_COMPILE_FLAG_WATCH_BLOB |
 				  XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID |
@@ -396,6 +410,10 @@ xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 				  priv);
 		g_main_loop_run (priv->loop);
 	}
+
+	/* profile */
+	if (priv->profile)
+		g_print ("%s", xb_silo_get_profile_string (silo));
 
 	/* success */
 	return TRUE;
@@ -426,6 +444,8 @@ main (int argc, char *argv[])
 			"Force parsing of invalid files", NULL },
 		{ "wait", 'w', 0, G_OPTION_ARG_NONE, &priv->wait,
 			"Return only when the silo is no longer valid", NULL },
+		{ "profile", 'p', 0, G_OPTION_ARG_NONE, &priv->profile,
+			"Show profiling information", NULL },
 		{ NULL}
 	};
 
