@@ -335,7 +335,8 @@ xb_builder_node_vfunc_func (void)
 	source = xb_builder_source_new_xml (xml, XB_BUILDER_SOURCE_FLAG_NONE, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (source);
-	xb_builder_source_add_node_func (source, xb_builder_upgrade_appstream_cb, NULL, NULL);
+	xb_builder_source_add_node_func (source, "AppStreamUpgrade",
+					 xb_builder_upgrade_appstream_cb, NULL, NULL);
 	xb_builder_import_source (builder, source);
 	silo = xb_builder_compile (builder,
 				   XB_BUILDER_COMPILE_FLAG_NONE,

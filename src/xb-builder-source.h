@@ -62,6 +62,7 @@ void		 xb_builder_source_set_info	(XbBuilderSource	*self,
 void		 xb_builder_source_set_prefix	(XbBuilderSource	*self,
 						 const gchar		*prefix);
 void		 xb_builder_source_add_node_func (XbBuilderSource	*self,
+						 const gchar		*id,
 						 XbBuilderSourceNodeFunc func,
 						 gpointer		 user_data,
 						 GDestroyNotify		 user_data_free);

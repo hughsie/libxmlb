@@ -28,6 +28,7 @@ G_DEFINE_TYPE_WITH_PRIVATE (XbBuilderSource, xb_builder_source, G_TYPE_OBJECT)
 #define GET_PRIVATE(o) (xb_builder_source_get_instance_private (o))
 
 typedef struct {
+	gchar				*id;
 	XbBuilderSourceNodeFunc		 func;
 	gpointer			 user_data;
 	GDestroyNotify			 user_data_free;
@@ -178,6 +179,7 @@ xb_builder_source_new_xml (const gchar *xml, XbBuilderSourceFlags flags, GError 
 /**
  * xb_builder_source_add_node_func:
  * @self: a #XbBuilderSource
+ * @id: a text ID value, e.g. `AppStreamUpgrade`
  * @func: a callback
  * @user_data: user pointer to pass to @func, or %NULL
  * @user_data_free: a function which gets called to free @user_data, or %NULL
@@ -188,6 +190,7 @@ xb_builder_source_new_xml (const gchar *xml, XbBuilderSourceFlags flags, GError 
  **/
 void
 xb_builder_source_add_node_func (XbBuilderSource *self,
+				 const gchar *id,
 				 XbBuilderSourceNodeFunc func,
 				 gpointer user_data,
 				 GDestroyNotify user_data_free)
@@ -196,9 +199,11 @@ xb_builder_source_add_node_func (XbBuilderSource *self,
 	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
 
 	g_return_if_fail (XB_IS_BUILDER_SOURCE (self));
+	g_return_if_fail (id != NULL);
 	g_return_if_fail (func != NULL);
 
 	item = g_slice_new0 (XbBuilderSourceNodeFuncItem);
+	item->id = g_strdup (id);
 	item->func = func;
 	item->user_data = user_data;
 	item->user_data_free = user_data_free;
@@ -225,6 +230,11 @@ xb_builder_source_get_guid (XbBuilderSource *self)
 
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), NULL);
 
+	/* append function IDs */
+	for (guint i = 0; i < priv->node_items->len; i++) {
+		XbBuilderSourceNodeFuncItem *item = g_ptr_array_index (priv->node_items, i);
+		g_string_append_printf (str, ":func-id=%s", item->id);
+	}
 	/* append prefix */
 	if (priv->prefix != NULL)
 		g_string_append_printf (str, ":prefix=%s", priv->prefix);
@@ -276,6 +286,7 @@ xb_builder_import_node_func_free (XbBuilderSourceNodeFuncItem *item)
 {
 	if (item->user_data_free != NULL)
 		item->user_data_free (item->user_data);
+	g_free (item->id);
 	g_slice_free (XbBuilderSourceNodeFuncItem, item);
 }
 
