@@ -374,10 +374,11 @@ xb_node_query (XbNode *self, const gchar *xpath, guint limit, GError **error)
 
 	/* nodes don't have to include themselves as part of the query */
 	if (child == NULL) {
-		g_set_error_literal (error,
-				     G_IO_ERROR,
-				     G_IO_ERROR_NOT_FOUND,
-				     "no child to query");
+		g_set_error (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_NOT_FOUND,
+			     "no child of %s to query",
+			     xb_node_get_element (self));
 		return NULL;
 	}
 	return xb_silo_query_with_root (xb_node_get_silo (self), child, xpath, limit, error);
@@ -408,10 +409,11 @@ xb_node_query_first (XbNode *self, const gchar *xpath, GError **error)
 
 	/* nodes don't have to include themselves as part of the query */
 	if (child == NULL) {
-		g_set_error_literal (error,
-				     G_IO_ERROR,
-				     G_IO_ERROR_NOT_FOUND,
-				     "no child to query");
+		g_set_error (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_NOT_FOUND,
+			     "no child of %s to query",
+			     xb_node_get_element (self));
 		return NULL;
 	}
 	results = xb_silo_query_with_root (xb_node_get_silo (self), child, xpath, 1, error);

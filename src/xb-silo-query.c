@@ -236,6 +236,8 @@ xb_silo_query_section_root (XbSilo *self,
 	/* handle parent */
 	if (section->kind == XB_SILO_QUERY_KIND_PARENT) {
 		XbSiloNode *grandparent;
+		if (parent == NULL)
+			parent = xb_silo_node_get_parent (self, sn);
 		if (parent == NULL) {
 			g_set_error (error,
 				     G_IO_ERROR,
