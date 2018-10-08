@@ -74,11 +74,6 @@ xb_silo_query_parse_section (XbSilo *self, const gchar *xpath, GError **error)
 		section->kind = XB_SILO_QUERY_KIND_PARENT;
 		return section;
 	}
-	if (g_strcmp0 (xpath, "child::*") == 0 ||
-	    g_strcmp0 (xpath, "*") == 0) {
-		section->kind = XB_SILO_QUERY_KIND_WILDCARD;
-		return section;
-	}
 
 	/* parse element and predicate */
 	for (guint i = 0; xpath[i] != '\0'; i++) {
@@ -103,6 +98,11 @@ xb_silo_query_parse_section (XbSilo *self, const gchar *xpath, GError **error)
 	}
 	if (section->element == NULL)
 		section->element = g_strdup (xpath);
+	if (g_strcmp0 (section->element, "child::*") == 0 ||
+	    g_strcmp0 (section->element, "*") == 0) {
+		section->kind = XB_SILO_QUERY_KIND_WILDCARD;
+		return section;
+	}
 	section->element_idx = xb_silo_get_strtab_idx (self, section->element);
 	if (section->element_idx == XB_SILO_UNSET) {
 		g_set_error (error,
@@ -174,14 +174,9 @@ xb_silo_query_node_matches (XbSilo *self,
 			    gboolean *result,
 			    GError **error)
 {
-	/* wildcard */
-	if (section->kind == XB_SILO_QUERY_KIND_WILDCARD) {
-		*result = TRUE;
-		return TRUE;
-	}
-
 	/* we have an index into the string table */
-	if (section->element_idx != sn->element_name) {
+	if (section->element_idx != sn->element_name &&
+	    section->kind != XB_SILO_QUERY_KIND_WILDCARD) {
 		*result = FALSE;
 		return TRUE;
 	}
@@ -279,14 +274,8 @@ xb_silo_query_section_root (XbSilo *self,
 	}
 
 	/* no child to process */
-	if (sn == NULL) {
-		g_set_error (error,
-			     G_IO_ERROR,
-			     G_IO_ERROR_INVALID_DATA,
-			     "internal corruption when processing %s",
-			     section->element);
-		return FALSE;
-	}
+	if (sn == NULL)
+		return TRUE;
 
 	/* save the parent so we can support ".." */
 	do {
