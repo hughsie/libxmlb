@@ -1148,6 +1148,37 @@ xb_machine_func_upper_cb (XbMachine *self,
 }
 
 static gboolean
+xb_machine_func_not_cb (XbMachine *self,
+			GPtrArray *stack,
+			gboolean *result,
+			gpointer user_data,
+			gpointer exec_data,
+			GError **error)
+{
+	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
+
+	/* TEXT */
+	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT) {
+		*result = xb_opcode_get_str (op1) == NULL;
+		return TRUE;
+	}
+
+	/* INTE */
+	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_INTEGER) {
+		*result = xb_opcode_get_val (op1) == 0;
+		return TRUE;
+	}
+
+	/* fail */
+	g_set_error (error,
+		     G_IO_ERROR,
+		     G_IO_ERROR_NOT_SUPPORTED,
+		     "%s type not supported",
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op1)));
+	return FALSE;
+}
+
+static gboolean
 xb_machine_func_ge_cb (XbMachine *self,
 		       GPtrArray *stack,
 		       gboolean *result,
@@ -1250,6 +1281,7 @@ xb_machine_init (XbMachine *self)
 	xb_machine_add_method (self, "gt", 2, xb_machine_func_gt_cb, NULL, NULL);
 	xb_machine_add_method (self, "le", 2, xb_machine_func_le_cb, NULL, NULL);
 	xb_machine_add_method (self, "ge", 2, xb_machine_func_ge_cb, NULL, NULL);
+	xb_machine_add_method (self, "not", 1, xb_machine_func_not_cb, NULL, NULL);
 	xb_machine_add_method (self, "lower-case", 1, xb_machine_func_lower_cb, NULL, NULL);
 	xb_machine_add_method (self, "upper-case", 1, xb_machine_func_upper_cb, NULL, NULL);
 

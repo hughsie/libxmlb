@@ -82,8 +82,12 @@ xb_predicate_func (void)
 		  "'a','b',lt()" },
 		{ "999>=123",
 		  "999,123,ge()" },
+		{ "not(0)",
+		  "0,not()" },
 		{ "@a",
 		  "'a',attr(),'(null)',ne()" },
+		{ "not(@a)",
+		  "'a',attr(),not()" },
 		{ "'a'=",
 		  "'a',eq()" },
 		{ "='b'",
@@ -612,6 +616,13 @@ xb_xpath_func (void)
 
 	/* query with attr opcodes that exists */
 	n = xb_silo_query_first (silo, "components/component[@type]/id", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "gimp.desktop");
+	g_clear_object (&n);
+
+	/* query with attrs that dont exists */
+	n = xb_silo_query_first (silo, "components/component[not(@dave)]/id", &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (n);
 	g_assert_cmpstr (xb_node_get_text (n), ==, "gimp.desktop");
