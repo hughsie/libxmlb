@@ -231,6 +231,18 @@ xb_builder_source_funcs_node (XbBuilderSource *self, XbBuilderNode *bn, GError *
 	return TRUE;
 }
 
+static gboolean
+xb_builder_source_info_guid_cb (XbBuilderNode *bn, gpointer data)
+{
+	GString *str = (GString *) data;
+	if (xb_builder_node_get_text (bn) != NULL) {
+		g_string_append_printf (str, ":%s=%s",
+					xb_builder_node_get_element (bn),
+					xb_builder_node_get_text (bn));
+	}
+	return FALSE;
+}
+
 gchar *
 xb_builder_source_get_guid (XbBuilderSource *self)
 {
@@ -244,6 +256,13 @@ xb_builder_source_get_guid (XbBuilderSource *self)
 		XbBuilderSourceNodeFuncItem *item = g_ptr_array_index (priv->node_items, i);
 		g_string_append_printf (str, ":func-id=%s", item->id);
 	}
+
+	/* append any info */
+	if (priv->info != NULL) {
+		xb_builder_node_traverse (priv->info, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
+					  xb_builder_source_info_guid_cb, str);
+	}
+
 	/* append prefix */
 	if (priv->prefix != NULL)
 		g_string_append_printf (str, ":prefix=%s", priv->prefix);
