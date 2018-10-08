@@ -416,8 +416,10 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 		if (!xb_silo_query_part (self, sn,
 					 results, results_hash,
 					 split[i], limit, &query_data,
-					 error))
+					 error)) {
+			g_prefix_error (error, "failed to process %s: ", xpath);
 			return NULL;
+		}
 	}
 
 	/* nothing found */
