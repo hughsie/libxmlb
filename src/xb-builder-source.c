@@ -54,11 +54,13 @@ xb_builder_source_new_file (GFile *file,
 			    GError **error)
 {
 	const gchar *content_type = NULL;
-	guint64 mtime;
+	guint32 ctime_usec;
+	guint64 ctime;
 	g_autofree gchar *fn = NULL;
 	g_autoptr(GConverter) conv = NULL;
 	g_autoptr(GFileInfo) fileinfo = NULL;
 	g_autoptr(GInputStream) istream = NULL;
+	g_autoptr(GString) guid = NULL;
 	g_autoptr(XbBuilderSource) self = g_object_new (XB_TYPE_BUILDER_SOURCE, NULL);
 	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
 
@@ -70,7 +72,8 @@ xb_builder_source_new_file (GFile *file,
 	/* what kind of file is this */
 	fileinfo = g_file_query_info (file,
 				      G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE ","
-				      G_FILE_ATTRIBUTE_TIME_MODIFIED,
+				      G_FILE_ATTRIBUTE_TIME_CHANGED ","
+				      G_FILE_ATTRIBUTE_TIME_CHANGED_USEC,
 				      G_FILE_QUERY_INFO_NONE,
 				      cancellable,
 				      error);
@@ -79,8 +82,14 @@ xb_builder_source_new_file (GFile *file,
 
 	/* add data to GUID */
 	fn = g_file_get_path (file);
-	mtime = g_file_info_get_attribute_uint64 (fileinfo, G_FILE_ATTRIBUTE_TIME_MODIFIED);
-	priv->guid = g_strdup_printf ("%s:%" G_GUINT64_FORMAT, fn, mtime);
+	guid = g_string_new (fn);
+	ctime = g_file_info_get_attribute_uint64 (fileinfo, G_FILE_ATTRIBUTE_TIME_CHANGED);
+	if (ctime != 0)
+		g_string_append_printf (guid, ":ctime=%" G_GUINT64_FORMAT, ctime);
+	ctime_usec = g_file_info_get_attribute_uint32 (fileinfo, G_FILE_ATTRIBUTE_TIME_CHANGED_USEC);
+	if (ctime_usec != 0)
+		g_string_append_printf (guid, ".%" G_GUINT32_FORMAT, ctime_usec);
+	priv->guid = g_string_free (g_steal_pointer (&guid), FALSE);
 
 	/* decompress if required */
 	content_type = g_file_info_get_attribute_string (fileinfo, G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE);
