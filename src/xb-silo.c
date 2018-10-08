@@ -921,8 +921,7 @@ xb_silo_machine_func_contains_cb (XbMachine *self,
 	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
 
 	/* TEXT:TEXT */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_TEXT) {
+	if (xb_opcode_cmp_str (op1) && xb_opcode_cmp_str (op2)) {
 		*result = xb_string_contains (xb_opcode_get_str (op2),
 					      xb_opcode_get_str (op1));
 		return TRUE;
@@ -950,8 +949,7 @@ xb_silo_machine_func_starts_with_cb (XbMachine *self,
 	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
 
 	/* TEXT:TEXT */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_TEXT) {
+	if (xb_opcode_cmp_str (op1) && xb_opcode_cmp_str (op2)) {
 		*result = g_str_has_prefix (xb_opcode_get_str (op2),
 					    xb_opcode_get_str (op1));
 		return TRUE;
@@ -979,8 +977,7 @@ xb_silo_machine_func_ends_with_cb (XbMachine *self,
 	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
 
 	/* TEXT:TEXT */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_TEXT) {
+	if (xb_opcode_cmp_str (op1) && xb_opcode_cmp_str (op2)) {
 		*result = g_str_has_suffix (xb_opcode_get_str (op2),
 					    xb_opcode_get_str (op1));
 		return TRUE;
@@ -1007,7 +1004,7 @@ xb_silo_machine_func_number_cb (XbMachine *self,
 	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
 
 	/* TEXT */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT) {
+	if (xb_opcode_cmp_str (op1)) {
 		guint64 val = 0;
 		if (xb_opcode_get_str (op1) == NULL) {
 			*result = FALSE;
@@ -1042,7 +1039,7 @@ xb_silo_machine_func_string_cb (XbMachine *self,
 	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
 
 	/* INTE */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_INTEGER) {
+	if (xb_opcode_cmp_val (op1)) {
 		gchar *tmp = g_strdup_printf ("%" G_GUINT32_FORMAT,
 					      xb_opcode_get_val (op1));
 		xb_machine_stack_push_text_steal (self, stack, tmp);
@@ -1070,8 +1067,7 @@ xb_silo_machine_func_search_cb (XbMachine *self,
 	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
 
 	/* TEXT:TEXT */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_TEXT) {
+	if (xb_opcode_cmp_str (op1) && xb_opcode_cmp_str (op2)) {
 		*result = xb_string_search (xb_opcode_get_str (op2),
 					    xb_opcode_get_str (op1));
 		return TRUE;

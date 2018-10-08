@@ -14,22 +14,26 @@ G_BEGIN_DECLS
 /**
  * XbOpcodeKind:
  * @XB_OPCODE_KIND_UNKNOWN:			Unknown opcode
- * @XB_OPCODE_KIND_FUNCTION:			An operator
- * @XB_OPCODE_KIND_TEXT:			A text operand
  * @XB_OPCODE_KIND_INTEGER:			An integer operand
+ * @XB_OPCODE_KIND_TEXT:			A text operand
+ * @XB_OPCODE_KIND_FUNCTION:			An operator
  *
- * The kinds of opcode.
+ * The kinds of opcode. The values have been carefully chosen so that a simple
+ * bitmask can be done to know how to compare for equality.
  **/
 typedef enum {
-	XB_OPCODE_KIND_UNKNOWN,
-	XB_OPCODE_KIND_FUNCTION,
-	XB_OPCODE_KIND_TEXT,
-	XB_OPCODE_KIND_INTEGER,
+	XB_OPCODE_KIND_UNKNOWN		= 0x0,	/* Since: 0.1.1 */
+	XB_OPCODE_KIND_INTEGER		= 0x1,	/* Since: 0.1.1 */
+	XB_OPCODE_KIND_TEXT		= 0x2,	/* Since: 0.1.1 */
+	XB_OPCODE_KIND_FUNCTION		= 0x5,	/* Since: 0.1.1 */
 	/*< private >*/
 	XB_OPCODE_KIND_LAST
 } XbOpcodeKind;
 
 typedef struct _XbOpcode XbOpcode;
+
+gboolean	 xb_opcode_cmp_val		(XbOpcode	*self);
+gboolean	 xb_opcode_cmp_str		(XbOpcode	*self);
 
 GType		 xb_opcode_get_type		(void);
 const gchar	*xb_opcode_kind_to_string	(XbOpcodeKind	 kind);

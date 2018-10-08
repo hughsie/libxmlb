@@ -81,6 +81,38 @@ xb_opcode_get_kind (XbOpcode *self)
 }
 
 /**
+ * xb_opcode_cmp_val:
+ * @self: a #XbOpcode
+ *
+ * Checks if the opcode can be compared using the integer value.
+ *
+ * Returns: #%TRUE if this opcode can be compared as an integer
+ *
+ * Since: 0.1.1
+ **/
+inline gboolean
+xb_opcode_cmp_val (XbOpcode *self)
+{
+	return (self->kind & 0x01) > 0;
+}
+
+/**
+ * xb_opcode_cmp_str:
+ * @self: a #XbOpcode
+ *
+ * Checks if the opcode can be compared using the string value.
+ *
+ * Returns: #%TRUE if this opcode can be compared as an string
+ *
+ * Since: 0.1.1
+ **/
+inline gboolean
+xb_opcode_cmp_str (XbOpcode *self)
+{
+	return (self->kind & 0x02) > 0;
+}
+
+/**
  * xb_opcode_get_val:
  * @self: a #XbOpcode
  *

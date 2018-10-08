@@ -867,23 +867,20 @@ xb_machine_func_eq_cb (XbMachine *self,
 	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
 
 	/* TEXT:TEXT */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_TEXT) {
+	if (xb_opcode_cmp_str (op1) && xb_opcode_cmp_str (op2)) {
 		*result = g_strcmp0 (xb_opcode_get_str (op1),
 				     xb_opcode_get_str (op2)) == 0;
 		return TRUE;
 	}
 
 	/* INTE:INTE */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_INTEGER &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_INTEGER) {
+	if (xb_opcode_cmp_val (op1) && xb_opcode_cmp_val (op2)) {
 		*result = xb_opcode_get_val (op1) == xb_opcode_get_val (op2);
 		return TRUE;
 	}
 
 	/* INTE:TEXT */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_INTEGER &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_TEXT) {
+	if (xb_opcode_cmp_val (op1) && xb_opcode_cmp_str (op2)) {
 		guint64 val = 0;
 		if (xb_opcode_get_str (op2) == NULL) {
 			*result = FALSE;
@@ -920,23 +917,20 @@ xb_machine_func_ne_cb (XbMachine *self,
 	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
 
 	/* TEXT:TEXT */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_TEXT) {
+	if (xb_opcode_cmp_str (op1) && xb_opcode_cmp_str (op2)) {
 		*result = g_strcmp0 (xb_opcode_get_str (op1),
 				     xb_opcode_get_str (op2)) != 0;
 		return TRUE;
 	}
 
 	/* INTE:INTE */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_INTEGER &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_INTEGER) {
+	if (xb_opcode_cmp_val (op1) && xb_opcode_cmp_val (op2)) {
 		*result = xb_opcode_get_val (op1) != xb_opcode_get_val (op2);
 		return TRUE;
 	}
 
 	/* INTE:TEXT */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_INTEGER &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_TEXT) {
+	if (xb_opcode_cmp_val (op1) && xb_opcode_cmp_str (op2)) {
 		guint64 val = 0;
 		if (xb_opcode_get_str (op2) == NULL) {
 			*result = FALSE;
@@ -973,22 +967,19 @@ xb_machine_func_lt_cb (XbMachine *self,
 	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
 
 	/* TEXT:TEXT */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_TEXT) {
+	if (xb_opcode_cmp_str (op1) && xb_opcode_cmp_str (op2)) {
 		*result = g_strcmp0 (xb_opcode_get_str (op2),
 				     xb_opcode_get_str (op1)) < 0;
 		return TRUE;
 	}
 	/* INTE:INTE */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_INTEGER &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_INTEGER) {
+	if (xb_opcode_cmp_val (op1) && xb_opcode_cmp_val (op2)) {
 		*result = xb_opcode_get_val (op2) < xb_opcode_get_val (op1);
 		return TRUE;
 	}
 
 	/* INTE:TEXT */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_INTEGER &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_TEXT) {
+	if (xb_opcode_cmp_val (op1) && xb_opcode_cmp_str (op2)) {
 		guint64 val = 0;
 		if (xb_opcode_get_str (op2) == NULL) {
 			*result = FALSE;
@@ -1025,23 +1016,20 @@ xb_machine_func_gt_cb (XbMachine *self,
 	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
 
 	/* TEXT:TEXT */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_TEXT) {
+	if (xb_opcode_cmp_str (op1) && xb_opcode_cmp_str (op2)) {
 		*result = g_strcmp0 (xb_opcode_get_str (op2),
 				     xb_opcode_get_str (op1)) > 0;
 		return TRUE;
 	}
 
 	/* INTE:INTE */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_INTEGER &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_INTEGER) {
+	if (xb_opcode_cmp_val (op1) && xb_opcode_cmp_val (op2)) {
 		*result = xb_opcode_get_val (op2) > xb_opcode_get_val (op1);
 		return TRUE;
 	}
 
 	/* INTE:TEXT */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_INTEGER &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_TEXT) {
+	if (xb_opcode_cmp_val (op1) && xb_opcode_cmp_str (op2)) {
 		guint64 val = 0;
 		if (xb_opcode_get_str (op2) == NULL) {
 			*result = FALSE;
@@ -1078,23 +1066,20 @@ xb_machine_func_le_cb (XbMachine *self,
 	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
 
 	/* TEXT:TEXT */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_TEXT) {
+	if (xb_opcode_cmp_str (op1) && xb_opcode_cmp_str (op2)) {
 		*result = g_strcmp0 (xb_opcode_get_str (op2),
 				     xb_opcode_get_str (op1)) <= 0;
 		return TRUE;
 	}
 
 	/* INTE:INTE */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_INTEGER &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_INTEGER) {
+	if (xb_opcode_cmp_val (op1) && xb_opcode_cmp_val (op2)) {
 		*result = xb_opcode_get_val (op2) <= xb_opcode_get_val (op1);
 		return TRUE;
 	}
 
 	/* INTE:TEXT */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_INTEGER &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_TEXT) {
+	if (xb_opcode_cmp_val (op1) && xb_opcode_cmp_str (op2)) {
 		guint64 val = 0;
 		if (xb_opcode_get_str (op2) == NULL) {
 			*result = FALSE;
@@ -1158,13 +1143,13 @@ xb_machine_func_not_cb (XbMachine *self,
 	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
 
 	/* TEXT */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT) {
+	if (xb_opcode_cmp_str (op1)) {
 		*result = xb_opcode_get_str (op1) == NULL;
 		return TRUE;
 	}
 
 	/* INTE */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_INTEGER) {
+	if (xb_opcode_cmp_val (op1)) {
 		*result = xb_opcode_get_val (op1) == 0;
 		return TRUE;
 	}
@@ -1190,23 +1175,20 @@ xb_machine_func_ge_cb (XbMachine *self,
 	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
 
 	/* TEXT:TEXT */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_TEXT &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_TEXT) {
+	if (xb_opcode_cmp_str (op1) && xb_opcode_cmp_str (op2)) {
 		*result = g_strcmp0 (xb_opcode_get_str (op2),
 				     xb_opcode_get_str (op1)) >= 0;
 		return TRUE;
 	}
 
 	/* INTE:INTE */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_INTEGER &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_INTEGER) {
+	if (xb_opcode_cmp_val (op1) && xb_opcode_cmp_val (op2)) {
 		*result = xb_opcode_get_val (op2) >= xb_opcode_get_val (op1);
 		return TRUE;
 	}
 
 	/* INTE:TEXT */
-	if (xb_opcode_get_kind (op1) == XB_OPCODE_KIND_INTEGER &&
-	    xb_opcode_get_kind (op2) == XB_OPCODE_KIND_TEXT) {
+	if (xb_opcode_cmp_val (op1) && xb_opcode_cmp_str (op2)) {
 		guint64 val = 0;
 		if (xb_opcode_get_str (op2) == NULL) {
 			*result = FALSE;
