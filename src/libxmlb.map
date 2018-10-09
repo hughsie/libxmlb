@@ -7,11 +7,8 @@ LIBXMLB_0.1.0 {
     xb_builder_compile;
     xb_builder_ensure;
     xb_builder_get_type;
-    xb_builder_import_dir;
-    xb_builder_import_file;
     xb_builder_import_node;
     xb_builder_import_source;
-    xb_builder_import_xml;
     xb_builder_new;
     xb_builder_node_add_child;
     xb_builder_node_add_flag;

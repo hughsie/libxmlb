@@ -52,6 +52,24 @@ xb_test_loop_quit (void)
 	}
 }
 
+static gboolean
+xb_test_import_xml (XbBuilder *self, const gchar *xml, GError **error)
+{
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
+
+	g_return_val_if_fail (XB_IS_BUILDER (self), FALSE);
+	g_return_val_if_fail (xml != NULL, FALSE);
+
+	/* add source */
+	if (!xb_builder_source_load_xml (source, xml, XB_BUILDER_SOURCE_FLAG_NONE, error))
+		return FALSE;
+
+	/* success */
+	xb_builder_import_source (self, source);
+	return TRUE;
+}
+
+
 static void
 xb_common_func (void)
 {
@@ -302,6 +320,7 @@ xb_builder_ensure_watch_source_func (void)
 	g_autoptr(GFile) file = NULL;
 	g_autoptr(GFile) file_xml = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
 	g_autoptr(XbSilo) silo = NULL;
 
 	/* import a source file */
@@ -309,11 +328,12 @@ xb_builder_ensure_watch_source_func (void)
 	g_assert_no_error (error);
 	g_assert_true (ret);
 	file_xml = g_file_new_for_path ("/tmp/temp.xml");
-	ret = xb_builder_import_file (builder, file_xml,
-				      XB_BUILDER_SOURCE_FLAG_WATCH_FILE,
-				      NULL, &error);
+	ret = xb_builder_source_load_file (source, file_xml,
+					   XB_BUILDER_SOURCE_FLAG_WATCH_FILE,
+					   NULL, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
+	xb_builder_import_source (builder, source);
 	file = g_file_new_for_path ("/tmp/temp.xmlb");
 	g_file_delete (file, NULL, NULL);
 	silo = xb_builder_ensure (builder, file,
@@ -371,9 +391,7 @@ xb_builder_ensure_func (void)
 
 	/* import some XML */
 	xb_builder_set_profile_flags (builder, XB_SILO_PROFILE_FLAG_DEBUG);
-	ret = xb_builder_import_xml (builder, xml,
-				     XB_BUILDER_SOURCE_FLAG_NONE,
-				     &error);
+	ret = xb_test_import_xml (builder, xml, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
 
@@ -425,9 +443,7 @@ xb_builder_ensure_func (void)
 
 	/* don't re-create for a new builder with the same XML added */
 	builder = xb_builder_new ();
-	ret = xb_builder_import_xml (builder, xml,
-				     XB_BUILDER_SOURCE_FLAG_NONE,
-				     &error);
+	ret = xb_test_import_xml (builder, xml, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
 	silo = xb_builder_ensure (builder, file,
@@ -542,14 +558,12 @@ xb_builder_ignore_invalid_func (void)
 	g_autoptr(XbSilo) silo = NULL;
 
 	/* import some correct XML */
-	ret = xb_builder_import_xml (builder, "<book><id>foobar</id></book>",
-				     XB_BUILDER_SOURCE_FLAG_NONE, &error);
+	ret = xb_test_import_xml (builder, "<book><id>foobar</id></book>", &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
 
 	/* import some incorrect XML */
-	ret = xb_builder_import_xml (builder, "<book><id>foobar</id>",
-				     XB_BUILDER_SOURCE_FLAG_NONE, &error);
+	ret = xb_test_import_xml (builder, "<book><id>foobar</id>", &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
 	silo = xb_builder_compile (builder,
@@ -1072,9 +1086,7 @@ xb_builder_native_lang_func (void)
 	"</components>\n";
 
 	/* import from XML */
-	ret = xb_builder_import_xml (builder, xml,
-				     XB_BUILDER_SOURCE_FLAG_NONE,
-				     &error);
+	ret = xb_test_import_xml (builder, xml, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
 	xb_builder_add_locale (builder, "fr_FR.UTF-8");
@@ -1114,9 +1126,7 @@ xb_builder_native_lang2_func (void)
 	"</components>\n";
 
 	/* import from XML */
-	ret = xb_builder_import_xml (builder, xml,
-				     XB_BUILDER_SOURCE_FLAG_NONE,
-				     &error);
+	ret = xb_test_import_xml (builder, xml, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
 	xb_builder_add_locale (builder, "fr_FR");
@@ -1145,9 +1155,7 @@ xb_builder_native_lang_no_locales_func (void)
 	g_autoptr(XbSilo) silo = NULL;
 
 	/* import from XML */
-	ret = xb_builder_import_xml (builder, "<id>gimp.desktop</id>",
-				     XB_BUILDER_SOURCE_FLAG_NONE,
-				     &error);
+	ret = xb_test_import_xml (builder, "<id>gimp.desktop</id>", &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
 	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_SINGLE_LANG, NULL, &error);
@@ -1183,9 +1191,7 @@ xb_xpath_parent_func (void)
 	"</components>\n";
 
 	/* import from XML */
-	ret = xb_builder_import_xml (builder, xml,
-				     XB_BUILDER_SOURCE_FLAG_NONE,
-				     &error);
+	ret = xb_test_import_xml (builder, xml, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
 	xb_builder_add_locale (builder, "C");
@@ -1301,14 +1307,10 @@ xb_builder_multiple_roots_func (void)
 
 	/* import from XML */
 	builder = xb_builder_new ();
-	ret = xb_builder_import_xml (builder, "<tag>value</tag>",
-				     XB_BUILDER_SOURCE_FLAG_NONE,
-				     &error);
+	ret = xb_test_import_xml (builder, "<tag>value</tag>", &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
-	ret = xb_builder_import_xml (builder, "<tag>value2</tag>",
-				     XB_BUILDER_SOURCE_FLAG_NONE,
-				     &error);
+	ret = xb_test_import_xml (builder, "<tag>value2</tag>", &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
 	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);

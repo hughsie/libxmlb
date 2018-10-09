@@ -387,11 +387,13 @@ xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 
 	for (guint i = 1; values[i] != NULL; i++) {
 		g_autoptr(GFile) file = g_file_new_for_path (values[i]);
-		if (!xb_builder_import_file (builder, file,
-					     XB_BUILDER_SOURCE_FLAG_WATCH_FILE |
-					     XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT,
-					     NULL, error))
+		g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
+		if (!xb_builder_source_load_file (source, file,
+						  XB_BUILDER_SOURCE_FLAG_WATCH_FILE |
+						  XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT,
+						  NULL, error))
 			return FALSE;
+		xb_builder_import_source (builder, source);
 	}
 	file_dst = g_file_new_for_path (values[0]);
 	xb_builder_set_profile_flags (builder,

@@ -58,20 +58,6 @@ void		 xb_builder_import_source	(XbBuilder		*self,
 						 XbBuilderSource	*source);
 void		 xb_builder_import_node		(XbBuilder		*self,
 						 XbBuilderNode		*bn);
-gboolean	 xb_builder_import_xml		(XbBuilder		*self,
-						 const gchar		*xml,
-						 XbBuilderSourceFlags	 flags,
-						 GError			**error);
-gboolean	 xb_builder_import_dir		(XbBuilder		*self,
-						 const gchar		*path,
-						 XbBuilderSourceFlags	 flags,
-						 GCancellable		*cancellable,
-						 GError			**error);
-gboolean	 xb_builder_import_file		(XbBuilder		*self,
-						 GFile			*file,
-						 XbBuilderSourceFlags	 flags,
-						 GCancellable		*cancellable,
-						 GError			**error);
 XbSilo		*xb_builder_compile		(XbBuilder		*self,
 						 XbBuilderCompileFlags	 flags,
 						 GCancellable		*cancellable,
