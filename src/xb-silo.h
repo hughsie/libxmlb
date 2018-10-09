@@ -49,6 +49,7 @@ typedef enum {
  * @XB_SILO_PROFILE_FLAG_NONE:			No extra flags to use
  * @XB_SILO_PROFILE_FLAG_DEBUG:			Output profiling as debug
  * @XB_SILO_PROFILE_FLAG_APPEND:		Save profiling in an appended string
+ * @XB_SILO_PROFILE_FLAG_XPATH:			Save XPATH queries
  *
  * The flags used when profiling a silo.
  **/
@@ -56,6 +57,7 @@ typedef enum {
 	XB_SILO_PROFILE_FLAG_NONE	= 0,			/* Since: 0.1.1 */
 	XB_SILO_PROFILE_FLAG_DEBUG	= 1 << 0,		/* Since: 0.1.1 */
 	XB_SILO_PROFILE_FLAG_APPEND	= 1 << 1,		/* Since: 0.1.1 */
+	XB_SILO_PROFILE_FLAG_XPATH	= 1 << 2,		/* Since: 0.1.1 */
 	/*< private >*/
 	XB_SILO_PROFILE_FLAG_LAST
 } XbSiloProfileFlags;

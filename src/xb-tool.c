@@ -265,8 +265,11 @@ xb_tool_query (XbToolPrivate *priv, gchar **values, GError **error)
 
 	/* load blob */
 	file = g_file_new_for_path (values[0]);
-	xb_silo_set_profile_flags (silo, priv->profile ? XB_SILO_PROFILE_FLAG_APPEND :
-							 XB_SILO_PROFILE_FLAG_NONE);
+	if (priv->profile) {
+		xb_silo_set_profile_flags (silo,
+					   XB_SILO_PROFILE_FLAG_XPATH |
+					   XB_SILO_PROFILE_FLAG_APPEND);
+	}
 	if (!xb_silo_load_from_file (silo, file, XB_SILO_LOAD_FLAG_NONE, NULL, error))
 		return FALSE;
 

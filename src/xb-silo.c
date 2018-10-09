@@ -64,9 +64,12 @@ xb_silo_add_profile (XbSilo *self, GTimer *timer, const gchar *fmt, ...)
 		return;
 
 	/* add duration */
-	g_string_append_printf (str, "%.2fms", g_timer_elapsed (timer, NULL) * 1000);
-	for (guint i = str->len; i < 12; i++)
-		g_string_append (str, " ");
+	if (timer != NULL) {
+		g_string_append_printf (str, "%.2fms",
+					g_timer_elapsed (timer, NULL) * 1000);
+		for (guint i = str->len; i < 12; i++)
+			g_string_append (str, " ");
+	}
 
 	/* add varargs */
 	va_start (args, fmt);
@@ -80,7 +83,8 @@ xb_silo_add_profile (XbSilo *self, GTimer *timer, const gchar *fmt, ...)
 		g_string_append_printf (priv->profile_str, "%s\n", str->str);
 
 	/* reset automatically */
-	g_timer_reset (timer);
+	if (timer != NULL)
+		g_timer_reset (timer);
 }
 
 /* private */
@@ -606,6 +610,14 @@ xb_silo_set_profile_flags (XbSilo *self, XbSiloProfileFlags profile_flags)
 	XbSiloPrivate *priv = GET_PRIVATE (self);
 	g_return_if_fail (XB_IS_SILO (self));
 	priv->profile_flags = profile_flags;
+}
+
+/* private */
+XbSiloProfileFlags
+xb_silo_get_profile_flags (XbSilo *self)
+{
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	return priv->profile_flags;
 }
 
 static void
