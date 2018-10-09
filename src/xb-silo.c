@@ -695,6 +695,8 @@ xb_silo_load_from_file (XbSilo *self,
 	g_hash_table_remove_all (priv->nodes);
 	g_hash_table_remove_all (priv->strtab_tags);
 	g_clear_pointer (&priv->guid, g_free);
+	if (priv->mmap != NULL)
+		g_mapped_file_unref (priv->mmap);
 
 	fn = g_file_get_path (file);
 	priv->mmap = g_mapped_file_new (fn, FALSE, error);

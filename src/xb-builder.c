@@ -1084,11 +1084,13 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 	if (!xb_silo_save_to_file (silo_new, file, NULL, error))
 		return NULL;
 
-	/* watch blob for changes */
-	if (flags & XB_BUILDER_COMPILE_FLAG_WATCH_BLOB) {
-		if (!xb_silo_watch_file (silo_new, file, cancellable, error))
-			return NULL;
-	}
+	/* load from a file to re-mmap it */
+	if (!xb_silo_load_from_file (priv->silo, file, load_flags, cancellable, error))
+		return NULL;
+
+	/* ensure all the sources are watched on the reloaded silo */
+	if (!xb_builder_watch_sources (self, cancellable, error))
+		return NULL;
 
 	/* success */
 	return g_steal_pointer (&silo_new);
