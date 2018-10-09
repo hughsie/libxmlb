@@ -107,7 +107,7 @@ xb_silo_query_parse_section (XbSilo *self, const gchar *xpath, GError **error)
 	if (section->element_idx == XB_SILO_UNSET) {
 		g_set_error (error,
 			     G_IO_ERROR,
-			     G_IO_ERROR_NOT_FOUND,
+			     G_IO_ERROR_INVALID_ARGUMENT,
 			     "element name %s is unknown in silo",
 			     section->element);
 		xb_silo_query_section_free (section);
@@ -415,11 +415,21 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 	/* do 'or' searches */
 	split = g_strsplit (xpath, "|", -1);
 	for (guint i = 0; split[i] != NULL; i++) {
+		g_autoptr(GError) error_local = NULL;
 		if (!xb_silo_query_part (self, sn,
 					 results, results_hash,
 					 split[i], limit, &query_data,
-					 error)) {
-			g_prefix_error (error, "failed to process %s: ", xpath);
+					 &error_local)) {
+			if (g_error_matches (error_local, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT) &&
+			    (split[i + 1] != NULL || results->len > 0)) {
+				g_debug ("ignoring for OR statement: %s",
+					 error_local->message);
+				continue;
+			}
+			g_propagate_prefixed_error (error,
+						    g_steal_pointer (&error_local),
+						    "failed to process %s: ",
+						    xpath);
 			return NULL;
 		}
 	}
