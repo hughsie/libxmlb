@@ -895,6 +895,22 @@ xb_machine_func_eq_cb (XbMachine *self,
 		return TRUE;
 	}
 
+	/* INTE:TEXT */
+	if (xb_opcode_cmp_val (op2) && xb_opcode_cmp_str (op1)) {
+		guint64 val = 0;
+		if (xb_opcode_get_str (op1) == NULL) {
+			*result = FALSE;
+			return TRUE;
+		}
+		if (!g_ascii_string_to_unsigned (xb_opcode_get_str (op1),
+						 10, 0, G_MAXUINT32,
+						 &val, error)) {
+			return FALSE;
+		}
+		*result = val == xb_opcode_get_val (op2);
+		return TRUE;
+	}
+
 	/* fail */
 	g_set_error (error,
 		     G_IO_ERROR,
