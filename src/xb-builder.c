@@ -1052,6 +1052,7 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 		if (g_strcmp0 (xb_silo_get_guid (silo_tmp),
 			       xb_silo_get_guid (priv->silo)) == 0) {
 			g_debug ("returning unchanged silo");
+			xb_silo_uninvalidate (priv->silo);
 			return g_object_ref (priv->silo);
 		}
 

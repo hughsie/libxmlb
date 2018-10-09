@@ -393,6 +393,17 @@ xb_silo_invalidate (XbSilo *self)
 }
 
 /* private */
+void
+xb_silo_uninvalidate (XbSilo *self)
+{
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	if (priv->valid)
+		return;
+	priv->valid = TRUE;
+	g_object_notify (G_OBJECT (self), "valid");
+}
+
+/* private */
 guint
 xb_silo_node_get_depth (XbSilo *self, XbSiloNode *n)
 {

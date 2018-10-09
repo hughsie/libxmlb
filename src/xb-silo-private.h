@@ -88,6 +88,7 @@ void		 xb_silo_add_profile		(XbSilo		*self,
 						 GTimer		*timer,
 						 const gchar	*fmt,
 						 ...) G_GNUC_PRINTF (3, 4);
+void		 xb_silo_uninvalidate		(XbSilo		*self);
 
 // FIXME xb-silo-export-private.h?
 gchar		*xb_silo_export_with_root	(XbSilo		*self,
