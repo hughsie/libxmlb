@@ -18,6 +18,7 @@ typedef struct {
 	GInputStream		*istream;
 	GFile			*file;
 	GPtrArray		*node_items;	/* of XbBuilderSourceNodeFuncItem */
+	GPtrArray		*converters;	/* of XbBuilderSourceConverterItem */
 	XbBuilderNode		*info;
 	gchar			*guid;
 	gchar			*prefix;
@@ -34,40 +35,90 @@ typedef struct {
 	GDestroyNotify			 user_data_free;
 } XbBuilderSourceNodeFuncItem;
 
+typedef struct {
+	gchar				*content_type;
+	XbBuilderSourceConverterFunc	 func;
+	gpointer			 user_data;
+	GDestroyNotify			 user_data_free;
+} XbBuilderSourceConverterItem;
+
+static GInputStream *
+xb_builder_source_convert (XbBuilderSource *self,
+			   GFile *file,
+			   const gchar *content_type,
+			   GCancellable *cancellable,
+			   GError **error)
+{
+	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
+
+	/* uncompressed XML */
+	if (g_strcmp0 (content_type, "application/xml") == 0)
+		return G_INPUT_STREAM (g_file_read (file, cancellable, error));
+
+	/* gzip */
+	if (g_strcmp0 (content_type, "application/gzip") == 0 ||
+	    g_strcmp0 (content_type, "application/x-gzip") == 0) {
+		g_autoptr(GConverter) conv = NULL;
+		g_autoptr(GInputStream) istream = NULL;
+		istream = G_INPUT_STREAM (g_file_read (file, cancellable, error));
+		if (istream == NULL)
+			return NULL;
+		conv = G_CONVERTER (g_zlib_decompressor_new (G_ZLIB_COMPRESSOR_FORMAT_GZIP));
+		return g_converter_input_stream_new (istream, conv);
+	}
+
+	/* registered converter */
+	for (guint i = 0; i < priv->converters->len; i++) {
+		XbBuilderSourceConverterItem *item = g_ptr_array_index (priv->converters, i);
+		if (g_strcmp0 (item->content_type, content_type) == 0) {
+			return item->func (self, file,
+					   item->user_data,
+					   cancellable,
+					   error);
+		}
+	}
+
+	/* unsupported */
+	g_set_error (error,
+		     G_IO_ERROR,
+		     G_IO_ERROR_NOT_SUPPORTED,
+		     "cannot process file of type %s",
+		     content_type);
+	return NULL;
+}
+
 /**
- * xb_builder_source_new_file:
+ * xb_builder_source_load_file:
+ * @self: a #XbBuilderSource
  * @file: a #GFile
  * @flags: some #XbBuilderSourceFlags, e.g. %XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT
  * @cancellable: a #GCancellable, or %NULL
  * @error: the #GError, or %NULL
  *
- * Adds an optionally compressed XML file to build a #XbSilo.
+ * Loads an optionally compressed XML file to build a #XbSilo.
  *
- * Returns: (transfer full): a #XbBuilderSource, or NULL for error.
+ * Returns: %TRUE for success
  *
- * Since: 0.1.0
+ * Since: 0.1.1
  **/
-XbBuilderSource *
-xb_builder_source_new_file (GFile *file,
-			    XbBuilderSourceFlags flags,
-			    GCancellable *cancellable,
-			    GError **error)
+gboolean
+xb_builder_source_load_file (XbBuilderSource *self,
+			     GFile *file,
+			     XbBuilderSourceFlags flags,
+			     GCancellable *cancellable,
+			     GError **error)
 {
 	const gchar *content_type = NULL;
 	guint32 ctime_usec;
 	guint64 ctime;
 	g_autofree gchar *fn = NULL;
-	g_autoptr(GConverter) conv = NULL;
 	g_autoptr(GFileInfo) fileinfo = NULL;
 	g_autoptr(GInputStream) istream = NULL;
 	g_autoptr(GString) guid = NULL;
-	g_autoptr(XbBuilderSource) self = g_object_new (XB_TYPE_BUILDER_SOURCE, NULL);
 	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
 
-	/* create input stream */
-	istream = G_INPUT_STREAM (g_file_read (file, cancellable, error));
-	if (istream == NULL)
-		return NULL;
+	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), FALSE);
+	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
 	/* what kind of file is this */
 	fileinfo = g_file_query_info (file,
@@ -78,7 +129,7 @@ xb_builder_source_new_file (GFile *file,
 				      cancellable,
 				      error);
 	if (fileinfo == NULL)
-		return NULL;
+		return FALSE;
 
 	/* add data to GUID */
 	fn = g_file_get_path (file);
@@ -93,25 +144,17 @@ xb_builder_source_new_file (GFile *file,
 
 	/* decompress if required */
 	content_type = g_file_info_get_attribute_string (fileinfo, G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE);
-	if (g_strcmp0 (content_type, "application/gzip") == 0 ||
-	    g_strcmp0 (content_type, "application/x-gzip") == 0) {
-		conv = G_CONVERTER (g_zlib_decompressor_new (G_ZLIB_COMPRESSOR_FORMAT_GZIP));
-		priv->istream = g_converter_input_stream_new (istream, conv);
-	} else if (g_strcmp0 (content_type, "application/xml") == 0) {
-		priv->istream = g_object_ref (istream);
-	} else {
-		g_set_error (error,
-			     G_IO_ERROR,
-			     G_IO_ERROR_NOT_SUPPORTED,
-			     "cannot process file of type %s",
-			     content_type);
-		return NULL;
-	}
+	priv->istream = xb_builder_source_convert (self, file,
+						   content_type,
+						   cancellable,
+						   error);
+	if (priv->istream == NULL)
+		return FALSE;
 
 	/* success */
 	priv->flags = flags;
 	priv->file = g_object_ref (file);
-	return g_steal_pointer (&self);
+	return TRUE;
 }
 
 /**
@@ -151,24 +194,30 @@ xb_builder_source_set_prefix (XbBuilderSource *self, const gchar *prefix)
 }
 
 /**
- * xb_builder_source_new_xml:
+ * xb_builder_source_load_xml:
+ * @self: a #XbBuilderSource
  * @xml: XML data
  * @flags: some #XbBuilderSourceFlags, e.g. %XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT
  * @error: the #GError, or %NULL
  *
- * Parses XML data and begins to build a #XbSilo.
+ * Loads XML data and begins to build a #XbSilo.
  *
- * Returns: (transfer full): a #XbBuilderSource, or NULL for error.
+ * Returns: %TRUE for success
  *
- * Since: 0.1.0
+ * Since: 0.1.1
  **/
-XbBuilderSource *
-xb_builder_source_new_xml (const gchar *xml, XbBuilderSourceFlags flags, GError **error)
+gboolean
+xb_builder_source_load_xml (XbBuilderSource *self,
+			    const gchar *xml,
+			    XbBuilderSourceFlags flags,
+			    GError **error)
 {
-	g_autoptr(XbBuilderSource) self = g_object_new (XB_TYPE_BUILDER_SOURCE, NULL);
 	g_autoptr(GBytes) blob = NULL;
 	g_autoptr(GChecksum) csum = g_checksum_new (G_CHECKSUM_SHA1);
 	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
+
+	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), FALSE);
+	g_return_val_if_fail (xml != NULL, FALSE);
 
 	/* add a GUID of the SHA1 hash of the entire string */
 	g_checksum_update (csum, (const guchar *) xml, -1);
@@ -178,11 +227,11 @@ xb_builder_source_new_xml (const gchar *xml, XbBuilderSourceFlags flags, GError 
 	blob = g_bytes_new (xml, strlen (xml));
 	priv->istream = g_memory_input_stream_new_from_bytes (blob);
 	if (priv->istream == NULL)
-		return NULL;
+		return FALSE;
 
 	/* success */
 	priv->flags = flags;
-	return g_steal_pointer (&self);
+	return TRUE;
 }
 
 /**
@@ -217,6 +266,41 @@ xb_builder_source_add_node_func (XbBuilderSource *self,
 	item->user_data = user_data;
 	item->user_data_free = user_data_free;
 	g_ptr_array_add (priv->node_items, item);
+}
+
+/**
+ * xb_builder_source_add_converter:
+ * @self: a #XbBuilderSource
+ * @content_type: a mimetype, e.g. `application/x-desktop`
+ * @func: a callback
+ * @user_data: user pointer to pass to @func, or %NULL
+ * @user_data_free: a function which gets called to free @user_data, or %NULL
+ *
+ * Adds a function that can be used to convert files loaded with
+ * xb_builder_source_load_xml().
+ *
+ * Since: 0.1.1
+ **/
+void
+xb_builder_source_add_converter (XbBuilderSource *self,
+				 const gchar *content_type,
+				 XbBuilderSourceConverterFunc func,
+				 gpointer user_data,
+				 GDestroyNotify user_data_free)
+{
+	XbBuilderSourceConverterItem *item;
+	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
+
+	g_return_if_fail (XB_IS_BUILDER_SOURCE (self));
+	g_return_if_fail (content_type != NULL);
+	g_return_if_fail (func != NULL);
+
+	item = g_slice_new0 (XbBuilderSourceConverterItem);
+	item->content_type = g_strdup (content_type);
+	item->func = func;
+	item->user_data = user_data;
+	item->user_data_free = user_data_free;
+	g_ptr_array_add (priv->converters, item);
 }
 
 gboolean
@@ -310,12 +394,21 @@ xb_builder_source_get_flags (XbBuilderSource *self)
 }
 
 static void
-xb_builder_import_node_func_free (XbBuilderSourceNodeFuncItem *item)
+xb_builder_source_node_func_free (XbBuilderSourceNodeFuncItem *item)
 {
 	if (item->user_data_free != NULL)
 		item->user_data_free (item->user_data);
 	g_free (item->id);
 	g_slice_free (XbBuilderSourceNodeFuncItem, item);
+}
+
+static void
+xb_builder_source_converter_free (XbBuilderSourceConverterItem *item)
+{
+	if (item->user_data_free != NULL)
+		item->user_data_free (item->user_data);
+	g_free (item->content_type);
+	g_slice_free (XbBuilderSourceConverterItem, item);
 }
 
 static void
@@ -331,6 +424,7 @@ xb_builder_source_finalize (GObject *obj)
 	if (priv->file != NULL)
 		g_object_unref (priv->file);
 	g_ptr_array_unref (priv->node_items);
+	g_ptr_array_unref (priv->converters);
 	g_free (priv->guid);
 	g_free (priv->prefix);
 
@@ -348,5 +442,21 @@ static void
 xb_builder_source_init (XbBuilderSource *self)
 {
 	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
-	priv->node_items = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_builder_import_node_func_free);
+	priv->node_items = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_builder_source_node_func_free);
+	priv->converters = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_builder_source_converter_free);
+}
+
+/**
+ * xb_builder_source_new:
+ *
+ * Creates a new builder source.
+ *
+ * Returns: a new #XbBuilderSource
+ *
+ * Since: 0.1.1
+ **/
+XbBuilderSource *
+xb_builder_source_new (void)
+{
+	return g_object_new (XB_TYPE_BUILDER_SOURCE, NULL);
 }

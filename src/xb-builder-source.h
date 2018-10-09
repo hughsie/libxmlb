@@ -49,12 +49,20 @@ typedef gboolean (*XbBuilderSourceNodeFunc)	(XbBuilderSource	*self,
 						 XbBuilderNode		*bn,
 						 gpointer		 user_data,
 						 GError			**error);
+typedef GInputStream *(*XbBuilderSourceConverterFunc) (XbBuilderSource	*self,
+						 GFile			*file,
+						 gpointer		 user_data,
+						 GCancellable		*cancellable,
+						 GError			**error);
 
-XbBuilderSource	*xb_builder_source_new_file	(GFile			*file,
+XbBuilderSource	*xb_builder_source_new		(void);
+gboolean	 xb_builder_source_load_file	(XbBuilderSource	*self,
+						 GFile			*file,
 						 XbBuilderSourceFlags	 flags,
 						 GCancellable		*cancellable,
 						 GError			**error);
-XbBuilderSource	*xb_builder_source_new_xml	(const gchar		*xml,
+gboolean	 xb_builder_source_load_xml	(XbBuilderSource	*self,
+						 const gchar		*xml,
 						 XbBuilderSourceFlags	 flags,
 						 GError			**error);
 void		 xb_builder_source_set_info	(XbBuilderSource	*self,
@@ -64,6 +72,11 @@ void		 xb_builder_source_set_prefix	(XbBuilderSource	*self,
 void		 xb_builder_source_add_node_func (XbBuilderSource	*self,
 						 const gchar		*id,
 						 XbBuilderSourceNodeFunc func,
+						 gpointer		 user_data,
+						 GDestroyNotify		 user_data_free);
+void		 xb_builder_source_add_converter (XbBuilderSource	*self,
+						 const gchar		*content_type,
+						 XbBuilderSourceConverterFunc func,
 						 gpointer		 user_data,
 						 GDestroyNotify		 user_data_free);
 

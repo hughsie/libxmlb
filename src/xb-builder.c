@@ -214,14 +214,13 @@ xb_builder_import_xml (XbBuilder *self,
 		       XbBuilderSourceFlags flags,
 		       GError **error)
 {
-	g_autoptr(XbBuilderSource) source = NULL;
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
 
 	g_return_val_if_fail (XB_IS_BUILDER (self), FALSE);
 	g_return_val_if_fail (xml != NULL, FALSE);
 
 	/* add source */
-	source = xb_builder_source_new_xml (xml, flags, error);
-	if (source == NULL)
+	if (!xb_builder_source_load_xml (source, xml, flags, error))
 		return FALSE;
 
 	/* success */
@@ -289,7 +288,7 @@ xb_builder_import_dir (XbBuilder *self,
  * Adds an optionally compressed XML file to build a #XbSilo.
  *
  * If extra metadata is required on the source, create it manually using
- * xb_builder_source_new_file(), calling xb_builder_source_set_info() and then
+ * xb_builder_source_load_file(), calling xb_builder_source_set_info() and then
  * xb_builder_import_source().
  *
  * Returns: %TRUE for success, otherwise @error is set.
@@ -303,14 +302,13 @@ xb_builder_import_file (XbBuilder *self,
 			GCancellable *cancellable,
 			GError **error)
 {
-	g_autoptr(XbBuilderSource) source = NULL;
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
 
 	g_return_val_if_fail (XB_IS_BUILDER (self), FALSE);
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
 	/* add source */
-	source = xb_builder_source_new_file (file, flags, cancellable, error);
-	if (source == NULL)
+	if (!xb_builder_source_load_file (source, file, flags, cancellable, error))
 		return FALSE;
 
 	/* success */

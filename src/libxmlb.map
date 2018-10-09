@@ -30,8 +30,6 @@ LIBXMLB_0.1.0 {
     xb_builder_node_set_text;
     xb_builder_source_add_node_func;
     xb_builder_source_get_type;
-    xb_builder_source_new_file;
-    xb_builder_source_new_xml;
     xb_builder_source_set_info;
     xb_builder_source_set_prefix;
     xb_node_export;
@@ -84,6 +82,10 @@ LIBXMLB_0.1.1 {
     xb_builder_node_traverse;
     xb_builder_node_unlink;
     xb_builder_set_profile_flags;
+    xb_builder_source_add_converter;
+    xb_builder_source_load_file;
+    xb_builder_source_load_xml;
+    xb_builder_source_new;
     xb_machine_add_method;
     xb_machine_add_opcode_fixup;
     xb_machine_add_operator;

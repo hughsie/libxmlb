@@ -233,6 +233,66 @@ xb_builder_ensure_invalidate_cb (XbSilo *silo, GParamSpec *pspec, gpointer user_
 	xb_test_loop_quit ();
 }
 
+static GInputStream *
+xb_builder_custom_mime_cb (XbBuilderSource *self,
+			   GFile *file,
+			   gpointer user_data,
+			   GCancellable *cancellable,
+			   GError **error)
+{
+	g_autofree gchar *basename = g_file_get_basename (file);
+	gchar *xml = g_strdup_printf ("<component type=\"desktop\">"
+				      "<id>%s</id></component>", basename);
+	return g_memory_input_stream_new_from_data (xml, -1, g_free);
+}
+
+static void
+xb_builder_custom_mime_func (void)
+{
+	gboolean ret;
+	g_autofree gchar *xml = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(GFile) file_desktop = NULL;
+	g_autoptr(GFile) file = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
+	g_autoptr(XbSilo) silo = NULL;
+
+	/* add support for desktop files */
+	xb_builder_source_add_converter (source,
+					 "application/x-desktop",
+					 xb_builder_custom_mime_cb,
+					 NULL, NULL);
+
+	/* import a source file */
+	ret = g_file_set_contents ("/tmp/temp.desktop", "[Desktop Entry]", -1, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	file_desktop = g_file_new_for_path ("/tmp/temp.desktop");
+	ret = xb_builder_source_load_file (source, file_desktop,
+					   XB_BUILDER_SOURCE_FLAG_WATCH_FILE,
+					   NULL, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	xb_builder_import_source (builder, source);
+	file = g_file_new_for_path ("/tmp/temp.xmlb");
+	silo = xb_builder_ensure (builder, file,
+				  XB_BUILDER_COMPILE_FLAG_WATCH_BLOB,
+				  NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* check contents */
+	xml = xb_silo_export (silo, XB_NODE_EXPORT_FLAG_NONE, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (xml);
+	g_print ("%s", xml);
+	g_assert_cmpstr ("<component type=\"desktop\">"
+			 "<id>temp.desktop</id>"
+			 "</component>", ==, xml);
+
+}
+
 static void
 xb_builder_ensure_watch_source_func (void)
 {
@@ -393,16 +453,17 @@ xb_builder_error_cb (XbBuilderSource *self,
 static void
 xb_builder_node_vfunc_error_func (void)
 {
+	gboolean ret;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
-	g_autoptr(XbBuilderSource) source = NULL;
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
 	g_autoptr(XbSilo) silo = NULL;
 
 	/* import some XML */
-	source = xb_builder_source_new_xml ("<id>gimp.desktop</id>",
-					    XB_BUILDER_SOURCE_FLAG_NONE, &error);
+	ret = xb_builder_source_load_xml (source, "<id>gimp.desktop</id>",
+					  XB_BUILDER_SOURCE_FLAG_NONE, &error);
 	g_assert_no_error (error);
-	g_assert_nonnull (source);
+	g_assert_true (ret);
 	xb_builder_source_add_node_func (source, "AlwaysError",
 					 xb_builder_error_cb, NULL, NULL);
 	xb_builder_import_source (builder, source);
@@ -437,10 +498,11 @@ xb_builder_upgrade_appstream_cb (XbBuilderSource *self,
 static void
 xb_builder_node_vfunc_func (void)
 {
+	gboolean ret;
 	g_autofree gchar *xml2 = NULL;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
-	g_autoptr(XbBuilderSource) source = NULL;
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
 	g_autoptr(XbSilo) silo = NULL;
 	const gchar *xml =
 		"  <application>\n"
@@ -448,9 +510,9 @@ xb_builder_node_vfunc_func (void)
 		"  </application>\n";
 
 	/* import some XML */
-	source = xb_builder_source_new_xml (xml, XB_BUILDER_SOURCE_FLAG_NONE, &error);
+	ret = xb_builder_source_load_xml (source, xml, XB_BUILDER_SOURCE_FLAG_NONE, &error);
 	g_assert_no_error (error);
-	g_assert_nonnull (source);
+	g_assert_true (ret);
 	xb_builder_source_add_node_func (source, "AppStreamUpgrade",
 					 xb_builder_upgrade_appstream_cb, NULL, NULL);
 	xb_builder_import_source (builder, source);
@@ -1332,10 +1394,11 @@ xb_builder_node_func (void)
 static void
 xb_builder_node_literal_text_func (void)
 {
+	gboolean ret;
 	g_autofree gchar *xml2 = NULL;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
-	g_autoptr(XbBuilderSource) source = NULL;
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
 	g_autoptr(XbSilo) silo = NULL;
 	const gchar *xml =
 		"  <component>\n"
@@ -1347,9 +1410,9 @@ xb_builder_node_literal_text_func (void)
 		"  </component>\n";
 
 	/* import some XML */
-	source = xb_builder_source_new_xml (xml, XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT, &error);
+	ret = xb_builder_source_load_xml (source, xml, XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT, &error);
 	g_assert_no_error (error);
-	g_assert_nonnull (source);
+	g_assert_true (ret);
 	xb_builder_import_source (builder, source);
 	silo = xb_builder_compile (builder,
 				   XB_BUILDER_COMPILE_FLAG_NONE,
@@ -1370,10 +1433,11 @@ xb_builder_node_literal_text_func (void)
 static void
 xb_builder_node_source_text_func (void)
 {
+	gboolean ret;
 	g_autofree gchar *xml2 = NULL;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
-	g_autoptr(XbBuilderSource) source = NULL;
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
 	g_autoptr(XbSilo) silo = NULL;
 	const gchar *xml =
 		"  <component>\n"
@@ -1385,9 +1449,9 @@ xb_builder_node_source_text_func (void)
 		"  </component>\n";
 
 	/* import some XML */
-	source = xb_builder_source_new_xml (xml, XB_BUILDER_SOURCE_FLAG_NONE, &error);
+	ret = xb_builder_source_load_xml (source, xml, XB_BUILDER_SOURCE_FLAG_NONE, &error);
 	g_assert_no_error (error);
-	g_assert_nonnull (source);
+	g_assert_true (ret);
 	xb_builder_import_source (builder, source);
 	silo = xb_builder_compile (builder,
 				   XB_BUILDER_COMPILE_FLAG_NONE,
@@ -1412,8 +1476,8 @@ xb_builder_node_info_func (void)
 	gboolean ret;
 	g_autofree gchar *xml = NULL;
 	g_autoptr(GError) error = NULL;
-	g_autoptr(XbBuilderSource) import1 = NULL;
-	g_autoptr(XbBuilderSource) import2 = NULL;
+	g_autoptr(XbBuilderSource) import1 = xb_builder_source_new ();
+	g_autoptr(XbBuilderSource) import2 = xb_builder_source_new ();
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
 	g_autoptr(XbNode) n = NULL;
 	g_autoptr(XbBuilderNode) info1 = NULL;
@@ -1432,15 +1496,15 @@ xb_builder_node_info_func (void)
 
 	/* import the doc */
 	file = g_file_new_for_path (fn);
-	import1 = xb_builder_source_new_file (file, XB_BUILDER_SOURCE_FLAG_NONE, NULL, &error);
+	ret = xb_builder_source_load_file (import1, file, XB_BUILDER_SOURCE_FLAG_NONE, NULL, &error);
 	g_assert_no_error (error);
-	g_assert_nonnull (import1);
+	g_assert_true (ret);
 	xb_builder_source_set_info (import1, info1);
 	xb_builder_source_set_prefix (import1, "local");
 	xb_builder_import_source (builder, import1);
-	import2 = xb_builder_source_new_file (file, XB_BUILDER_SOURCE_FLAG_NONE, NULL, &error);
+	ret = xb_builder_source_load_file (import2, file, XB_BUILDER_SOURCE_FLAG_NONE, NULL, &error);
 	g_assert_no_error (error);
-	g_assert_nonnull (import2);
+	g_assert_true (ret);
 	xb_builder_source_set_info (import2, info2);
 	xb_builder_source_set_prefix (import2, "local");
 	xb_builder_import_source (builder, import2);
@@ -1671,6 +1735,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/builder{node-vfunc}", xb_builder_node_vfunc_func);
 	g_test_add_func ("/libxmlb/builder{node-vfunc-error}", xb_builder_node_vfunc_error_func);
 	g_test_add_func ("/libxmlb/builder{ignore-invalid}", xb_builder_ignore_invalid_func);
+	g_test_add_func ("/libxmlb/builder{custom-mime}", xb_builder_custom_mime_func);
 	g_test_add_func ("/libxmlb/builder-node", xb_builder_node_func);
 	g_test_add_func ("/libxmlb/builder-node{info}", xb_builder_node_info_func);
 	g_test_add_func ("/libxmlb/builder-node{literal-text}", xb_builder_node_literal_text_func);
