@@ -113,7 +113,6 @@ xb_builder_source_load_file (XbBuilderSource *self,
 	guint64 ctime;
 	g_autofree gchar *fn = NULL;
 	g_autoptr(GFileInfo) fileinfo = NULL;
-	g_autoptr(GInputStream) istream = NULL;
 	g_autoptr(GString) guid = NULL;
 	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
 
