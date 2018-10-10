@@ -580,8 +580,8 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
  * xb_silo_get_profile_string:
  * @self: a #XbSilo
  *
- * Returns the profiling data. This will only return profiling text if the silo
- * was loaded with %XB_SILO_LOAD_FLAG_PROFILE.
+ * Returns the profiling data. This will only return profiling text if
+ * xb_silo_set_profile_flags() was used with %XB_SILO_PROFILE_FLAG_APPEND.
  *
  * Returns: text profiling data
  *

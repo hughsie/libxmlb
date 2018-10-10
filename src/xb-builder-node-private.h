@@ -14,6 +14,7 @@ G_BEGIN_DECLS
 #include "xb-builder-node.h"
 
 typedef struct {
+	/*< private >*/
 	gchar			*name;
 	guint32			 name_idx;
 	gchar			*value;

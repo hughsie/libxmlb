@@ -48,6 +48,7 @@ typedef struct __attribute__ ((packed)) {
 } XbSiloAttr;
 
 typedef struct {
+	/*< private >*/
 	XbSiloNode	*sn;
 	guint		 position;
 } XbSiloQueryData;
