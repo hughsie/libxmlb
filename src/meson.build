@@ -1,3 +1,6 @@
+# this seems redundant, but it allows us to use libxmlb as a subproject
+if meson.project_name() != 'libxmlb'
+
 libxmlbstatic = static_library(
   'xmlbstatic',
   sources : [
@@ -21,8 +24,7 @@ libxmlbstatic = static_library(
   ],
 )
 
-# this seems redundant, but it allows us to use libxmlb as a subproject
-if meson.project_name() == 'libxmlb'
+else
 
 libxmlb_version_h = configure_file(
   input : 'xb-version.h.in',
@@ -145,7 +147,7 @@ if get_option('introspection')
       'GObject-2.0',
     ],
     link_with : [
-      libxmlbstatic,
+      libxmlb,
     ],
     install : true
   )
@@ -178,14 +180,22 @@ if get_option('introspection')
       )
 endif
 
-endif # meson.project_name() == 'libxmlb'
-
 if get_option('tests')
   testdatadir = join_paths(meson.source_root(), 'data')
   e = executable(
     'xb-self-test',
     sources : [
-      'xb-self-test.c'
+      'xb-builder.c',
+      'xb-builder-node.c',
+      'xb-builder-source.c',
+      'xb-common.c',
+      'xb-machine.c',
+      'xb-node.c',
+      'xb-opcode.c',
+      'xb-self-test.c',
+      'xb-silo.c',
+      'xb-silo-export.c',
+      'xb-silo-query.c',
     ],
     include_directories : [
       configinc,
@@ -194,7 +204,8 @@ if get_option('tests')
       gio,
       uuid,
     ],
-    link_with : libxmlbstatic,
   )
   test('xb-self-test', e)
 endif
+
+endif # meson.project_name() == 'libxmlb'
