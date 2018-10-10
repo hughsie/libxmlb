@@ -2,6 +2,7 @@ FROM fedora:28
 
 RUN dnf -y update
 RUN dnf -y install \
+	gcovr \
 	glib2-devel \
 	gobject-introspection-devel \
 	gtk-doc \
