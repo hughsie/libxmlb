@@ -343,7 +343,7 @@ xb_builder_strtab_attr_name_cb (XbBuilderNode *bn, gpointer user_data)
 		return FALSE;
 	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
 		return FALSE;
-	attrs = xb_builder_get_attrs (bn);
+	attrs = xb_builder_node_get_attrs (bn);
 	for (guint i = 0; i < attrs->len; i++) {
 		XbBuilderNodeAttr *attr = g_ptr_array_index (attrs, i);
 		attr->name_idx = xb_builder_compile_add_to_strtab (helper, attr->name);
@@ -362,7 +362,7 @@ xb_builder_strtab_attr_value_cb (XbBuilderNode *bn, gpointer user_data)
 		return FALSE;
 	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
 		return FALSE;
-	attrs = xb_builder_get_attrs (bn);
+	attrs = xb_builder_node_get_attrs (bn);
 	for (guint i = 0; i < attrs->len; i++) {
 		XbBuilderNodeAttr *attr = g_ptr_array_index (attrs, i);
 		attr->value_idx = xb_builder_compile_add_to_strtab (helper, attr->value);
@@ -476,7 +476,7 @@ xb_builder_nodetab_write_sentinel (XbBuilderNodetabHelper *helper)
 static void
 xb_builder_nodetab_write_node (XbBuilderNodetabHelper *helper, XbBuilderNode *bn)
 {
-	GPtrArray *attrs = xb_builder_get_attrs (bn);
+	GPtrArray *attrs = xb_builder_node_get_attrs (bn);
 	XbSiloNode sn = {
 		.is_node	= TRUE,
 		.has_text	= xb_builder_node_get_text (bn) != NULL,

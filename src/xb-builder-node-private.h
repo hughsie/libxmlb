@@ -20,7 +20,7 @@ typedef struct {
 	guint32			 value_idx;
 } XbBuilderNodeAttr;
 
-GPtrArray	*xb_builder_get_attrs		(XbBuilderNode		*self);
+GPtrArray	*xb_builder_node_get_attrs	(XbBuilderNode		*self);
 guint32		 xb_builder_node_size		(XbBuilderNode		*self);
 guint32		 xb_builder_node_get_offset	(XbBuilderNode		*self);
 void		 xb_builder_node_set_offset	(XbBuilderNode		*self,

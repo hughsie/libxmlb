@@ -148,7 +148,7 @@ xb_builder_node_get_text (XbBuilderNode *self)
 
 /* private */
 GPtrArray *
-xb_builder_get_attrs (XbBuilderNode *self)
+xb_builder_node_get_attrs (XbBuilderNode *self)
 {
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_BUILDER_NODE (self), NULL);
