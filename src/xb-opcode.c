@@ -247,7 +247,7 @@ xb_opcode_text_new_steal (gchar *str)
 }
 
 /**
- * xb_opcode_func_new: (skip):
+ * xb_opcode_func_new:
  * @func: a function index
  *
  * Creates an opcode for a specific function. Custom functions can be registered
