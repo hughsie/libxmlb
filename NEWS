@@ -1,3 +1,25 @@
+Version 0.1.1
+~~~~~~~~~~~~~
+Released: 2018-10-11
+
+New Features:
+ - Add support for XPath starts-with() and ends-with() (Richard Hughes)
+ - Add support for number() and text() type conversion (Richard Hughes)
+ - Add support for predicate not() (Richard Hughes)
+ - Add xb_silo_invalidate() (Richard Hughes)
+ - Export XbMachine and XbOpcode (Richard Hughes)
+
+Bugfixes:
+ - Add the XbBuilderSource info keys to the generated GUID (Richard Hughes)
+ - Add the XbBuilderSourceNodeFunc ID to the generated GUID (Richard Hughes)
+ - Add the source prefix to the generated GUID (Richard Hughes)
+ - Do not use GNode when compiling the blob (Richard Hughes)
+ - Ignore invalid arguments if OR queries have other sections to parse (Richard Hughes)
+ - Load back the saved new silo to get a mmapped version (Richard Hughes)
+ - Support XPath wildcard nodes with predicates (Richard Hughes)
+ - Support some relative parent queries (Richard Hughes)
+ - Use the time::changed-usec if set in the GUID (Richard Hughes)
+
 Version 0.1.0
 ~~~~~~~~~~~~~
 Released: 2018-10-05
