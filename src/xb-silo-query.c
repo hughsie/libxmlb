@@ -41,6 +41,8 @@ xb_silo_query_section_free (XbSiloQuerySection *section)
 	g_slice_free (XbSiloQuerySection, section);
 }
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(XbSiloQuerySection, xb_silo_query_section_free)
+
 static gboolean
 xb_silo_query_parse_predicate (XbSilo *self,
 			       XbSiloQuerySection *section,
@@ -65,14 +67,14 @@ xb_silo_query_parse_predicate (XbSilo *self,
 static XbSiloQuerySection *
 xb_silo_query_parse_section (XbSilo *self, const gchar *xpath, GError **error)
 {
-	XbSiloQuerySection *section = g_slice_new0 (XbSiloQuerySection);
+	g_autoptr(XbSiloQuerySection) section = g_slice_new0 (XbSiloQuerySection);
 	guint start = 0;
 
 	/* common XPath parts */
 	if (g_strcmp0 (xpath, "parent::*") == 0 ||
 	    g_strcmp0 (xpath, "..") == 0) {
 		section->kind = XB_SILO_QUERY_KIND_PARENT;
-		return section;
+		return g_steal_pointer (&section);
 	}
 
 	/* parse element and predicate */
@@ -89,19 +91,29 @@ xb_silo_query_parse_section (XbSilo *self, const gchar *xpath, GError **error)
 							    xpath + start + 1,
 							    i - start - 1,
 							    error)) {
-				xb_silo_query_section_free (section);
 				return NULL;
 			}
 			start = 0;
 			continue;
 		}
 	}
+
+	/* incomplete predicate */
+	if (start != 0) {
+		g_set_error (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_INVALID_ARGUMENT,
+			     "predicate %s was unfinished, missing ']'",
+			     xpath + start);
+		return NULL;
+	}
+
 	if (section->element == NULL)
 		section->element = g_strdup (xpath);
 	if (g_strcmp0 (section->element, "child::*") == 0 ||
 	    g_strcmp0 (section->element, "*") == 0) {
 		section->kind = XB_SILO_QUERY_KIND_WILDCARD;
-		return section;
+		return g_steal_pointer (&section);
 	}
 	section->element_idx = xb_silo_get_strtab_idx (self, section->element);
 	if (section->element_idx == XB_SILO_UNSET) {
@@ -110,10 +122,9 @@ xb_silo_query_parse_section (XbSilo *self, const gchar *xpath, GError **error)
 			     G_IO_ERROR_INVALID_ARGUMENT,
 			     "element name %s is unknown in silo",
 			     section->element);
-		xb_silo_query_section_free (section);
 		return NULL;
 	}
-	return section;
+	return g_steal_pointer (&section);
 }
 
 static GPtrArray *

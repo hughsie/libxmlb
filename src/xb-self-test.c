@@ -826,6 +826,30 @@ xb_xpath_query_func (void)
 }
 
 static void
+xb_xpath_incomplete_func (void)
+{
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbNode) n = NULL;
+	g_autoptr(XbSilo) silo = NULL;
+	const gchar *xml =
+	"<components>\n"
+	"  <component>\n"
+	"    <id>gimp.desktop</id>\n"
+	"  </component>\n"
+	"</components>\n";
+
+	/* import from XML */
+	silo = xb_silo_new_from_xml (xml, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* query with MISSING '[' */
+	n = xb_silo_query_first (silo, "components/component/id[text()='dave'", &error);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT);
+	g_assert_null (n);
+}
+
+static void
 xb_xpath_func (void)
 {
 	XbNode *n;
@@ -1745,6 +1769,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/xpath", xb_xpath_func);
 	g_test_add_func ("/libxmlb/xpath-query", xb_xpath_query_func);
 	g_test_add_func ("/libxmlb/xpath{helpers}", xb_xpath_helpers_func);
+	g_test_add_func ("/libxmlb/xpath{incomplete}", xb_xpath_incomplete_func);
 	g_test_add_func ("/libxmlb/xpath-parent", xb_xpath_parent_func);
 	g_test_add_func ("/libxmlb/xpath-glob", xb_xpath_glob_func);
 	g_test_add_func ("/libxmlb/xpath-node", xb_xpath_node_func);
