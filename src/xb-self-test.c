@@ -8,7 +8,6 @@
 
 #include <gio/gio.h>
 
-#include "xb-common.h"
 #include "xb-builder.h"
 #include "xb-builder-node.h"
 #include "xb-machine.h"
@@ -16,6 +15,7 @@
 #include "xb-silo-export.h"
 #include "xb-silo-private.h"
 #include "xb-silo-query.h"
+#include "xb-string-private.h"
 
 static GMainLoop *_test_loop = NULL;
 static guint _test_loop_timeout_id = 0;
@@ -69,6 +69,16 @@ xb_test_import_xml (XbBuilder *self, const gchar *xml, GError **error)
 	return TRUE;
 }
 
+
+static void
+xb_common_union_func (void)
+{
+	g_autoptr(GString) xpath = g_string_new (NULL);
+	xb_string_append_union (xpath, "components/component");
+	g_assert_cmpstr (xpath->str, ==, "components/component");
+	xb_string_append_union (xpath, "applications/application");
+	g_assert_cmpstr (xpath->str, ==, "components/component|applications/application");
+}
 
 static void
 xb_common_func (void)
@@ -1748,6 +1758,7 @@ main (int argc, char **argv)
 
 	/* tests go here */
 	g_test_add_func ("/libxmlb/common", xb_common_func);
+	g_test_add_func ("/libxmlb/common{union}", xb_common_union_func);
 	g_test_add_func ("/libxmlb/opcodes", xb_predicate_func);
 	g_test_add_func ("/libxmlb/opcodes{kind}", xb_opcodes_kind_func);
 	g_test_add_func ("/libxmlb/node{data}", xb_node_data_func);

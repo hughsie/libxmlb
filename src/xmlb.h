@@ -18,6 +18,7 @@
 #include <libxmlb/xb-silo-export.h>
 #include <libxmlb/xb-silo.h>
 #include <libxmlb/xb-silo-query.h>
+#include <libxmlb/xb-string.h>
 #include <libxmlb/xb-version.h>
 
 #undef __LIBXMLB_H_INSIDE__

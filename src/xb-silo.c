@@ -13,10 +13,10 @@
 #include <gio/gio.h>
 
 #include "xb-builder.h"
-#include "xb-common.h"
 #include "xb-node-private.h"
 #include "xb-opcode.h"
 #include "xb-silo-private.h"
+#include "xb-string-private.h"
 
 typedef struct {
 	GObject			 parent_instance;

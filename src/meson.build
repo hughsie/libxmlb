@@ -4,7 +4,6 @@ if meson.project_name() != 'libxmlb'
 libxmlbstatic = static_library(
   'xmlbstatic',
   sources : [
-    'xb-common.c',
     'xb-builder.c',
     'xb-builder-node.c',
     'xb-builder-source.c',
@@ -14,6 +13,7 @@ libxmlbstatic = static_library(
     'xb-silo.c',
     'xb-silo-export.c',
     'xb-silo-query.c',
+    'xb-string.c',
   ],
   include_directories : [
     configinc,
@@ -47,6 +47,7 @@ install_headers([
     'xb-silo-export.h',
     'xb-silo.h',
     'xb-silo-query.h',
+    'xb-string.h',
     libxmlb_version_h,
   ],
   subdir : 'libxmlb-1/libxmlb',
@@ -57,7 +58,6 @@ vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfil
 libxmlb = shared_library(
   'xmlb',
   sources : [
-    'xb-common.c',
     'xb-builder.c',
     'xb-builder-node.c',
     'xb-builder-source.c',
@@ -67,6 +67,7 @@ libxmlb = shared_library(
     'xb-silo.c',
     'xb-silo-export.c',
     'xb-silo-query.c',
+    'xb-string.c',
   ],
   soversion : lt_current,
   version : lt_version,
@@ -132,6 +133,8 @@ if get_option('introspection')
       'xb-silo-export.h',
       'xb-silo-query.c',
       'xb-silo-query.h',
+      'xb-string.c',
+      'xb-string.h',
     ],
     nsversion : '1.0',
     namespace : 'Xmlb',
@@ -188,7 +191,6 @@ if get_option('tests')
       'xb-builder.c',
       'xb-builder-node.c',
       'xb-builder-source.c',
-      'xb-common.c',
       'xb-machine.c',
       'xb-node.c',
       'xb-opcode.c',
@@ -196,6 +198,7 @@ if get_option('tests')
       'xb-silo.c',
       'xb-silo-export.c',
       'xb-silo-query.c',
+      'xb-string.c',
     ],
     include_directories : [
       configinc,

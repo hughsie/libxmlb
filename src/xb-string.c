@@ -11,7 +11,7 @@
 #include <string.h>
 #include <gio/gio.h>
 
-#include "xb-common.h"
+#include "xb-string-private.h"
 
 /**
  * xb_string_replace: (skip)
@@ -22,8 +22,6 @@
  * Performs multiple search and replace operations on the given string.
  *
  * Returns: the number of replacements done, or 0 if @search is not found.
- *
- * Since: 0.1.0
  **/
 guint
 xb_string_replace (GString *str, const gchar *search, const gchar *replace)
@@ -78,6 +76,43 @@ xb_string_replace (GString *str, const gchar *search, const gchar *replace)
 	return count;
 }
 
+/**
+ * xb_string_append_union:
+ * @xpath: The #GString to operate on
+ * @fmt: The format string
+ * @...: varargs for @fmt
+ *
+ * Appends an XPath query into the string, automatically adding the union
+ * operator (`|`) if required.
+ *
+ * Since: 0.1.2
+ **/
+void
+xb_string_append_union (GString *xpath, const gchar *fmt, ...)
+{
+	va_list args;
+
+	g_return_if_fail (xpath != NULL);
+	g_return_if_fail (fmt != NULL);
+
+	if (xpath->len > 0)
+		g_string_append (xpath, "|");
+	va_start (args, fmt);
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+	g_string_append_vprintf (xpath, fmt, args);
+#pragma clang diagnostic pop
+	va_end (args);
+}
+
+/**
+ * xb_string_contains: (skip)
+ * @text: The source string
+ * @search: The text to search for
+ *
+ * Searches for a substring match.
+ *
+ * Returns: %TRUE if the string @search is contained in @text.
+ **/
 gboolean
 xb_string_contains (const gchar *text, const gchar *search)
 {
@@ -100,7 +135,16 @@ xb_string_contains (const gchar *text, const gchar *search)
 	return FALSE;
 }
 
-/* ignore search matches that are not the start of the token */
+/**
+ * xb_string_search: (skip)
+ * @text: The source string
+ * @search: The text to search for
+ *
+ * Searches for a fuzzy search match, ignoring search matches that are not at
+ * the start of the token.
+ *
+ * Returns: %TRUE if the string @search is contained in @text.
+ **/
 gboolean
 xb_string_search (const gchar *text, const gchar *search)
 {

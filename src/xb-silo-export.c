@@ -10,10 +10,10 @@
 
 #include <gio/gio.h>
 
-#include "xb-common.h"
 #include "xb-node-private.h"
 #include "xb-silo-export.h"
 #include "xb-silo-private.h"
+#include "xb-string-private.h"
 
 typedef struct {
 	GString			*xml;

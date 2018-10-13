@@ -4,10 +4,11 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_COMMON_H
-#define __XB_COMMON_H
+#ifndef __XB_COMMON_PRIVATE_H
+#define __XB_COMMON_PRIVATE_H
 
 #include <glib-object.h>
+#include "xb-string.h"
 
 G_BEGIN_DECLS
 
@@ -21,4 +22,4 @@ gboolean	 xb_string_search			(const gchar	*text,
 
 G_END_DECLS
 
-#endif /* __XB_COMMON_H */
+#endif /* __XB_COMMON_PRIVATE_H */
