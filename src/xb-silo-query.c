@@ -447,7 +447,7 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 
 	/* profile */
 	if (xb_silo_get_profile_flags (self) & XB_SILO_PROFILE_FLAG_XPATH) {
-		xb_silo_add_profile (self, NULL,
+		xb_silo_add_profile (self, timer,
 				     "query on %s with `%s` limit=%u -> %u results",
 				     n != NULL ? xb_node_get_element (n) : "/",
 				     xpath, limit, results->len);
