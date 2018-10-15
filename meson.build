@@ -89,12 +89,12 @@ test_link_args = [
   '-Wl,-z,relro',
   '-Wl,-z,now',
 ]
-foreach arg: test_link_args
-  if cc.has_link_argument(arg)
-    global_link_args += arg
+foreach link_arg: test_link_args
+  if cc.has_link_argument(link_arg)
+    global_link_args += link_arg
   endif
 endforeach
-add_global_link_arguments(
+add_project_link_arguments(
   global_link_args,
   language: 'c'
 )
