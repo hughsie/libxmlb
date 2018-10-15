@@ -669,10 +669,8 @@ xb_silo_watch_file (XbSilo *self,
 
 	/* already exists */
 	item = g_hash_table_lookup (priv->file_monitors, fn);
-	if (item != NULL) {
-		g_debug ("already watching %s", fn);
+	if (item != NULL)
 		return TRUE;
-	}
 
 	/* try to create */
 	file_monitor = g_file_monitor_file (file, G_FILE_MONITOR_NONE,
@@ -682,7 +680,6 @@ xb_silo_watch_file (XbSilo *self,
 	g_file_monitor_set_rate_limit (file_monitor, 20);
 
 	/* add */
-	g_debug ("now watching %s", fn);
 	item = g_slice_new0 (XbSiloFileMonitorItem);
 	item->file_monitor = g_object_ref (file_monitor);
 	item->file_monitor_id = g_signal_connect (file_monitor, "changed",
@@ -721,8 +718,6 @@ xb_silo_load_from_file (XbSilo *self,
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
 	/* no longer valid */
-	g_debug ("removing %u file monitors",
-		 g_hash_table_size (priv->file_monitors));
 	g_hash_table_remove_all (priv->file_monitors);
 	g_hash_table_remove_all (priv->nodes);
 	g_hash_table_remove_all (priv->strtab_tags);
