@@ -232,7 +232,6 @@ xb_silo_query_section_add_result (XbSilo *self, XbSiloQueryHelper *helper, XbSil
 static gboolean
 xb_silo_query_section_root (XbSilo *self,
 			    XbSiloNode *sn,
-			    XbSiloNode *parent,
 			    guint i,
 			    XbSiloQueryHelper *helper,
 			    GError **error)
@@ -246,9 +245,15 @@ xb_silo_query_section_root (XbSilo *self,
 
 	/* handle parent */
 	if (section->kind == XB_SILO_QUERY_KIND_PARENT) {
-		XbSiloNode *grandparent;
-		if (parent == NULL)
-			parent = xb_silo_node_get_parent (self, sn);
+		XbSiloNode *parent;
+		if (sn == NULL) {
+			g_set_error_literal (error,
+					     G_IO_ERROR,
+					     G_IO_ERROR_INVALID_ARGUMENT,
+					     "cannot obtain parent for root");
+			return FALSE;
+		}
+		parent = xb_silo_node_get_parent (self, sn);
 		if (parent == NULL) {
 			g_set_error (error,
 				     G_IO_ERROR,
@@ -257,40 +262,32 @@ xb_silo_query_section_root (XbSilo *self,
 				     xb_silo_node_get_element (self, sn));
 			return FALSE;
 		}
-		grandparent = xb_silo_node_get_parent (self, parent);
-		if (grandparent == NULL) {
-			g_set_error (error,
-				     G_IO_ERROR,
-				     G_IO_ERROR_INVALID_ARGUMENT,
-				     "no grandparent set for %s",
-				     xb_silo_node_get_element (self, parent));
-			return FALSE;
-		}
 		if (i == helper->sections->len - 1) {
-			xb_silo_query_section_add_result (self, helper, grandparent);
+			xb_silo_query_section_add_result (self, helper, parent);
 			return TRUE;
-		}
-
-		/* go back up to the first child of the grandparent */
-		parent = xb_silo_node_get_child (self, grandparent);
-		if (parent == NULL) {
-			g_set_error (error,
-				     G_IO_ERROR,
-				     G_IO_ERROR_INVALID_ARGUMENT,
-				     "no parent set for %s",
-				     xb_silo_node_get_element (self, grandparent));
-			return FALSE;
 		}
 //		g_debug ("PARENT @%u",
 //			 xb_silo_get_offset_for_node (self, parent));
-		return xb_silo_query_section_root (self, parent, grandparent, i + 1, helper, error);
+		return xb_silo_query_section_root (self, parent, i + 1, helper, error);
 	}
 
-	/* no child to process */
-	if (sn == NULL)
-		return TRUE;
+	/* no node means root */
+	if (sn == NULL) {
+		sn = xb_silo_get_sroot (self);
+		if (sn == NULL) {
+			g_set_error_literal (error,
+					     G_IO_ERROR,
+					     G_IO_ERROR_NOT_FOUND,
+					     "silo root not found");
+			return FALSE;
+		}
+	} else {
+		sn = xb_silo_node_get_child (self, sn);
+		if (sn == NULL)
+			return TRUE;
+	}
 
-	/* save the parent so we can support ".." */
+	/* continue matching children ".." */
 	do {
 		gboolean result = TRUE;
 		query_data->sn = sn;
@@ -304,10 +301,10 @@ xb_silo_query_section_root (XbSilo *self,
 				if (xb_silo_query_section_add_result (self, helper, sn))
 					break;
 			} else {
-				XbSiloNode *c = xb_silo_node_get_child (self, sn);
-//				g_debug ("MATCH @%u, deeper",
+//				g_debug ("MATCH %s at @%u, deeper",
+//					 xb_silo_node_get_element (self, sn),
 //					 xb_silo_get_offset_for_node (self, sn));
-				if (!xb_silo_query_section_root (self, c, sn, i + 1, helper, error))
+				if (!xb_silo_query_section_root (self, sn, i + 1, helper, error))
 					return FALSE;
 				if (helper->results->len > 0 &&
 				    helper->results->len == helper->limit)
@@ -352,7 +349,7 @@ xb_silo_query_part (XbSilo *self,
 
 	/* find each section */
 	helper.sections = sections;
-	return xb_silo_query_section_root (self, sroot, NULL, 0, &helper, error);
+	return xb_silo_query_section_root (self, sroot, 0, &helper, error);
 }
 
 /**
@@ -377,7 +374,7 @@ xb_silo_query_part (XbSilo *self,
 GPtrArray *
 xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limit, GError **error)
 {
-	XbSiloNode *sn;
+	XbSiloNode *sn = NULL;
 	g_auto(GStrv) split = NULL;
 	g_autoptr(GHashTable) results_hash = g_hash_table_new (g_direct_hash, g_direct_equal);
 	g_autoptr(GPtrArray) results = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
@@ -390,6 +387,15 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 	g_return_val_if_fail (XB_IS_SILO (self), NULL);
 	g_return_val_if_fail (xpath != NULL, NULL);
 
+	/* empty silo */
+	if (xb_silo_is_empty (self)) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_NOT_FOUND,
+				     "silo has no data");
+		return NULL;
+	}
+
 	/* subtree query */
 	if (n != NULL) {
 		sn = xb_node_get_sn (n);
@@ -401,26 +407,9 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 			return NULL;
 		}
 	} else {
-		sn = xb_silo_get_sroot (self);
-		if (sn == NULL) {
-			g_set_error_literal (error,
-					     G_IO_ERROR,
-					     G_IO_ERROR_NOT_FOUND,
-					     "silo root not found");
-			return NULL;
-		}
 		/* assume it's just a root query */
 		if (xpath[0] == '/')
 			xpath++;
-	}
-
-	/* no root */
-	if (sn == NULL) {
-		g_set_error_literal (error,
-				     G_IO_ERROR,
-				     G_IO_ERROR_NOT_FOUND,
-				     "no data to query");
-		return NULL;
 	}
 
 	/* do 'or' searches */

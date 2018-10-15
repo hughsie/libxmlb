@@ -89,6 +89,7 @@ void		 xb_silo_add_profile		(XbSilo		*self,
 						 GTimer		*timer,
 						 const gchar	*fmt,
 						 ...) G_GNUC_PRINTF (3, 4);
+gboolean	 xb_silo_is_empty		(XbSilo		*self);
 void		 xb_silo_uninvalidate		(XbSilo		*self);
 XbSiloProfileFlags xb_silo_get_profile_flags	(XbSilo		*self);
 

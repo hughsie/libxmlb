@@ -378,6 +378,15 @@ xb_silo_is_valid (XbSilo *self)
 	return priv->valid;
 }
 
+/* private */
+gboolean
+xb_silo_is_empty (XbSilo *self)
+{
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
+	return priv->strtab == sizeof(XbSiloHeader);
+}
+
 /**
  * xb_silo_invalidate:
  * @self: a #XbSilo
