@@ -109,6 +109,11 @@ if cc.has_function('uuid_generate_sha1', args : '-luuid')
   conf.set('HAVE_UUID_GENERATE_SHA1', '1')
 endif
 
+libxmlb_deps = [
+  gio,
+  uuid,
+]
+
 gnome = import('gnome')
 
 conf.set_quoted('PACKAGE_NAME', meson.project_name())
@@ -123,3 +128,9 @@ if get_option('gtkdoc')
   gtkdocscan = find_program('gtkdoc-scan', required : true)
   subdir('docs')
 endif
+
+libxmlb_dep = declare_dependency(
+  link_with : libxmlb,
+  include_directories : include_directories('src'),
+  dependencies : libxmlb_deps
+)
