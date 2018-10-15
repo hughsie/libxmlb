@@ -1056,6 +1056,35 @@ xb_silo_machine_func_number_cb (XbMachine *self,
 }
 
 static gboolean
+xb_silo_machine_func_strlen_cb (XbMachine *self,
+				GPtrArray *stack,
+				gboolean *result,
+				gpointer user_data,
+				gpointer exec_data,
+				GError **error)
+{
+	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
+
+	/* TEXT */
+	if (xb_opcode_cmp_str (op1)) {
+		if (xb_opcode_get_str (op1) == NULL) {
+			*result = FALSE;
+			return TRUE;
+		}
+		xb_machine_stack_push_integer (self, stack, strlen (xb_opcode_get_str (op1)));
+		return TRUE;
+	}
+
+	/* fail */
+	g_set_error (error,
+		     G_IO_ERROR,
+		     G_IO_ERROR_NOT_SUPPORTED,
+		     "%s types not supported",
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op1)));
+	return FALSE;
+}
+
+static gboolean
 xb_silo_machine_func_string_cb (XbMachine *self,
 				GPtrArray *stack,
 				gboolean *result,
@@ -1217,6 +1246,8 @@ xb_silo_init (XbSilo *self)
 			       xb_silo_machine_func_string_cb, self, NULL);
 	xb_machine_add_method (priv->machine, "number", 1,
 			       xb_silo_machine_func_number_cb, self, NULL);
+	xb_machine_add_method (priv->machine, "string-length", 1,
+			       xb_silo_machine_func_strlen_cb, self, NULL);
 	xb_machine_add_operator (priv->machine, "~=", "search");
 	xb_machine_add_opcode_fixup (priv->machine, "INTE",
 				     xb_silo_machine_fixup_position_cb, self, NULL);

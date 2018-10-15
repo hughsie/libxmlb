@@ -1288,6 +1288,13 @@ xb_xpath_parent_func (void)
 	g_assert_cmpstr (xb_node_get_text (n), ==, "colorhug-client");
 	g_clear_object (&n);
 
+	/* strlen match */
+	n = xb_silo_query_first (silo, "components/component/pkgname[string-length(text())==15]", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "colorhug-client");
+	g_clear_object (&n);
+
 	/* fuzzy substring match */
 	n = xb_silo_query_first (silo, "components/component[@type~='firm']/pkgname", &error);
 	g_assert_no_error (error);
