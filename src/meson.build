@@ -18,10 +18,7 @@ libxmlbstatic = static_library(
   include_directories : [
     configinc,
   ],
-  dependencies : [
-    gio,
-    uuid,
-  ],
+  dependencies : libxmlb_deps,
 )
 
 else
@@ -74,10 +71,7 @@ libxmlb = shared_library(
   include_directories : [
     configinc,
   ],
-  dependencies : [
-    gio,
-    uuid,
-  ],
+  dependencies : libxmlb_deps,
   link_args : vflag,
   link_depends : mapfile,
   install : true
