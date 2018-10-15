@@ -11,7 +11,7 @@
 #include <gio/gio.h>
 
 #include "xb-node-private.h"
-#include "xb-silo-export.h"
+#include "xb-silo-export-private.h"
 #include "xb-silo-private.h"
 #include "xb-string-private.h"
 
@@ -105,7 +105,7 @@ xb_silo_export_node (XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, G
 }
 
 /* private */
-gchar *
+GString *
 xb_silo_export_with_root (XbSilo *self, XbNode *root, XbNodeExportFlags flags, GError **error)
 {
 	XbSiloNode *sn;
@@ -154,7 +154,7 @@ xb_silo_export_with_root (XbSilo *self, XbNode *root, XbNodeExportFlags flags, G
 	} while (sn != NULL);
 
 	/* success */
-	return g_string_free (helper.xml, FALSE);
+	return helper.xml;
 }
 
 /**
@@ -172,6 +172,50 @@ xb_silo_export_with_root (XbSilo *self, XbNode *root, XbNodeExportFlags flags, G
 gchar *
 xb_silo_export (XbSilo *self, XbNodeExportFlags flags, GError **error)
 {
+	GString *xml;
 	g_return_val_if_fail (XB_IS_SILO (self), NULL);
-	return xb_silo_export_with_root (self, NULL, flags, error);
+	xml = xb_silo_export_with_root (self, NULL, flags, error);
+	if (xml == NULL)
+		return NULL;
+	return g_string_free (xml, FALSE);
+}
+
+/**
+ * xb_silo_export_file:
+ * @self: a #XbSilo
+ * @file: a #GFile
+ * @flags: some #XbNodeExportFlags, e.g. #XB_NODE_EXPORT_FLAG_NONE
+ * @cancellable: a #GCancellable, or %NULL
+ * @error: the #GError, or %NULL
+ *
+ * Exports the silo back to an XML file.
+ *
+ * Returns: %TRUE on success
+ *
+ * Since: 0.1.2
+ **/
+gboolean
+xb_silo_export_file (XbSilo *self,
+		     GFile *file,
+		     XbNodeExportFlags flags,
+		     GCancellable *cancellable,
+		     GError **error)
+{
+	g_autoptr(GString) xml = NULL;
+
+	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
+	g_return_val_if_fail (G_IS_FILE (file), FALSE);
+
+	xml = xb_silo_export_with_root (self, NULL, flags, error);
+	if (xml == NULL)
+		return FALSE;
+	return g_file_replace_contents (file,
+					xml->str,
+					xml->len,
+					NULL, /* etag */
+					FALSE, /* make-backup */
+					G_FILE_CREATE_NONE,
+					NULL, /* new etag */
+					cancellable,
+					error);
 }

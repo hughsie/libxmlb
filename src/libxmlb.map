@@ -127,6 +127,7 @@ LIBXMLB_0.1.1 {
 LIBXMLB_0.1.2 {
   global:
     xb_builder_source_load_bytes;
+    xb_silo_export_file;
     xb_string_append_union;
   local: *;
 } LIBXMLB_0.1.1;

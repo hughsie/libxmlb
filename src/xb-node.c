@@ -12,6 +12,7 @@
 #include <gio/gio.h>
 
 #include "xb-node-private.h"
+#include "xb-silo-export-private.h"
 #include "xb-silo-query-private.h"
 
 typedef struct {
@@ -613,8 +614,12 @@ xb_node_query_attr_as_uint (XbNode *self, const gchar *xpath, const gchar *name,
 gchar *
 xb_node_export (XbNode *self, XbNodeExportFlags flags, GError **error)
 {
+	GString *xml;
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
-	return xb_silo_export_with_root (xb_node_get_silo (self), self, flags, error);
+	xml = xb_silo_export_with_root (xb_node_get_silo (self), self, flags, error);
+	if (xml == NULL)
+		return NULL;
+	return g_string_free (xml, FALSE);
 }
 
 static void

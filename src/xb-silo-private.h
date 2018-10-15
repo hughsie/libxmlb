@@ -92,10 +92,4 @@ void		 xb_silo_add_profile		(XbSilo		*self,
 void		 xb_silo_uninvalidate		(XbSilo		*self);
 XbSiloProfileFlags xb_silo_get_profile_flags	(XbSilo		*self);
 
-// FIXME xb-silo-export-private.h?
-gchar		*xb_silo_export_with_root	(XbSilo		*self,
-						 XbNode		*root,
-						 XbNodeExportFlags flags,
-						 GError		**error);
-
 #endif /* __XB_SILO_PRIVATE_H__ */
