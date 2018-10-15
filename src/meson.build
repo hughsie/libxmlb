@@ -34,21 +34,25 @@ install_headers(
   subdir : 'libxmlb-1',
 )
 
-install_headers([
-    'xb-builder.h',
-    'xb-builder-node.h',
-    'xb-builder-source.h',
-    'xb-machine.h',
-    'xb-node.h',
-    'xb-opcode.h',
-    'xb-silo-export.h',
-    'xb-silo.h',
-    'xb-silo-query.h',
-    'xb-string.h',
-    libxmlb_version_h,
-  ],
+xb_headers = files(
+  'xb-builder.h',
+  'xb-builder-node.h',
+  'xb-builder-source.h',
+  'xb-machine.h',
+  'xb-node.h',
+  'xb-opcode.h',
+  'xb-silo-export.h',
+  'xb-silo.h',
+  'xb-silo-query.h',
+  'xb-string.h',
+) + [libxmlb_version_h]
+
+install_headers(
+  xb_headers,
   subdir : 'libxmlb-1/libxmlb',
 )
+
+subdir('libxmlb')
 
 mapfile = 'libxmlb.map'
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
