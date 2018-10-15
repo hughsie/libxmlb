@@ -123,3 +123,9 @@ LIBXMLB_0.1.1 {
     xb_silo_set_profile_flags;
   local: *;
 } LIBXMLB_0.1.0;
+
+LIBXMLB_0.1.2 {
+  global:
+    xb_builder_source_load_bytes;
+  local: *;
+} LIBXMLB_0.1.1;

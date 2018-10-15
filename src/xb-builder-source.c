@@ -234,6 +234,47 @@ xb_builder_source_load_xml (XbBuilderSource *self,
 }
 
 /**
+ * xb_builder_source_load_bytes:
+ * @self: a #XbBuilderSource
+ * @bytes: a #GBytes
+ * @flags: some #XbBuilderSourceFlags, e.g. %XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT
+ * @error: the #GError, or %NULL
+ *
+ * Loads XML data and begins to build a #XbSilo.
+ *
+ * Returns: %TRUE for success
+ *
+ * Since: 0.1.2
+ **/
+gboolean
+xb_builder_source_load_bytes (XbBuilderSource *self,
+			      GBytes *bytes,
+			      XbBuilderSourceFlags flags,
+			      GError **error)
+{
+	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
+	g_autoptr(GChecksum) csum = g_checksum_new (G_CHECKSUM_SHA1);
+
+	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), FALSE);
+	g_return_val_if_fail (bytes != NULL, FALSE);
+
+	/* add a GUID of the SHA1 hash of the entire blob */
+	g_checksum_update (csum,
+			   (const guchar *) g_bytes_get_data (bytes, NULL),
+			   (gssize) g_bytes_get_size (bytes));
+	priv->guid = g_strdup (g_checksum_get_string (csum));
+
+	/* create input stream */
+	priv->istream = g_memory_input_stream_new_from_bytes (bytes);
+	if (priv->istream == NULL)
+		return FALSE;
+
+	/* success */
+	priv->flags = flags;
+	return TRUE;
+}
+
+/**
  * xb_builder_source_add_node_func:
  * @self: a #XbBuilderSource
  * @id: a text ID value, e.g. `AppStreamUpgrade`

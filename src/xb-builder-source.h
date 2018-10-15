@@ -65,6 +65,10 @@ gboolean	 xb_builder_source_load_xml	(XbBuilderSource	*self,
 						 const gchar		*xml,
 						 XbBuilderSourceFlags	 flags,
 						 GError			**error);
+gboolean	 xb_builder_source_load_bytes	(XbBuilderSource	*self,
+						 GBytes			*bytes,
+						 XbBuilderSourceFlags	 flags,
+						 GError			**error);
 void		 xb_builder_source_set_info	(XbBuilderSource	*self,
 						 XbBuilderNode		*info);
 void		 xb_builder_source_set_prefix	(XbBuilderSource	*self,
