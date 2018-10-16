@@ -79,7 +79,7 @@ void		 xb_builder_source_add_node_func (XbBuilderSource	*self,
 						 gpointer		 user_data,
 						 GDestroyNotify		 user_data_free);
 void		 xb_builder_source_add_converter (XbBuilderSource	*self,
-						 const gchar		*content_type,
+						 const gchar		*content_types,
 						 XbBuilderSourceConverterFunc func,
 						 gpointer		 user_data,
 						 GDestroyNotify		 user_data_free);

@@ -311,7 +311,7 @@ xb_builder_source_add_node_func (XbBuilderSource *self,
 /**
  * xb_builder_source_add_converter:
  * @self: a #XbBuilderSource
- * @content_type: a mimetype, e.g. `application/x-desktop`
+ * @content_types: mimetypes, e.g. `application/x-desktop,application/gzip`
  * @func: a callback
  * @user_data: user pointer to pass to @func, or %NULL
  * @user_data_free: a function which gets called to free @user_data, or %NULL
@@ -323,24 +323,29 @@ xb_builder_source_add_node_func (XbBuilderSource *self,
  **/
 void
 xb_builder_source_add_converter (XbBuilderSource *self,
-				 const gchar *content_type,
+				 const gchar *content_types,
 				 XbBuilderSourceConverterFunc func,
 				 gpointer user_data,
 				 GDestroyNotify user_data_free)
 {
-	XbBuilderSourceConverterItem *item;
 	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
+	g_auto(GStrv) split = NULL;
 
 	g_return_if_fail (XB_IS_BUILDER_SOURCE (self));
-	g_return_if_fail (content_type != NULL);
+	g_return_if_fail (content_types != NULL);
 	g_return_if_fail (func != NULL);
 
-	item = g_slice_new0 (XbBuilderSourceConverterItem);
-	item->content_type = g_strdup (content_type);
-	item->func = func;
-	item->user_data = user_data;
-	item->user_data_free = user_data_free;
-	g_ptr_array_add (priv->converters, item);
+	/* add each */
+	split = g_strsplit (content_types, ",", -1);
+	for (guint i = 0; split[i] != NULL; i++) {
+		XbBuilderSourceConverterItem *item;
+		item = g_slice_new0 (XbBuilderSourceConverterItem);
+		item->content_type = g_strdup (split[i]);
+		item->func = func;
+		item->user_data = user_data;
+		item->user_data_free = user_data_free;
+		g_ptr_array_add (priv->converters, item);
+	}
 }
 
 gboolean
