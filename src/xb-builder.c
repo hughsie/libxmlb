@@ -83,11 +83,11 @@ xb_builder_compile_start_element_cb (GMarkupParseContext *context,
 
 	/* parent node is being ignored */
 	if (helper->current != NULL &&
-	    xb_builder_node_has_flag (helper->current, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
-		xb_builder_node_add_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA);
+	    xb_builder_node_has_flag (helper->current, XB_BUILDER_NODE_FLAG_IGNORE))
+		xb_builder_node_add_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE);
 
 	/* check if we should ignore the locale */
-	if (!xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA) &&
+	if (!xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE) &&
 	    helper->compile_flags & XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS) {
 		const gchar *xml_lang = NULL;
 		for (guint i = 0; attr_names[i] != NULL; i++) {
@@ -104,13 +104,13 @@ xb_builder_compile_start_element_cb (GMarkupParseContext *context,
 		} else {
 			gint prio = xb_builder_get_locale_priority (helper, xml_lang);
 			if (prio < 0)
-				xb_builder_node_add_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA);
+				xb_builder_node_add_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE);
 			xb_builder_node_set_priority (bn, prio);
 		}
 	}
 
 	/* add attributes */
-	if (!xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA)) {
+	if (!xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE)) {
 		for (guint i = 0; attr_names[i] != NULL; i++)
 			xb_builder_node_set_attr (bn, attr_names[i], attr_values[i]);
 	}
@@ -154,7 +154,7 @@ xb_builder_compile_text_cb (GMarkupParseContext *context,
 		return;
 
 	/* unimportant */
-	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
+	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE))
 		return;
 
 	/* all whitespace? */
@@ -330,7 +330,7 @@ xb_builder_strtab_element_names_cb (XbBuilderNode *bn, gpointer user_data)
 	/* root node */
 	if (xb_builder_node_get_element (bn) == NULL)
 		return FALSE;
-	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
+	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE))
 		return FALSE;
 	tmp = xb_builder_node_get_element (bn);
 	xb_builder_node_set_element_idx (bn, xb_builder_compile_add_to_strtab (helper, tmp));
@@ -346,7 +346,7 @@ xb_builder_strtab_attr_name_cb (XbBuilderNode *bn, gpointer user_data)
 	/* root node */
 	if (xb_builder_node_get_element (bn) == NULL)
 		return FALSE;
-	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
+	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE))
 		return FALSE;
 	attrs = xb_builder_node_get_attrs (bn);
 	for (guint i = 0; i < attrs->len; i++) {
@@ -365,7 +365,7 @@ xb_builder_strtab_attr_value_cb (XbBuilderNode *bn, gpointer user_data)
 	/* root node */
 	if (xb_builder_node_get_element (bn) == NULL)
 		return FALSE;
-	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
+	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE))
 		return FALSE;
 	attrs = xb_builder_node_get_attrs (bn);
 	for (guint i = 0; i < attrs->len; i++) {
@@ -384,7 +384,7 @@ xb_builder_strtab_text_cb (XbBuilderNode *bn, gpointer user_data)
 	/* root node */
 	if (xb_builder_node_get_element (bn) == NULL)
 		return FALSE;
-	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
+	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE))
 		return FALSE;
 	if (xb_builder_node_get_text (bn) == NULL)
 		return FALSE;
@@ -454,7 +454,7 @@ xb_builder_nodetab_size_cb (XbBuilderNode *bn, gpointer user_data)
 	/* root node */
 	if (xb_builder_node_get_element (bn) == NULL)
 		return FALSE;
-	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
+	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE))
 		return FALSE;
 	*sz += xb_builder_node_size (bn) + 1; /* +1 for the sentinel */
 	if (xb_builder_node_get_text (bn) == NULL)
@@ -521,7 +521,7 @@ xb_builder_nodetab_write (XbBuilderNodetabHelper *helper, XbBuilderNode *bn)
 	GPtrArray *children;
 
 	/* ignore this */
-	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
+	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE))
 		return;
 
 	/* element */
@@ -559,7 +559,7 @@ xb_builder_nodetab_fix_cb (XbBuilderNode *bn, gpointer user_data)
 	/* root node */
 	if (xb_builder_node_get_element (bn) == NULL)
 		return FALSE;
-	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE_CDATA))
+	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE))
 		return FALSE;
 
 	/* get the position in the buffer */
@@ -581,7 +581,7 @@ xb_builder_nodetab_fix_cb (XbBuilderNode *bn, gpointer user_data)
 		}
 		if (!found)
 			continue;
-		if (!xb_builder_node_has_flag (bn2, XB_BUILDER_NODE_FLAG_IGNORE_CDATA)) {
+		if (!xb_builder_node_has_flag (bn2, XB_BUILDER_NODE_FLAG_IGNORE)) {
 			sn->next = xb_builder_node_get_offset (bn2);
 			break;
 		}

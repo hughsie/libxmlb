@@ -29,14 +29,14 @@ struct _XbBuilderNodeClass {
 /**
  * XbBuilderNodeFlags:
  * @XB_BUILDER_NODE_FLAG_NONE:			No extra flags to use
- * @XB_BUILDER_NODE_FLAG_IGNORE_CDATA:		Do not include this node in the silo
+ * @XB_BUILDER_NODE_FLAG_IGNORE:		Do not include this node in the silo
  * @XB_BUILDER_NODE_FLAG_LITERAL_TEXT:		Assume the node CDATA is already valid
  *
  * The flags used when building a node.
  **/
 typedef enum {
 	XB_BUILDER_NODE_FLAG_NONE		= 0,		/* Since: 0.1.0 */
-	XB_BUILDER_NODE_FLAG_IGNORE_CDATA	= 1 << 0,	/* Since: 0.1.0 */
+	XB_BUILDER_NODE_FLAG_IGNORE		= 1 << 0,	/* Since: 0.1.0 */
 	XB_BUILDER_NODE_FLAG_LITERAL_TEXT	= 1 << 1,	/* Since: 0.1.0 */
 	/*< private >*/
 	XB_BUILDER_NODE_FLAG_LAST
