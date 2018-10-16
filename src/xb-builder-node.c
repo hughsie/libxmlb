@@ -172,6 +172,7 @@ xb_builder_node_set_text (XbBuilderNode *self, const gchar *text, gssize text_le
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 	guint newline_count = 0;
 	g_auto(GStrv) split = NULL;
+	gsize text_len_safe;
 
 	g_return_if_fail (XB_IS_BUILDER_NODE (self));
 	g_return_if_fail (text != NULL);
@@ -180,8 +181,9 @@ xb_builder_node_set_text (XbBuilderNode *self, const gchar *text, gssize text_le
 	g_free (priv->text);
 
 	/* we know this has been pre-fixed */
+	text_len_safe = text_len >= 0 ? (gsize) text_len : strlen (text);
 	if (xb_builder_node_has_flag (self, XB_BUILDER_NODE_FLAG_LITERAL_TEXT)) {
-		priv->text = g_strndup (text, text_len);
+		priv->text = g_strndup (text, text_len_safe);
 		return;
 	}
 
@@ -189,14 +191,12 @@ xb_builder_node_set_text (XbBuilderNode *self, const gchar *text, gssize text_le
 	if (g_strstr_len (text, text_len, "\n") == NULL &&
 	    !g_str_has_prefix (text, " ") &&
 	    !g_str_has_suffix (text, " ")) {
-		gsize len;
-		len = text_len >= 0 ? (gsize) text_len : strlen (text);
-		priv->text = g_strndup (text, len);
+		priv->text = g_strndup (text, text_len_safe);
 		return;
 	}
 
 	/* split the text into lines */
-	tmp = g_string_sized_new ((gsize) text_len + 1);
+	tmp = g_string_sized_new ((gsize) text_len_safe + 1);
 	split = g_strsplit (text, "\n", -1);
 	for (guint i = 0; split[i] != NULL; i++) {
 
