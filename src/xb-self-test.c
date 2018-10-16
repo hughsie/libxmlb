@@ -558,6 +558,67 @@ xb_builder_node_vfunc_func (void)
 			 "</component>", ==, xml2);
 }
 
+
+static gboolean
+xb_builder_ignore_node_cb (XbBuilderSource *self,
+			   XbBuilderNode *bn,
+			   gpointer user_data,
+			   GError **error)
+{
+	if (g_strcmp0 (xb_builder_node_get_element (bn), "component") == 0) {
+		g_autoptr(XbBuilderNode) id = xb_builder_node_get_child (bn, "id", NULL);
+		if (g_strcmp0 (xb_builder_node_get_text (id), "gimp.desktop") == 0)
+			xb_builder_node_add_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE);
+	} else {
+		g_debug ("ignoring %s", xb_builder_node_get_element (bn));
+	}
+	return TRUE;
+}
+
+static void
+xb_builder_node_vfunc_remove_func (void)
+{
+	gboolean ret;
+	g_autofree gchar *xml2 = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
+	g_autoptr(XbSilo) silo = NULL;
+	const gchar *xml =
+		"  <components>\n"
+		"    <component>\n"
+		"      <id>gimp.desktop</id>\n"
+		"    </component>\n"
+		"    <component>\n"
+		"      <id>inkscape.desktop</id>\n"
+		"    </component>\n"
+		"  </components>\n";
+
+	/* import some XML */
+	ret = xb_builder_source_load_xml (source, xml, XB_BUILDER_SOURCE_FLAG_NONE, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	xb_builder_source_add_node_func (source, "RemoveGimp",
+					 xb_builder_ignore_node_cb, NULL, NULL);
+	xb_builder_import_source (builder, source);
+	silo = xb_builder_compile (builder,
+				   XB_BUILDER_COMPILE_FLAG_NONE,
+				   NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* check the XML */
+	xml2 = xb_silo_export (silo, XB_NODE_EXPORT_FLAG_NONE, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (xml2);
+	g_print ("%s\n", xml2);
+	g_assert_cmpstr ("<components>"
+			 "<component>"
+			 "<id>inkscape.desktop</id>"
+			 "</component>"
+			 "</components>", ==, xml2);
+}
+
 static void
 xb_builder_ignore_invalid_func (void)
 {
@@ -1777,6 +1838,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/builder{ensure}", xb_builder_ensure_func);
 	g_test_add_func ("/libxmlb/builder{ensure-watch-source}", xb_builder_ensure_watch_source_func);
 	g_test_add_func ("/libxmlb/builder{node-vfunc}", xb_builder_node_vfunc_func);
+	g_test_add_func ("/libxmlb/builder{node-vfunc-remove}", xb_builder_node_vfunc_remove_func);
 	g_test_add_func ("/libxmlb/builder{node-vfunc-error}", xb_builder_node_vfunc_error_func);
 	g_test_add_func ("/libxmlb/builder{ignore-invalid}", xb_builder_ignore_invalid_func);
 	g_test_add_func ("/libxmlb/builder{custom-mime}", xb_builder_custom_mime_func);

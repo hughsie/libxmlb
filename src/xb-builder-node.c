@@ -373,6 +373,11 @@ xb_builder_node_remove_child (XbBuilderNode *self, XbBuilderNode *child)
  *
  * Unlinks a #XbBuilderNode from a tree, resulting in two separate trees.
  *
+ * This should not be used from the function called by xb_builder_node_traverse()
+ * otherwise the entire tree will not be traversed.
+ *
+ * Instead use xb_builder_node_add_flag(bn,XB_BUILDER_NODE_FLAG_IGNORE);
+ *
  * Since: 0.1.1
  **/
 void
