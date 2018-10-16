@@ -177,3 +177,23 @@ xb_string_search (const gchar *text, const gchar *search)
 	}
 	return FALSE;
 }
+
+/**
+ * xb_string_escape:
+ * @str: string, e.g. `app/org.gnome.ghex/x86_64/stable`
+ *
+ * Escapes XPath control sequences such as newlines, tabs, and forward slashes.
+ *
+ * Returns: (transfer full): new string that is safe to use for queries
+ *
+ * Since: 0.1.2
+ **/
+gchar *
+xb_string_escape (const gchar *str)
+{
+	GString *tmp = g_string_new (str);
+	xb_string_replace (tmp, "/", "\\/");
+	xb_string_replace (tmp, "\t", "\\t");
+	xb_string_replace (tmp, "\n", "\\n");
+	return g_string_free (tmp, FALSE);
+}

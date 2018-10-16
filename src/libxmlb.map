@@ -129,5 +129,6 @@ LIBXMLB_0.1.2 {
     xb_builder_source_load_bytes;
     xb_silo_export_file;
     xb_string_append_union;
+    xb_string_escape;
   local: *;
 } LIBXMLB_0.1.1;
