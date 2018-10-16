@@ -65,6 +65,10 @@ xb_builder_node_add_flag (XbBuilderNode *self, XbBuilderNodeFlags flag)
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 	g_return_if_fail (XB_IS_BUILDER_NODE (self));
 	priv->flags |= flag;
+	for (guint i = 0; i < priv->children->len; i++) {
+		XbBuilderNode *c = g_ptr_array_index (priv->children, i);
+		xb_builder_node_add_flag (c, flag);
+	}
 }
 
 /**
