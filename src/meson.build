@@ -81,6 +81,12 @@ libxmlb = shared_library(
   install : true
 )
 
+libxmlb_dep = declare_dependency(
+  link_with : libxmlb,
+  include_directories : include_directories('.'),
+  dependencies : libxmlb_deps
+)
+
 xb_tool = executable(
   'xb-tool',
   sources : [

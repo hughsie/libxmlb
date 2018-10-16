@@ -128,9 +128,3 @@ if get_option('gtkdoc')
   gtkdocscan = find_program('gtkdoc-scan', required : true)
   subdir('docs')
 endif
-
-libxmlb_dep = declare_dependency(
-  link_with : libxmlb,
-  include_directories : include_directories('src'),
-  dependencies : libxmlb_deps
-)
