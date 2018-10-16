@@ -246,13 +246,13 @@ xb_builder_compile_source (XbBuilderCompileHelper *helper,
 			   GCancellable *cancellable,
 			   GError **error)
 {
-	GInputStream *istream = xb_builder_source_get_istream (source);
 	GPtrArray *children;
 	XbBuilderNode *info;
 	gsize chunk_size = 32 * 1024;
 	gssize len;
 	g_autofree gchar *data = NULL;
 	g_autofree gchar *guid = xb_builder_source_get_guid (source);
+	g_autoptr(GInputStream) istream = NULL;
 	g_autoptr(GMarkupParseContext) ctx = NULL;
 	g_autoptr(GTimer) timer = g_timer_new ();
 	g_autoptr(XbBuilderNode) root_tmp = xb_builder_node_new (NULL);
@@ -265,6 +265,11 @@ xb_builder_compile_source (XbBuilderCompileHelper *helper,
 	/* add the source to a fake root in case it fails during processing */
 	helper->current = root_tmp;
 	helper->source_flags = xb_builder_source_get_flags (source);
+
+	/* decompress */
+	istream = xb_builder_source_get_istream (source, cancellable, error);
+	if (istream == NULL)
+		return FALSE;
 
 	/* parse */
 	ctx = g_markup_parse_context_new (&parser, G_MARKUP_PREFIX_ERROR_POSITION, helper, NULL);
