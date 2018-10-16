@@ -1,3 +1,21 @@
+Version 0.1.2
+~~~~~~~~~~~~~
+Released: 2018-10-16
+
+New Features:
+ - Add support for XPath string-length() (Richard Hughes)
+ - Add xb_builder_source_load_bytes() (Richard Hughes)
+ - Add xb_silo_export_file() (Richard Hughes)
+ - Add xb_string_append_union() (Richard Hughes)
+ - Add xb_string_escape() (Richard Hughes)
+
+Bugfixes:
+ - Allow the use as meson subproject (Jan Tojnar)
+ - Do not query with the first child (Richard Hughes)
+ - Fix a crash when using xb_builder_node_set_text() in a fixup (Richard Hughes)
+ - Only run the XbBuilderSourceConverterFunc if the silo needs rebuilding (Richard Hughes)
+ - Return an error when the XPath predicate has invalid syntax (Richard Hughes)
+
 Version 0.1.1
 ~~~~~~~~~~~~~
 Released: 2018-10-11
