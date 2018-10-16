@@ -182,7 +182,7 @@ if get_option('introspection')
 endif
 
 if get_option('tests')
-  testdatadir = join_paths(meson.source_root(), 'data')
+  testdatadir = join_paths('..', 'data')
   e = executable(
     'xb-self-test',
     sources : [
