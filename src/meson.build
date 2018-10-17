@@ -1,29 +1,3 @@
-# this seems redundant, but it allows us to use libxmlb as a subproject
-if meson.project_name() != 'libxmlb'
-
-libxmlbstatic = static_library(
-  'xmlbstatic',
-  sources : [
-    'xb-builder.c',
-    'xb-builder-node.c',
-    'xb-builder-source.c',
-    'xb-machine.c',
-    'xb-node.c',
-    'xb-opcode.c',
-    'xb-silo.c',
-    'xb-silo-export.c',
-    'xb-silo-query.c',
-    'xb-stack.c',
-    'xb-string.c',
-  ],
-  include_directories : [
-    configinc,
-  ],
-  dependencies : libxmlb_deps,
-)
-
-else
-
 libxmlb_version_h = configure_file(
   input : 'xb-version.h.in',
   output : 'xb-version.h',
@@ -58,7 +32,7 @@ subdir('libxmlb')
 
 mapfile = 'libxmlb.map'
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
-libxmlb = shared_library(
+libxmlb = library(
   'xmlb',
   sources : [
     'xb-builder.c',
@@ -193,7 +167,6 @@ if get_option('introspection')
 endif
 
 if get_option('tests')
-  testdatadir = join_paths('..', 'data')
   e = executable(
     'xb-self-test',
     sources : [
@@ -215,10 +188,8 @@ if get_option('tests')
     ],
     dependencies : [
       gio,
-      uuid,
+      libxmlb_dep,
     ],
   )
   test('xb-self-test', e)
 endif
-
-endif # meson.project_name() == 'libxmlb'
