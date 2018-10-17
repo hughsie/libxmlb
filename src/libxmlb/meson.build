@@ -3,7 +3,7 @@
 # until https://github.com/mesonbuild/meson/issues/2546 is fixed
 foreach header : xb_headers
   configure_file(
-    configuration : configuration_data(),
+    copy : true,
     input : header,
     output : '@PLAINNAME@',
   )
