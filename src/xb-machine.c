@@ -13,6 +13,7 @@
 
 #include "xb-machine.h"
 #include "xb-opcode.h"
+#include "xb-string-private.h"
 
 typedef struct {
 	GObject			 parent_instance;
@@ -1229,6 +1230,181 @@ xb_machine_func_ge_cb (XbMachine *self,
 	return FALSE;
 }
 
+static gboolean
+xb_machine_func_contains_cb (XbMachine *self,
+			     GPtrArray *stack,
+			     gboolean *result,
+			     gpointer user_data,
+			     gpointer exec_data,
+			     GError **error)
+{
+	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
+	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
+
+	/* TEXT:TEXT */
+	if (xb_opcode_cmp_str (op1) && xb_opcode_cmp_str (op2)) {
+		*result = xb_string_contains (xb_opcode_get_str (op2),
+					      xb_opcode_get_str (op1));
+		return TRUE;
+	}
+
+	/* fail */
+	g_set_error (error,
+		     G_IO_ERROR,
+		     G_IO_ERROR_NOT_SUPPORTED,
+		     "%s:%s types not supported",
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op1)),
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op2)));
+	return FALSE;
+}
+
+static gboolean
+xb_machine_func_starts_with_cb (XbMachine *self,
+			        GPtrArray *stack,
+			        gboolean *result,
+			        gpointer user_data,
+			        gpointer exec_data,
+			        GError **error)
+{
+	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
+	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
+
+	/* TEXT:TEXT */
+	if (xb_opcode_cmp_str (op1) && xb_opcode_cmp_str (op2)) {
+		*result = g_str_has_prefix (xb_opcode_get_str (op2),
+					    xb_opcode_get_str (op1));
+		return TRUE;
+	}
+
+	/* fail */
+	g_set_error (error,
+		     G_IO_ERROR,
+		     G_IO_ERROR_NOT_SUPPORTED,
+		     "%s:%s types not supported",
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op1)),
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op2)));
+	return FALSE;
+}
+
+static gboolean
+xb_machine_func_ends_with_cb (XbMachine *self,
+			      GPtrArray *stack,
+			      gboolean *result,
+			      gpointer user_data,
+			      gpointer exec_data,
+			      GError **error)
+{
+	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
+	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
+
+	/* TEXT:TEXT */
+	if (xb_opcode_cmp_str (op1) && xb_opcode_cmp_str (op2)) {
+		*result = g_str_has_suffix (xb_opcode_get_str (op2),
+					    xb_opcode_get_str (op1));
+		return TRUE;
+	}
+
+	/* fail */
+	g_set_error (error,
+		     G_IO_ERROR,
+		     G_IO_ERROR_NOT_SUPPORTED,
+		     "%s:%s types not supported",
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op1)),
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op2)));
+	return FALSE;
+}
+
+static gboolean
+xb_machine_func_number_cb (XbMachine *self,
+			   GPtrArray *stack,
+			   gboolean *result,
+			   gpointer user_data,
+			   gpointer exec_data,
+			   GError **error)
+{
+	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
+
+	/* TEXT */
+	if (xb_opcode_cmp_str (op1)) {
+		guint64 val = 0;
+		if (xb_opcode_get_str (op1) == NULL) {
+			*result = FALSE;
+			return TRUE;
+		}
+		if (!g_ascii_string_to_unsigned (xb_opcode_get_str (op1),
+						 10, 0, G_MAXUINT32,
+						 &val, error)) {
+			return FALSE;
+		}
+		xb_machine_stack_push_integer (self, stack, val);
+		return TRUE;
+	}
+
+	/* fail */
+	g_set_error (error,
+		     G_IO_ERROR,
+		     G_IO_ERROR_NOT_SUPPORTED,
+		     "%s types not supported",
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op1)));
+	return FALSE;
+}
+
+static gboolean
+xb_machine_func_strlen_cb (XbMachine *self,
+			   GPtrArray *stack,
+			   gboolean *result,
+			   gpointer user_data,
+			   gpointer exec_data,
+			   GError **error)
+{
+	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
+
+	/* TEXT */
+	if (xb_opcode_cmp_str (op1)) {
+		if (xb_opcode_get_str (op1) == NULL) {
+			*result = FALSE;
+			return TRUE;
+		}
+		xb_machine_stack_push_integer (self, stack, strlen (xb_opcode_get_str (op1)));
+		return TRUE;
+	}
+
+	/* fail */
+	g_set_error (error,
+		     G_IO_ERROR,
+		     G_IO_ERROR_NOT_SUPPORTED,
+		     "%s types not supported",
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op1)));
+	return FALSE;
+}
+
+static gboolean
+xb_machine_func_string_cb (XbMachine *self,
+			   GPtrArray *stack,
+			   gboolean *result,
+			   gpointer user_data,
+			   gpointer exec_data,
+			   GError **error)
+{
+	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
+
+	/* INTE */
+	if (xb_opcode_cmp_val (op1)) {
+		gchar *tmp = g_strdup_printf ("%" G_GUINT32_FORMAT,
+					      xb_opcode_get_val (op1));
+		xb_machine_stack_push_text_steal (self, stack, tmp);
+		return TRUE;
+	}
+
+	/* fail */
+	g_set_error (error,
+		     G_IO_ERROR,
+		     G_IO_ERROR_NOT_SUPPORTED,
+		     "%s types not supported",
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op1)));
+	return FALSE;
+}
+
 static void
 xb_machine_opcode_fixup_free (XbMachineOpcodeFixupItem *item)
 {
@@ -1282,6 +1458,12 @@ xb_machine_init (XbMachine *self)
 	xb_machine_add_method (self, "not", 1, xb_machine_func_not_cb, NULL, NULL);
 	xb_machine_add_method (self, "lower-case", 1, xb_machine_func_lower_cb, NULL, NULL);
 	xb_machine_add_method (self, "upper-case", 1, xb_machine_func_upper_cb, NULL, NULL);
+	xb_machine_add_method (self, "contains", 2, xb_machine_func_contains_cb, NULL, NULL);
+	xb_machine_add_method (self, "starts-with", 2, xb_machine_func_starts_with_cb, NULL, NULL);
+	xb_machine_add_method (self, "ends-with", 2, xb_machine_func_ends_with_cb, NULL, NULL);
+	xb_machine_add_method (self, "string", 1, xb_machine_func_string_cb, NULL, NULL);
+	xb_machine_add_method (self, "number", 1, xb_machine_func_number_cb, NULL, NULL);
+	xb_machine_add_method (self, "string-length", 1, xb_machine_func_strlen_cb, NULL, NULL);
 
 	/* built-in operators */
 	xb_machine_add_operator (self, "!=", "ne");
