@@ -1,0 +1,27 @@
+/*
+ * Copyright (C) 2018 Richard Hughes <richard@hughsie.com>
+ *
+ * SPDX-License-Identifier: LGPL-2.1+
+ */
+
+#ifndef __XB_STACK_H
+#define __XB_STACK_H
+
+G_BEGIN_DECLS
+
+#include <glib-object.h>
+
+#include "xb-opcode.h"
+
+typedef struct _XbStack XbStack;
+
+GType		 xb_stack_get_type		(void);
+XbOpcode	*xb_stack_pop			(XbStack	*self);
+gboolean	 xb_stack_push			(XbStack	*self,
+						 XbOpcode	*opcode);
+gboolean	 xb_stack_push_steal		(XbStack	*self,
+						 XbOpcode	*opcode);
+
+G_END_DECLS
+
+#endif /* __XB_STACK_H */

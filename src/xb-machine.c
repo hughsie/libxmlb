@@ -13,6 +13,7 @@
 
 #include "xb-machine.h"
 #include "xb-opcode.h"
+#include "xb-stack-private.h"
 #include "xb-string-private.h"
 
 typedef struct {
@@ -22,6 +23,7 @@ typedef struct {
 	GPtrArray		*operators;	/* of XbMachineOperator */
 	GPtrArray		*text_handlers;	/* of XbMachineTextHandlerItem */
 	GHashTable		*opcode_fixup;	/* of str[XbMachineOpcodeFixupItem] */
+	guint			 stack_size;
 } XbMachinePrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (XbMachine, xb_machine, G_TYPE_OBJECT)
@@ -238,7 +240,7 @@ xb_machine_opcode_func_new (XbMachine *self, const gchar *func_name)
 
 static gboolean
 xb_machine_parse_add_func (XbMachine *self,
-			   GPtrArray *opcodes,
+			   XbStack *opcodes,
 			   const gchar *func_name,
 			   GError **error)
 {
@@ -256,13 +258,13 @@ xb_machine_parse_add_func (XbMachine *self,
 	}
 
 	/* create new opcode */
-	g_ptr_array_add (opcodes, xb_opcode_func_new (item->idx));
+	xb_stack_push_steal (opcodes, xb_opcode_func_new (item->idx));
 	return TRUE;
 }
 
 static gboolean
 xb_machine_parse_add_text_raw (XbMachine *self,
-			       GPtrArray *opcodes,
+			       XbStack *opcodes,
 			       const gchar *str,
 			       GError **error)
 {
@@ -272,7 +274,7 @@ xb_machine_parse_add_text_raw (XbMachine *self,
 
 	/* NULL is perfectly valid */
 	if (str == NULL) {
-		g_ptr_array_add (opcodes, xb_opcode_text_new_static (str));
+		xb_stack_push_steal (opcodes, xb_opcode_text_new_static (str));
 		return TRUE;
 	}
 
@@ -295,14 +297,14 @@ xb_machine_parse_add_text_raw (XbMachine *self,
 	if (text_len >= 2) {
 		if (str[0] == '\'' && str[text_len - 1] == '\'') {
 			gchar *tmp = g_strndup (str + 1, text_len - 2);
-			g_ptr_array_add (opcodes, xb_opcode_text_new_steal (tmp));
+			xb_stack_push_steal (opcodes, xb_opcode_text_new_steal (tmp));
 			return TRUE;
 		}
 	}
 
 	/* check for plain integer */
 	if (g_ascii_string_to_unsigned (str, 10, 0, G_MAXUINT32, &val, NULL)) {
-		g_ptr_array_add (opcodes, xb_opcode_integer_new (val));
+		xb_stack_push_steal (opcodes, xb_opcode_integer_new (val));
 		return TRUE;
 	}
 
@@ -316,7 +318,7 @@ xb_machine_parse_add_text_raw (XbMachine *self,
 
 static gboolean
 xb_machine_parse_add_text (XbMachine *self,
-			   GPtrArray *opcodes,
+			   XbStack *opcodes,
 			   const gchar *str,
 			   GError **error)
 {
@@ -325,7 +327,7 @@ xb_machine_parse_add_text (XbMachine *self,
 
 static gssize
 xb_machine_parse_section (XbMachine *self,
-			  GPtrArray *opcodes,
+			  XbStack *opcodes,
 			  const gchar *text,
 			  gsize start,
 			  gssize text_len,
@@ -391,12 +393,12 @@ xb_machine_parse_section (XbMachine *self,
 }
 
 static gchar *
-xb_machine_get_opcodes_sig (XbMachine *self, GPtrArray *opcodes)
+xb_machine_get_opcodes_sig (XbMachine *self, XbStack *opcodes)
 {
 	GString *str = g_string_new (NULL);
 	XbMachinePrivate *priv = GET_PRIVATE (self);
-	for (guint i = 0; i < opcodes->len; i++) {
-		XbOpcode *opcode = g_ptr_array_index (opcodes, i);
+	for (guint i = 0; i < xb_stack_get_size (opcodes); i++) {
+		XbOpcode *opcode = xb_stack_peek (opcodes, i);
 		g_assert (opcode != NULL);
 		if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_FUNCTION) {
 			XbMachineMethodItem *item;
@@ -425,7 +427,7 @@ xb_machine_get_opcodes_sig (XbMachine *self, GPtrArray *opcodes)
 
 static gboolean
 xb_machine_parse_part (XbMachine *self,
-		       GPtrArray *opcodes,
+		       XbStack *opcodes,
 		       const gchar *text,
 		       gsize start,
 		       gssize text_len,
@@ -450,11 +452,11 @@ xb_machine_parse_part (XbMachine *self,
  * and new functions and mnemonics can be added using xb_machine_add_method()
  * and xb_machine_add_text_handler().
  *
- * Returns: (transfer container) (element-type XbOpcode): opcodes, or %NULL on error
+ * Returns: (transfer full): opcodes, or %NULL on error
  *
  * Since: 0.1.1
  **/
-GPtrArray *
+XbStack *
 xb_machine_parse (XbMachine *self,
 		  const gchar *text,
 		  gssize text_len,
@@ -462,7 +464,7 @@ xb_machine_parse (XbMachine *self,
 {
 	XbMachineOpcodeFixupItem *item;
 	XbMachinePrivate *priv = GET_PRIVATE (self);
-	g_autoptr(GPtrArray) opcodes = NULL;
+	g_autoptr(XbStack) opcodes = NULL;
 	g_autofree gchar *opcodes_sig = NULL;
 
 	g_return_val_if_fail (XB_IS_MACHINE (self), NULL);
@@ -480,12 +482,12 @@ xb_machine_parse (XbMachine *self,
 	}
 
 	/* look for foo=bar */
-	opcodes = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_opcode_unref);
-	for (gssize i = 0; i < text_len && opcodes->len == 0; i++) {
+	opcodes = xb_stack_new (priv->stack_size);
+	for (gssize i = 0; i < text_len && xb_stack_get_size (opcodes) == 0; i++) {
 		for (guint j = 0; j < priv->operators->len; j++) {
 			XbMachineOperator *op = g_ptr_array_index (priv->operators, j);
 			if (strncmp (text + i, op->str, op->strsz) == 0) {
-				XbOpcode *opcode = NULL;
+				g_autoptr(XbOpcode) opcode = NULL;
 
 				/* match opcode, which should always exist */
 				opcode = xb_machine_opcode_func_new (self, op->name);
@@ -507,14 +509,21 @@ xb_machine_parse (XbMachine *self,
 							    text_len,
 							    error))
 					return NULL;
-				g_ptr_array_add (opcodes, opcode);
+				if (!xb_stack_push_steal (opcodes, g_steal_pointer (&opcode))) {
+					g_set_error (error,
+						     G_IO_ERROR,
+						     G_IO_ERROR_NOT_SUPPORTED,
+						     "stack size %u exhausted",
+						     priv->stack_size);
+					return NULL;
+				}
 				break;
 			}
 		}
 	}
 
 	/* remainder */
-	if (opcodes->len == 0) {
+	if (xb_stack_get_size (opcodes) == 0) {
 		if (!xb_machine_parse_part (self, opcodes, text, 0, text_len, error))
 			return NULL;
 	}
@@ -532,10 +541,10 @@ xb_machine_parse (XbMachine *self,
 }
 
 static void
-xb_machine_debug_show_stack (XbMachine *self, GPtrArray *stack)
+xb_machine_debug_show_stack (XbMachine *self, XbStack *stack)
 {
 	g_autofree gchar *str = NULL;
-	if (stack->len == 0) {
+	if (xb_stack_get_size (stack) == 0) {
 		g_debug ("stack is empty");
 		return;
 	}
@@ -545,7 +554,7 @@ xb_machine_debug_show_stack (XbMachine *self, GPtrArray *stack)
 
 static gboolean
 xb_machine_run_func (XbMachine *self,
-		     GPtrArray *stack,
+		     XbStack *stack,
 		     XbOpcode *opcode,
 		     gboolean *result,
 		     gpointer exec_data,
@@ -562,12 +571,12 @@ xb_machine_run_func (XbMachine *self,
 	}
 
 	/* check we have enough stack elements */
-	if (item->n_opcodes > stack->len) {
+	if (item->n_opcodes > xb_stack_get_size (stack)) {
 		g_set_error (error,
 			     G_IO_ERROR,
 			     G_IO_ERROR_NOT_SUPPORTED,
 			     "function required %u arguments, stack only has %u",
-			     item->n_opcodes, stack->len);
+			     item->n_opcodes, xb_stack_get_size (stack));
 		return FALSE;
 	}
 	if (!item->method_cb (self, stack, result, item->user_data, exec_data, error)) {
@@ -612,7 +621,7 @@ xb_machine_opcode_to_string (XbMachine *self, XbOpcode *opcode)
 /**
  * xb_machine_opcodes_to_string:
  * @self: a #XbMachine
- * @opcodes: (element-type XbOpcode): opcodes
+ * @opcodes: a #XbStack of opcodes
  *
  * Returns a string representing a set of opcodes.
  *
@@ -621,15 +630,15 @@ xb_machine_opcode_to_string (XbMachine *self, XbOpcode *opcode)
  * Since: 0.1.1
  **/
 gchar *
-xb_machine_opcodes_to_string (XbMachine *self, GPtrArray *opcodes)
+xb_machine_opcodes_to_string (XbMachine *self, XbStack *opcodes)
 {
 	GString *str = g_string_new (NULL);
 
 	g_return_val_if_fail (XB_IS_MACHINE (self), NULL);
 	g_return_val_if_fail (opcodes != NULL, NULL);
 
-	for (guint i = 0; i < opcodes->len; i++) {
-		XbOpcode *opcode = g_ptr_array_index (opcodes, i);
+	for (guint i = 0; i < xb_stack_get_size (opcodes); i++) {
+		XbOpcode *opcode = xb_stack_peek (opcodes, i);
 		g_autofree gchar *tmp = xb_machine_opcode_to_string (self, opcode);
 		g_string_append_printf (str, "%s,", tmp);
 	}
@@ -641,7 +650,7 @@ xb_machine_opcodes_to_string (XbMachine *self, GPtrArray *opcodes)
 /**
  * xb_machine_run:
  * @self: a #XbMachine
- * @opcodes: (element-type XbOpcode): opcodes
+ * @opcodes: a #XbStack of opcodes
  * @result: (out): return status after running @opcodes
  * @exec_data: per-run user data that is passed to all the XbMachineMethodFunc functions
  * @error: a #GError, or %NULL
@@ -657,21 +666,22 @@ xb_machine_opcodes_to_string (XbMachine *self, GPtrArray *opcodes)
  **/
 gboolean
 xb_machine_run (XbMachine *self,
-		GPtrArray *opcodes,
+		XbStack *opcodes,
 		gboolean *result,
 		gpointer exec_data,
 		GError **error)
 {
-	g_autoptr(GPtrArray) stack = NULL;
+	XbMachinePrivate *priv = GET_PRIVATE (self);
+	g_autoptr(XbStack) stack = NULL;
 
 	g_return_val_if_fail (XB_IS_MACHINE (self), FALSE);
 	g_return_val_if_fail (opcodes != NULL, FALSE);
 	g_return_val_if_fail (result != NULL, FALSE);
 
 	/* process each opcode */
-	stack = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_opcode_unref);
-	for (guint i = 0; i < opcodes->len; i++) {
-		XbOpcode *opcode = g_ptr_array_index (opcodes, i);
+	stack = xb_stack_new (priv->stack_size);
+	for (guint i = 0; i < xb_stack_get_size (opcodes); i++) {
+		XbOpcode *opcode = xb_stack_peek (opcodes, i);
 		XbOpcodeKind kind = xb_opcode_get_kind (opcode);
 
 		/* add to stack */
@@ -705,13 +715,13 @@ xb_machine_run (XbMachine *self,
 	}
 
 	/* the stack should have been completely consumed */
-	if (stack->len > 0) {
+	if (xb_stack_get_size (stack) > 0) {
 		g_autofree gchar *tmp = xb_machine_opcodes_to_string (self, stack);
 		g_set_error (error,
 			     G_IO_ERROR,
 			     G_IO_ERROR_INVALID_DATA,
 			     "%u opcodes remain on the stack (%s)",
-			     stack->len, tmp);
+			     xb_stack_get_size (stack), tmp);
 		return FALSE;
 	}
 
@@ -722,7 +732,7 @@ xb_machine_run (XbMachine *self,
 /**
  * xb_machine_stack_pop:
  * @self: a #XbMachine
- * @stack: (element-type XbOpcode): the working stack
+ * @stack: a #XbStack
  *
  * Pops an opcode from the stack.
  *
@@ -731,28 +741,22 @@ xb_machine_run (XbMachine *self,
  * Since: 0.1.1
  **/
 XbOpcode *
-xb_machine_stack_pop (XbMachine *self, GPtrArray *stack)
+xb_machine_stack_pop (XbMachine *self, XbStack *stack)
 {
 	XbMachinePrivate *priv = GET_PRIVATE (self);
-	XbOpcode *opcode;
-	if (stack->len == 0)
-		return NULL;
-	opcode = g_ptr_array_index (stack, stack->len - 1);
 	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
+		XbOpcode *opcode = xb_stack_peek (stack, xb_stack_get_size (stack) - 1);
 		g_autofree gchar *str = xb_machine_opcode_to_string (self, opcode);
 		g_debug ("popping: %s", str);
-	}
-	xb_opcode_ref (opcode);
-	g_ptr_array_remove_index (stack, stack->len - 1);
-	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		xb_machine_debug_show_stack (self, stack);
-	return opcode;
+	}
+	return xb_stack_pop (stack);
 }
 
 /**
  * xb_machine_stack_push:
  * @self: a #XbMachine
- * @stack: (element-type XbOpcode): the working stack
+ * @stack: a #XbStack
  * @opcode: a #XbOpcode
  *
  * Adds an opcode to the stack.
@@ -760,14 +764,14 @@ xb_machine_stack_pop (XbMachine *self, GPtrArray *stack)
  * Since: 0.1.1
  **/
 void
-xb_machine_stack_push (XbMachine *self, GPtrArray *stack, XbOpcode *opcode)
+xb_machine_stack_push (XbMachine *self, XbStack *stack, XbOpcode *opcode)
 {
 	XbMachinePrivate *priv = GET_PRIVATE (self);
 	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
 		g_autofree gchar *str = xb_machine_opcode_to_string (self, opcode);
 		g_debug ("pushing: %s", str);
 	}
-	g_ptr_array_add (stack, xb_opcode_ref (opcode));
+	xb_stack_push (stack, opcode);
 	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		xb_machine_debug_show_stack (self, stack);
 }
@@ -775,7 +779,7 @@ xb_machine_stack_push (XbMachine *self, GPtrArray *stack, XbOpcode *opcode)
 /**
  * xb_machine_stack_push_text:
  * @self: a #XbMachine
- * @stack: (element-type XbOpcode): the working stack
+ * @stack: a #XbStack
  * @str: text literal
  *
  * Adds a text literal to the stack, copying @str.
@@ -783,12 +787,12 @@ xb_machine_stack_push (XbMachine *self, GPtrArray *stack, XbOpcode *opcode)
  * Since: 0.1.1
  **/
 void
-xb_machine_stack_push_text (XbMachine *self, GPtrArray *stack, const gchar *str)
+xb_machine_stack_push_text (XbMachine *self, XbStack *stack, const gchar *str)
 {
 	XbMachinePrivate *priv = GET_PRIVATE (self);
 	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		g_debug ("pushing: %s", str);
-	g_ptr_array_add (stack, xb_opcode_text_new (str));
+	xb_stack_push_steal (stack, xb_opcode_text_new (str));
 	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		xb_machine_debug_show_stack (self, stack);
 }
@@ -796,7 +800,7 @@ xb_machine_stack_push_text (XbMachine *self, GPtrArray *stack, const gchar *str)
 /**
  * xb_machine_stack_push_text_static:
  * @self: a #XbMachine
- * @stack: (element-type XbOpcode): the working stack
+ * @stack: a #XbStack
  * @str: text literal
  *
  * Adds static text literal to the stack.
@@ -804,12 +808,12 @@ xb_machine_stack_push_text (XbMachine *self, GPtrArray *stack, const gchar *str)
  * Since: 0.1.1
  **/
 void
-xb_machine_stack_push_text_static (XbMachine *self, GPtrArray *stack, const gchar *str)
+xb_machine_stack_push_text_static (XbMachine *self, XbStack *stack, const gchar *str)
 {
 	XbMachinePrivate *priv = GET_PRIVATE (self);
 	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		g_debug ("pushing: %s", str);
-	g_ptr_array_add (stack, xb_opcode_text_new_static (str));
+	xb_stack_push_steal (stack, xb_opcode_text_new_static (str));
 	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		xb_machine_debug_show_stack (self, stack);
 }
@@ -817,7 +821,7 @@ xb_machine_stack_push_text_static (XbMachine *self, GPtrArray *stack, const gcha
 /**
  * xb_machine_stack_push_text_steal:
  * @self: a #XbMachine
- * @stack: (element-type XbOpcode): the working stack
+ * @stack: a #XbStack
  * @str: text literal
  *
  * Adds a stolen text literal to the stack.
@@ -825,12 +829,12 @@ xb_machine_stack_push_text_static (XbMachine *self, GPtrArray *stack, const gcha
  * Since: 0.1.1
  **/
 void
-xb_machine_stack_push_text_steal (XbMachine *self, GPtrArray *stack, gchar *str)
+xb_machine_stack_push_text_steal (XbMachine *self, XbStack *stack, gchar *str)
 {
 	XbMachinePrivate *priv = GET_PRIVATE (self);
 	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		g_debug ("pushing: %s", str);
-	g_ptr_array_add (stack, xb_opcode_text_new_steal (str));
+	xb_stack_push_steal (stack, xb_opcode_text_new_steal (str));
 	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		xb_machine_debug_show_stack (self, stack);
 }
@@ -838,7 +842,7 @@ xb_machine_stack_push_text_steal (XbMachine *self, GPtrArray *stack, gchar *str)
 /**
  * xb_machine_stack_push_integer:
  * @self: a #XbMachine
- * @stack: (element-type XbOpcode): the working stack
+ * @stack: a #XbStack
  * @val: interger literal
  *
  * Adds an integer literal to the stack.
@@ -846,19 +850,58 @@ xb_machine_stack_push_text_steal (XbMachine *self, GPtrArray *stack, gchar *str)
  * Since: 0.1.1
  **/
 void
-xb_machine_stack_push_integer (XbMachine *self, GPtrArray *stack, guint32 val)
+xb_machine_stack_push_integer (XbMachine *self, XbStack *stack, guint32 val)
 {
 	XbMachinePrivate *priv = GET_PRIVATE (self);
 	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		g_debug ("pushing: %u", val);
-	g_ptr_array_add (stack, xb_opcode_integer_new (val));
+	xb_stack_push_steal (stack, xb_opcode_integer_new (val));
 	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		xb_machine_debug_show_stack (self, stack);
 }
 
+/**
+ * xb_machine_set_stack_size:
+ * @self: a #XbMachine
+ * @stack_size: interger
+ *
+ * Sets the maximum stack size used for the machine.
+ *
+ * The stack size will be affective for new jobs started with xb_machine_run()
+ * and xb_machine_parse().
+ *
+ * Since: 0.1.3
+ **/
+void
+xb_machine_set_stack_size (XbMachine *self, guint stack_size)
+{
+	XbMachinePrivate *priv = GET_PRIVATE (self);
+	g_return_if_fail (XB_IS_MACHINE (self));
+	g_return_if_fail (stack_size != 0);
+	priv->stack_size = stack_size;
+}
+
+/**
+ * xb_machine_get_stack_size:
+ * @self: a #XbMachine
+ *
+ * Gets the maximum stack size used for the machine.
+ *
+ * Returns: integer
+ *
+ * Since: 0.1.3
+ **/
+guint
+xb_machine_get_stack_size (XbMachine *self)
+{
+	XbMachinePrivate *priv = GET_PRIVATE (self);
+	g_return_val_if_fail (XB_IS_MACHINE (self), 0);
+	return priv->stack_size;
+}
+
 static gboolean
 xb_machine_func_eq_cb (XbMachine *self,
-		       GPtrArray *stack,
+		       XbStack *stack,
 		       gboolean *result,
 		       gpointer user_data,
 		       gpointer exec_data,
@@ -924,7 +967,7 @@ xb_machine_func_eq_cb (XbMachine *self,
 
 static gboolean
 xb_machine_func_ne_cb (XbMachine *self,
-		       GPtrArray *stack,
+		       XbStack *stack,
 		       gboolean *result,
 		       gpointer user_data,
 		       gpointer exec_data,
@@ -974,7 +1017,7 @@ xb_machine_func_ne_cb (XbMachine *self,
 
 static gboolean
 xb_machine_func_lt_cb (XbMachine *self,
-		       GPtrArray *stack,
+		       XbStack *stack,
 		       gboolean *result,
 		       gpointer user_data,
 		       gpointer exec_data,
@@ -1023,7 +1066,7 @@ xb_machine_func_lt_cb (XbMachine *self,
 
 static gboolean
 xb_machine_func_gt_cb (XbMachine *self,
-		       GPtrArray *stack,
+		       XbStack *stack,
 		       gboolean *result,
 		       gpointer user_data,
 		       gpointer exec_data,
@@ -1073,7 +1116,7 @@ xb_machine_func_gt_cb (XbMachine *self,
 
 static gboolean
 xb_machine_func_le_cb (XbMachine *self,
-		       GPtrArray *stack,
+		       XbStack *stack,
 		       gboolean *result,
 		       gpointer user_data,
 		       gpointer exec_data,
@@ -1123,7 +1166,7 @@ xb_machine_func_le_cb (XbMachine *self,
 
 static gboolean
 xb_machine_func_lower_cb (XbMachine *self,
-			  GPtrArray *stack,
+			  XbStack *stack,
 			  gboolean *result,
 			  gpointer user_data,
 			  gpointer exec_data,
@@ -1137,7 +1180,7 @@ xb_machine_func_lower_cb (XbMachine *self,
 
 static gboolean
 xb_machine_func_upper_cb (XbMachine *self,
-			  GPtrArray *stack,
+			  XbStack *stack,
 			  gboolean *result,
 			  gpointer user_data,
 			  gpointer exec_data,
@@ -1151,7 +1194,7 @@ xb_machine_func_upper_cb (XbMachine *self,
 
 static gboolean
 xb_machine_func_not_cb (XbMachine *self,
-			GPtrArray *stack,
+			XbStack *stack,
 			gboolean *result,
 			gpointer user_data,
 			gpointer exec_data,
@@ -1182,7 +1225,7 @@ xb_machine_func_not_cb (XbMachine *self,
 
 static gboolean
 xb_machine_func_ge_cb (XbMachine *self,
-		       GPtrArray *stack,
+		       XbStack *stack,
 		       gboolean *result,
 		       gpointer user_data,
 		       gpointer exec_data,
@@ -1232,7 +1275,7 @@ xb_machine_func_ge_cb (XbMachine *self,
 
 static gboolean
 xb_machine_func_contains_cb (XbMachine *self,
-			     GPtrArray *stack,
+			     XbStack *stack,
 			     gboolean *result,
 			     gpointer user_data,
 			     gpointer exec_data,
@@ -1260,7 +1303,7 @@ xb_machine_func_contains_cb (XbMachine *self,
 
 static gboolean
 xb_machine_func_starts_with_cb (XbMachine *self,
-			        GPtrArray *stack,
+			        XbStack *stack,
 			        gboolean *result,
 			        gpointer user_data,
 			        gpointer exec_data,
@@ -1288,7 +1331,7 @@ xb_machine_func_starts_with_cb (XbMachine *self,
 
 static gboolean
 xb_machine_func_ends_with_cb (XbMachine *self,
-			      GPtrArray *stack,
+			      XbStack *stack,
 			      gboolean *result,
 			      gpointer user_data,
 			      gpointer exec_data,
@@ -1316,7 +1359,7 @@ xb_machine_func_ends_with_cb (XbMachine *self,
 
 static gboolean
 xb_machine_func_number_cb (XbMachine *self,
-			   GPtrArray *stack,
+			   XbStack *stack,
 			   gboolean *result,
 			   gpointer user_data,
 			   gpointer exec_data,
@@ -1351,7 +1394,7 @@ xb_machine_func_number_cb (XbMachine *self,
 
 static gboolean
 xb_machine_func_strlen_cb (XbMachine *self,
-			   GPtrArray *stack,
+			   XbStack *stack,
 			   gboolean *result,
 			   gpointer user_data,
 			   gpointer exec_data,
@@ -1380,7 +1423,7 @@ xb_machine_func_strlen_cb (XbMachine *self,
 
 static gboolean
 xb_machine_func_string_cb (XbMachine *self,
-			   GPtrArray *stack,
+			   XbStack *stack,
 			   gboolean *result,
 			   gpointer user_data,
 			   gpointer exec_data,
@@ -1442,6 +1485,7 @@ static void
 xb_machine_init (XbMachine *self)
 {
 	XbMachinePrivate *priv = GET_PRIVATE (self);
+	priv->stack_size = 10;
 	priv->methods = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_func_free);
 	priv->operators = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_operator_free);
 	priv->text_handlers = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_text_handler_free);

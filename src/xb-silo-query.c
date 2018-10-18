@@ -15,6 +15,7 @@
 #include "xb-opcode.h"
 #include "xb-silo-private.h"
 #include "xb-silo-query-private.h"
+#include "xb-stack-private.h"
 
 typedef enum {
 	XB_SILO_QUERY_KIND_UNKNOWN,
@@ -50,7 +51,7 @@ xb_silo_query_parse_predicate (XbSilo *self,
 			       gssize text_len,
 			       GError **error)
 {
-	GPtrArray *opcodes;
+	XbStack *opcodes;
 
 	/* parse */
 	opcodes = xb_machine_parse (xb_silo_get_machine (self), text, text_len, error);
@@ -59,7 +60,7 @@ xb_silo_query_parse_predicate (XbSilo *self,
 
 	/* create array if it does not exist */
 	if (section->predicates == NULL)
-		section->predicates = g_ptr_array_new_with_free_func ((GDestroyNotify) g_ptr_array_unref);
+		section->predicates = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_stack_unref);
 	g_ptr_array_add (section->predicates, opcodes);
 	return TRUE;
 }
@@ -198,7 +199,7 @@ xb_silo_query_node_matches (XbSilo *self,
 	/* check predicates */
 	if (section->predicates != NULL) {
 		for (guint i = 0; i < section->predicates->len; i++) {
-			GPtrArray *opcodes = g_ptr_array_index (section->predicates, i);
+			XbStack *opcodes = g_ptr_array_index (section->predicates, i);
 			if (!xb_machine_run (machine, opcodes, result, query_data, error))
 				return FALSE;
 		}

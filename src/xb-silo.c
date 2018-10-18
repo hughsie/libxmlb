@@ -16,6 +16,7 @@
 #include "xb-node-private.h"
 #include "xb-opcode.h"
 #include "xb-silo-private.h"
+#include "xb-stack.h"
 #include "xb-string-private.h"
 
 typedef struct {
@@ -848,30 +849,30 @@ xb_silo_node_create (XbSilo *self, XbSiloNode *sn)
 /* convert [2] to position()=2 */
 static gboolean
 xb_silo_machine_fixup_position_cb (XbMachine *self,
-				   GPtrArray *opcodes,
+				   XbStack *opcodes,
 				   gpointer user_data,
 				   GError **error)
 {
-	g_ptr_array_add (opcodes, xb_machine_opcode_func_new (self, "position"));
-	g_ptr_array_add (opcodes, xb_machine_opcode_func_new (self, "eq"));
+	xb_stack_push_steal (opcodes, xb_machine_opcode_func_new (self, "position"));
+	xb_stack_push_steal (opcodes, xb_machine_opcode_func_new (self, "eq"));
 	return TRUE;
 }
 
 /* convert "'type' attr()" -> "'type' attr() '(null)' ne()" */
 static gboolean
 xb_silo_machine_fixup_attr_exists_cb (XbMachine *self,
-				      GPtrArray *opcodes,
+				      XbStack *opcodes,
 				      gpointer user_data,
 				      GError **error)
 {
-	g_ptr_array_add (opcodes, xb_opcode_text_new_static (NULL));
-	g_ptr_array_add (opcodes, xb_machine_opcode_func_new (self, "ne"));
+	xb_stack_push_steal (opcodes, xb_opcode_text_new_static (NULL));
+	xb_stack_push_steal (opcodes, xb_machine_opcode_func_new (self, "ne"));
 	return TRUE;
 }
 
 static gboolean
 xb_silo_machine_func_attr_cb (XbMachine *self,
-			      GPtrArray *stack,
+			      XbStack *stack,
 			      gboolean *result,
 			      gpointer user_data,
 			      gpointer exec_data,
@@ -888,7 +889,7 @@ xb_silo_machine_func_attr_cb (XbMachine *self,
 
 static gboolean
 xb_silo_machine_func_text_cb (XbMachine *self,
-			      GPtrArray *stack,
+			      XbStack *stack,
 			      gboolean *result,
 			      gpointer user_data,
 			      gpointer exec_data,
@@ -903,7 +904,7 @@ xb_silo_machine_func_text_cb (XbMachine *self,
 
 static gboolean
 xb_silo_machine_func_first_cb (XbMachine *self,
-			       GPtrArray *stack,
+			       XbStack *stack,
 			       gboolean *result,
 			       gpointer user_data,
 			       gpointer exec_data,
@@ -916,7 +917,7 @@ xb_silo_machine_func_first_cb (XbMachine *self,
 
 static gboolean
 xb_silo_machine_func_last_cb (XbMachine *self,
-			      GPtrArray *stack,
+			      XbStack *stack,
 			      gboolean *result,
 			      gpointer user_data,
 			      gpointer exec_data,
@@ -929,7 +930,7 @@ xb_silo_machine_func_last_cb (XbMachine *self,
 
 static gboolean
 xb_silo_machine_func_position_cb (XbMachine *self,
-				  GPtrArray *stack,
+				  XbStack *stack,
 				  gboolean *result,
 				  gpointer user_data,
 				  gpointer exec_data,
@@ -942,7 +943,7 @@ xb_silo_machine_func_position_cb (XbMachine *self,
 
 static gboolean
 xb_silo_machine_func_search_cb (XbMachine *self,
-				GPtrArray *stack,
+				XbStack *stack,
 				gboolean *result,
 				gpointer user_data,
 				gpointer exec_data,
@@ -970,7 +971,7 @@ xb_silo_machine_func_search_cb (XbMachine *self,
 
 static gboolean
 xb_silo_machine_fixup_attr_text_cb (XbMachine *self,
-				    GPtrArray *opcodes,
+				    XbStack *opcodes,
 				    const gchar *text,
 				    gboolean *handled,
 				    gpointer user_data,
@@ -987,8 +988,8 @@ xb_silo_machine_fixup_attr_text_cb (XbMachine *self,
 					     "no attr opcode");
 			return FALSE;
 		}
-		g_ptr_array_add (opcodes, xb_opcode_text_new (text + 1));
-		g_ptr_array_add (opcodes, opcode);
+		xb_stack_push_steal (opcodes, xb_opcode_text_new (text + 1));
+		xb_stack_push_steal (opcodes, opcode);
 		*handled = TRUE;
 		return TRUE;
 	}

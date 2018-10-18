@@ -12,6 +12,7 @@ G_BEGIN_DECLS
 #include <glib-object.h>
 
 #include "xb-opcode.h"
+#include "xb-stack.h"
 
 #define XB_TYPE_MACHINE (xb_machine_get_type ())
 G_DECLARE_DERIVABLE_TYPE (XbMachine, xb_machine, XB, MACHINE, GObject)
@@ -45,17 +46,17 @@ typedef enum {
 } XbMachineDebugFlags;
 
 typedef gboolean (*XbMachineOpcodeFixupFunc)	(XbMachine		*self,
-						 GPtrArray		*opcodes,
+						 XbStack		*opcodes,
 						 gpointer		 user_data,
 						 GError			**error);
 typedef gboolean (*XbMachineTextHandlerFunc)	(XbMachine		*self,
-						 GPtrArray		*opcodes,
+						 XbStack		*opcodes,
 						 const gchar		*text,
 						 gboolean		*handled,
 						 gpointer		 user_data,
 						 GError			**error);
 typedef gboolean (*XbMachineMethodFunc)		(XbMachine		*self,
-						 GPtrArray		*stack,
+						 XbStack		*stack,
 						 gboolean		*result,
 						 gpointer		 exec_data,
 						 gpointer		 user_data,
@@ -64,12 +65,12 @@ typedef gboolean (*XbMachineMethodFunc)		(XbMachine		*self,
 XbMachine	*xb_machine_new			(void);
 void		 xb_machine_set_debug_flags	(XbMachine		*self,
 						 XbMachineDebugFlags	 flags);
-GPtrArray	*xb_machine_parse		(XbMachine		*self,
+XbStack		*xb_machine_parse		(XbMachine		*self,
 						 const gchar		*text,
 						 gssize			 text_len,
 						 GError			**error);
 gboolean	 xb_machine_run			(XbMachine		*self,
-						 GPtrArray		*opcodes,
+						 XbStack		*opcodes,
 						 gboolean		*result,
 						 gpointer		 exec_data,
 						 GError			**error);
@@ -98,25 +99,28 @@ XbOpcode	*xb_machine_opcode_func_new	(XbMachine		*self,
 gchar		*xb_machine_opcode_to_string	(XbMachine		*self,
 						 XbOpcode		*opcode);
 gchar		*xb_machine_opcodes_to_string	(XbMachine		*self,
-						 GPtrArray		*opcodes);
+						 XbStack		*opcodes);
 
 XbOpcode	*xb_machine_stack_pop		(XbMachine		*self,
-						 GPtrArray		*stack);
+						 XbStack		*stack);
 void		 xb_machine_stack_push		(XbMachine		*self,
-						 GPtrArray		*stack,
+						 XbStack		*stack,
 						 XbOpcode		*opcode);
 void		 xb_machine_stack_push_text	(XbMachine		*self,
-						 GPtrArray		*stack,
+						 XbStack		*stack,
 						 const gchar		*str);
 void		 xb_machine_stack_push_text_static (XbMachine		*self,
-						 GPtrArray		*stack,
+						 XbStack		*stack,
 						 const gchar		*str);
 void		 xb_machine_stack_push_text_steal (XbMachine		*self,
-						 GPtrArray		*stack,
+						 XbStack		*stack,
 						 gchar			*str);
 void		 xb_machine_stack_push_integer	(XbMachine		*self,
-						 GPtrArray		*stack,
+						 XbStack		*stack,
 						 guint32		 val);
+void		 xb_machine_set_stack_size	(XbMachine		*self,
+						 guint			 stack_size);
+guint		 xb_machine_get_stack_size	(XbMachine		*self);
 
 G_END_DECLS
 

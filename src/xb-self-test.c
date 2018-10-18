@@ -15,6 +15,7 @@
 #include "xb-silo-export.h"
 #include "xb-silo-private.h"
 #include "xb-silo-query.h"
+#include "xb-stack-private.h"
 #include "xb-string-private.h"
 
 static GMainLoop *_test_loop = NULL;
@@ -69,6 +70,37 @@ xb_test_import_xml (XbBuilder *self, const gchar *xml, GError **error)
 	return TRUE;
 }
 
+static void
+xb_stack_func (void)
+{
+	XbOpcode *op;
+	g_autoptr(XbOpcode) op1 = xb_opcode_func_new (0);
+	g_autoptr(XbOpcode) op2 = xb_opcode_integer_new (1);
+	g_autoptr(XbOpcode) op3 = xb_opcode_text_new ("dave");
+	g_autoptr(XbStack) stack = xb_stack_new (3);
+
+	/* push three opcodes */
+	g_assert_true (xb_stack_push (stack, op3));
+	g_assert_true (xb_stack_push (stack, op2));
+	g_assert_true (xb_stack_push (stack, op1));
+	g_assert_false (xb_stack_push (stack, op3));
+
+	/* pop the same opcodes */
+	op = xb_stack_pop (stack);
+	g_assert (op == op1);
+	xb_opcode_unref (op);
+	op = xb_stack_pop (stack);
+	g_assert (op == op2);
+	xb_opcode_unref (op);
+	op = xb_stack_pop (stack);
+	g_assert (op == op3);
+	xb_opcode_unref (op);
+
+	/* re-add one opcode */
+	g_assert_true (xb_stack_push (stack, op3));
+
+	/* finish, cleaning up the stack properly... */
+}
 
 static void
 xb_common_union_func (void)
@@ -180,7 +212,7 @@ xb_predicate_func (void)
 	for (guint i = 0; tests[i].pred != NULL; i++) {
 		g_autofree gchar *str = NULL;
 		g_autoptr(GError) error = NULL;
-		g_autoptr(GPtrArray) opcodes = NULL;
+		g_autoptr(XbStack) opcodes = NULL;
 
 		g_debug ("testing %s", tests[i].pred);
 		opcodes = xb_machine_parse (xb_silo_get_machine (silo), tests[i].pred, -1, &error);
@@ -192,7 +224,7 @@ xb_predicate_func (void)
 	}
 	for (guint i = 0; invalid[i] != NULL; i++) {
 		g_autoptr(GError) error = NULL;
-		g_autoptr(GPtrArray) opcodes = NULL;
+		g_autoptr(XbStack) opcodes = NULL;
 		opcodes = xb_machine_parse (xb_silo_get_machine (silo), invalid[i], -1, &error);
 		g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
 		g_assert_null (opcodes);
@@ -1829,6 +1861,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/common{union}", xb_common_union_func);
 	g_test_add_func ("/libxmlb/opcodes", xb_predicate_func);
 	g_test_add_func ("/libxmlb/opcodes{kind}", xb_opcodes_kind_func);
+	g_test_add_func ("/libxmlb/stack", xb_stack_func);
 	g_test_add_func ("/libxmlb/node{data}", xb_node_data_func);
 	g_test_add_func ("/libxmlb/builder", xb_builder_func);
 	g_test_add_func ("/libxmlb/builder{native-lang}", xb_builder_native_lang_func);

@@ -13,6 +13,7 @@ libxmlbstatic = static_library(
     'xb-silo.c',
     'xb-silo-export.c',
     'xb-silo-query.c',
+    'xb-stack.c',
     'xb-string.c',
   ],
   include_directories : [
@@ -44,6 +45,7 @@ xb_headers = files(
   'xb-silo-export.h',
   'xb-silo.h',
   'xb-silo-query.h',
+  'xb-stack.h',
   'xb-string.h',
 ) + [libxmlb_version_h]
 
@@ -68,6 +70,7 @@ libxmlb = shared_library(
     'xb-silo.c',
     'xb-silo-export.c',
     'xb-silo-query.c',
+    'xb-stack.c',
     'xb-string.c',
   ],
   soversion : lt_current,
@@ -137,6 +140,8 @@ if get_option('introspection')
       'xb-silo-export.h',
       'xb-silo-query.c',
       'xb-silo-query.h',
+      'xb-stack.c',
+      'xb-stack.h',
       'xb-string.c',
       'xb-string.h',
     ],
@@ -202,6 +207,7 @@ if get_option('tests')
       'xb-silo.c',
       'xb-silo-export.c',
       'xb-silo-query.c',
+      'xb-stack.c',
       'xb-string.c',
     ],
     include_directories : [

@@ -132,3 +132,14 @@ LIBXMLB_0.1.2 {
     xb_string_escape;
   local: *;
 } LIBXMLB_0.1.1;
+
+LIBXMLB_0.1.3 {
+  global:
+    xb_machine_get_stack_size;
+    xb_machine_set_stack_size;
+    xb_stack_get_type;
+    xb_stack_pop;
+    xb_stack_push;
+    xb_stack_push_steal;
+  local: *;
+} LIBXMLB_0.1.2;
