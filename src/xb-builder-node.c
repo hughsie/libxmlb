@@ -150,6 +150,27 @@ xb_builder_node_get_text (XbBuilderNode *self)
 	return priv->text;
 }
 
+/**
+ * xb_builder_node_get_text_as_uint:
+ * @self: a #XbBuilderNode
+ *
+ * Gets the text from the builder node.
+ *
+ * Returns: integer, or 0 if unset
+ *
+ * Since: 0.1.3
+ **/
+guint64
+xb_builder_node_get_text_as_uint (XbBuilderNode *self)
+{
+	const gchar *tmp = xb_builder_node_get_text (self);
+	if (tmp == NULL)
+		return 0;
+	if (g_str_has_prefix (tmp, "0x"))
+		return g_ascii_strtoull (tmp + 2, NULL, 16);
+	return g_ascii_strtoll (tmp, NULL, 10);
+}
+
 /* private */
 GPtrArray *
 xb_builder_node_get_attrs (XbBuilderNode *self)

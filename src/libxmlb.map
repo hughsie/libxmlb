@@ -135,6 +135,7 @@ LIBXMLB_0.1.2 {
 
 LIBXMLB_0.1.3 {
   global:
+    xb_builder_node_get_text_as_uint;
     xb_builder_node_sort_children;
     xb_machine_get_stack_size;
     xb_machine_set_stack_size;
