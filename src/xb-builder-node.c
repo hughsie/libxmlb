@@ -133,6 +133,28 @@ xb_builder_node_get_attr (XbBuilderNode *self, const gchar *name)
 }
 
 /**
+ * xb_builder_node_get_attr_as_uint:
+ * @self: a #XbBuilderNode
+ * @name: attribute name, e.g. `priority`
+ *
+ * Gets an attribute from the builder node.
+ *
+ * Returns: integer, or 0 if unset
+ *
+ * Since: 0.1.3
+ **/
+guint64
+xb_builder_node_get_attr_as_uint (XbBuilderNode *self, const gchar *name)
+{
+	const gchar *tmp = xb_builder_node_get_attr (self, name);
+	if (tmp == NULL)
+		return 0;
+	if (g_str_has_prefix (tmp, "0x"))
+		return g_ascii_strtoull (tmp + 2, NULL, 16);
+	return g_ascii_strtoll (tmp, NULL, 10);
+}
+
+/**
  * xb_builder_node_get_text:
  * @self: a #XbBuilderNode
  *

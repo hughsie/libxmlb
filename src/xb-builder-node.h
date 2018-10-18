@@ -71,6 +71,8 @@ void		 xb_builder_node_set_text	(XbBuilderNode		*self,
 						 gssize			 text_len);
 const gchar	*xb_builder_node_get_attr	(XbBuilderNode		*self,
 						 const gchar		*name);
+guint64		 xb_builder_node_get_attr_as_uint(XbBuilderNode		*self,
+						 const gchar		*name);
 void		 xb_builder_node_set_attr	(XbBuilderNode		*self,
 						 const gchar		*name,
 						 const gchar		*value);
