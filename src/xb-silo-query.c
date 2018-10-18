@@ -241,9 +241,6 @@ xb_silo_query_section_root (XbSilo *self,
 	XbSiloQueryData *query_data = helper->query_data;
 	XbSiloQuerySection *section = g_ptr_array_index (helper->sections, i);
 
-	/* set up level pointer */
-	query_data->position = 0;
-
 	/* handle parent */
 	if (section->kind == XB_SILO_QUERY_KIND_PARENT) {
 		XbSiloNode *parent;
@@ -288,6 +285,9 @@ xb_silo_query_section_root (XbSilo *self,
 			return TRUE;
 	}
 
+	/* set up level pointer */
+	query_data->position = 0;
+
 	/* continue matching children ".." */
 	do {
 		gboolean result = TRUE;
@@ -312,8 +312,10 @@ xb_silo_query_section_root (XbSilo *self,
 					break;
 			}
 		}
-		sn = xb_silo_node_get_next (self, sn);
-	} while (sn != NULL);
+		if (sn->next == 0x0)
+			break;
+		sn = xb_silo_get_node (self, sn->next);
+	} while (TRUE);
 	return TRUE;
 }
 
