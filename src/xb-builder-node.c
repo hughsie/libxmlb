@@ -541,6 +541,47 @@ xb_builder_node_traverse (XbBuilderNode *self,
 	g_critical ("order %u not supported", order);
 }
 
+typedef struct {
+	XbBuilderNodeSortFunc func;
+	gpointer user_data;
+} XbBuilderNodeSortHelper;
+
+static gint
+xb_builder_node_sort_children_cb (gconstpointer a, gconstpointer b, gpointer user_data)
+{
+	XbBuilderNodeSortHelper *helper = (XbBuilderNodeSortHelper *) user_data;
+	XbBuilderNode *bn1 = *((XbBuilderNode **) a);
+	XbBuilderNode *bn2 = *((XbBuilderNode **) b);
+	return helper->func (bn1, bn2, helper->user_data);
+}
+
+/**
+ * xb_builder_node_sort_children:
+ * @self: a #XbBuilderNode
+ * @func: (scope call): a #XbBuilderNodeSortFunc
+ * @user_data: user pointer to pass to @func, or %NULL
+ *
+ * Sorts the node children using a custom sort function.
+ *
+ * Since: 0.1.3
+ **/
+void
+xb_builder_node_sort_children (XbBuilderNode *self,
+			       XbBuilderNodeSortFunc func,
+			       gpointer user_data)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+	XbBuilderNodeSortHelper helper = {
+		.func = func,
+		.user_data = user_data,
+	};
+	g_return_if_fail (XB_IS_BUILDER_NODE (self));
+	g_return_if_fail (func != NULL);
+	g_ptr_array_sort_with_data (priv->children,
+				    xb_builder_node_sort_children_cb,
+				    &helper);
+}
+
 /* private */
 guint32
 xb_builder_node_get_offset (XbBuilderNode *self)

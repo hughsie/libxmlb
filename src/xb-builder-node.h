@@ -44,6 +44,9 @@ typedef enum {
 
 typedef gboolean (*XbBuilderNodeTraverseFunc)	(XbBuilderNode		*bn,
 						 gpointer		 user_data);
+typedef gint	 (*XbBuilderNodeSortFunc)	(XbBuilderNode		*bn1,
+						 XbBuilderNode		*bn2,
+						 gpointer		 user_data);
 
 XbBuilderNode	*xb_builder_node_new		(const gchar		*element);
 XbBuilderNode	*xb_builder_node_insert		(XbBuilderNode		*parent,
@@ -88,6 +91,9 @@ void		 xb_builder_node_traverse	(XbBuilderNode		*self,
 						 GTraverseFlags		 flags,
 						 gint			 max_depth,
 						 XbBuilderNodeTraverseFunc func,
+						 gpointer		 user_data);
+void		 xb_builder_node_sort_children	(XbBuilderNode		*self,
+						 XbBuilderNodeSortFunc	 func,
 						 gpointer		 user_data);
 
 G_END_DECLS
