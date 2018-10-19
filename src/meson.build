@@ -11,6 +11,7 @@ install_headers(
 
 xb_headers = files(
   'xb-builder.h',
+  'xb-builder-fixup.h',
   'xb-builder-node.h',
   'xb-builder-source.h',
   'xb-machine.h',
@@ -36,6 +37,7 @@ libxmlb = library(
   'xmlb',
   sources : [
     'xb-builder.c',
+    'xb-builder-fixup.c',
     'xb-builder-node.c',
     'xb-builder-source.c',
     'xb-machine.c',
@@ -98,6 +100,8 @@ if get_option('introspection')
     sources : [
       'xb-builder.c',
       'xb-builder.h',
+      'xb-builder-fixup.c',
+      'xb-builder-fixup.h',
       'xb-builder-node.c',
       'xb-builder-node.h',
       'xb-builder-source.c',
@@ -171,6 +175,8 @@ if get_option('tests')
     'xb-self-test',
     sources : [
       'xb-builder.c',
+      'xb-builder-fixup.c',
+      'xb-builder-fixup.c',
       'xb-builder-node.c',
       'xb-builder-source.c',
       'xb-machine.c',

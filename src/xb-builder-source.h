@@ -9,6 +9,7 @@
 
 #include <gio/gio.h>
 
+#include "xb-builder-fixup.h"
 #include "xb-builder-node.h"
 
 G_BEGIN_DECLS
@@ -77,7 +78,10 @@ void		 xb_builder_source_add_node_func (XbBuilderSource	*self,
 						 const gchar		*id,
 						 XbBuilderSourceNodeFunc func,
 						 gpointer		 user_data,
-						 GDestroyNotify		 user_data_free);
+						 GDestroyNotify		 user_data_free)
+G_DEPRECATED_FOR(xb_builder_source_add_fixup);
+void		 xb_builder_source_add_fixup	(XbBuilderSource	*self,
+						 XbBuilderFixup		*fixup);
 void		 xb_builder_source_add_converter (XbBuilderSource	*self,
 						 const gchar		*content_types,
 						 XbBuilderSourceConverterFunc func,

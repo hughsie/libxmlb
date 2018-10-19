@@ -11,13 +11,14 @@
 #include <gio/gio.h>
 #include <string.h>
 
+#include "xb-builder-fixup-private.h"
 #include "xb-builder-source-private.h"
 
 typedef struct {
 	GObject			 parent_instance;
 	GInputStream		*istream;
 	GFile			*file;
-	GPtrArray		*node_items;	/* of XbBuilderSourceNodeFuncItem */
+	GPtrArray		*fixups;	/* of XbBuilderFixup */
 	GPtrArray		*converters;	/* of XbBuilderSourceConverterItem */
 	XbBuilderNode		*info;
 	gchar			*guid;
@@ -28,13 +29,6 @@ typedef struct {
 
 G_DEFINE_TYPE_WITH_PRIVATE (XbBuilderSource, xb_builder_source, G_TYPE_OBJECT)
 #define GET_PRIVATE(o) (xb_builder_source_get_instance_private (o))
-
-typedef struct {
-	gchar				*id;
-	XbBuilderSourceNodeFunc		 func;
-	gpointer			 user_data;
-	GDestroyNotify			 user_data_free;
-} XbBuilderSourceNodeFuncItem;
 
 typedef struct {
 	gchar				*content_type;
@@ -249,6 +243,25 @@ xb_builder_source_load_bytes (XbBuilderSource *self,
 }
 
 /**
+ * xb_builder_source_add_fixup:
+ * @self: a #XbBuilderSource
+ * @fixup: a #XbBuilderFixup
+ *
+ * Adds a function that will get run on every #XbBuilderNode compile creates
+ * with this source.
+ *
+ * Since: 0.1.3
+ **/
+void
+xb_builder_source_add_fixup (XbBuilderSource *self, XbBuilderFixup *fixup)
+{
+	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
+	g_return_if_fail (XB_IS_BUILDER_SOURCE (self));
+	g_return_if_fail (XB_IS_BUILDER_FIXUP (fixup));
+	g_ptr_array_add (priv->fixups, g_object_ref (fixup));
+}
+
+/**
  * xb_builder_source_add_node_func:
  * @self: a #XbBuilderSource
  * @id: a text ID value, e.g. `AppStreamUpgrade`
@@ -267,19 +280,11 @@ xb_builder_source_add_node_func (XbBuilderSource *self,
 				 gpointer user_data,
 				 GDestroyNotify user_data_free)
 {
-	XbBuilderSourceNodeFuncItem *item;
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
-
-	g_return_if_fail (XB_IS_BUILDER_SOURCE (self));
-	g_return_if_fail (id != NULL);
-	g_return_if_fail (func != NULL);
-
-	item = g_slice_new0 (XbBuilderSourceNodeFuncItem);
-	item->id = g_strdup (id);
-	item->func = func;
-	item->user_data = user_data;
-	item->user_data_free = user_data_free;
-	g_ptr_array_add (priv->node_items, item);
+	g_autoptr(XbBuilderFixup) fixup = NULL;
+	/* close enough... */
+	fixup = xb_builder_fixup_new (id, (XbBuilderFixupFunc) func,
+				      user_data, user_data_free);
+	xb_builder_source_add_fixup (self, fixup);
 }
 
 /**
@@ -323,12 +328,12 @@ xb_builder_source_add_converter (XbBuilderSource *self,
 }
 
 gboolean
-xb_builder_source_funcs_node (XbBuilderSource *self, XbBuilderNode *bn, GError **error)
+xb_builder_source_fixup (XbBuilderSource *self, XbBuilderNode *bn, GError **error)
 {
 	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
-	for (guint i = 0; i < priv->node_items->len; i++) {
-		XbBuilderSourceNodeFuncItem *item = g_ptr_array_index (priv->node_items, i);
-		if (!item->func (self, bn, item->user_data, error))
+	for (guint i = 0; i < priv->fixups->len; i++) {
+		XbBuilderFixup *fixup = g_ptr_array_index (priv->fixups, i);
+		if (!xb_builder_fixup_node (fixup, bn, error))
 			return FALSE;
 	}
 	return TRUE;
@@ -355,9 +360,10 @@ xb_builder_source_get_guid (XbBuilderSource *self)
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), NULL);
 
 	/* append function IDs */
-	for (guint i = 0; i < priv->node_items->len; i++) {
-		XbBuilderSourceNodeFuncItem *item = g_ptr_array_index (priv->node_items, i);
-		g_string_append_printf (str, ":func-id=%s", item->id);
+	for (guint i = 0; i < priv->fixups->len; i++) {
+		XbBuilderFixup *fixup = g_ptr_array_index (priv->fixups, i);
+		g_string_append_printf (str, ":func-id=%s",
+					xb_builder_fixup_get_id (fixup));
 	}
 
 	/* append any info */
@@ -458,15 +464,6 @@ xb_builder_source_load_gzip_cb (XbBuilderSource *self,
 }
 
 static void
-xb_builder_source_node_func_free (XbBuilderSourceNodeFuncItem *item)
-{
-	if (item->user_data_free != NULL)
-		item->user_data_free (item->user_data);
-	g_free (item->id);
-	g_slice_free (XbBuilderSourceNodeFuncItem, item);
-}
-
-static void
 xb_builder_source_converter_free (XbBuilderSourceConverterItem *item)
 {
 	if (item->user_data_free != NULL)
@@ -487,7 +484,7 @@ xb_builder_source_finalize (GObject *obj)
 		g_object_unref (priv->info);
 	if (priv->file != NULL)
 		g_object_unref (priv->file);
-	g_ptr_array_unref (priv->node_items);
+	g_ptr_array_unref (priv->fixups);
 	g_ptr_array_unref (priv->converters);
 	g_free (priv->guid);
 	g_free (priv->prefix);
@@ -507,7 +504,7 @@ static void
 xb_builder_source_init (XbBuilderSource *self)
 {
 	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
-	priv->node_items = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_builder_source_node_func_free);
+	priv->fixups = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	priv->converters = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_builder_source_converter_free);
 
 	/* built-in types */

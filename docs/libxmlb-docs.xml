@@ -26,6 +26,7 @@
       </para>
     </partintro>
     <xi:include href="xml/xb-builder.xml"/>
+    <xi:include href="xml/xb-builder-fixup.xml"/>
     <xi:include href="xml/xb-builder-node.xml"/>
     <xi:include href="xml/xb-builder-source.xml"/>
     <xi:include href="xml/xb-machine.xml"/>

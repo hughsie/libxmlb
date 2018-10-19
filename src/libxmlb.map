@@ -135,9 +135,15 @@ LIBXMLB_0.1.2 {
 
 LIBXMLB_0.1.3 {
   global:
+    xb_builder_add_fixup;
+    xb_builder_fixup_get_max_depth;
+    xb_builder_fixup_get_type;
+    xb_builder_fixup_new;
+    xb_builder_fixup_set_max_depth;
     xb_builder_node_get_attr_as_uint;
     xb_builder_node_get_text_as_uint;
     xb_builder_node_sort_children;
+    xb_builder_source_add_fixup;
     xb_machine_get_stack_size;
     xb_machine_set_stack_size;
     xb_stack_get_type;

@@ -527,18 +527,16 @@ xb_builder_node_traverse_cb (XbBuilderNodeTraverseHelper *helper,
 	    children->len == 0)
 		return;
 
-	/* in too deep */
-	if (helper->max_depth > 0 && depth > helper->max_depth)
-		return;
-
 	/* recurse */
 	if (helper->order == G_PRE_ORDER) {
 		if (helper->func (bn, helper->user_data))
 			return;
 	}
-	for (guint i = 0; i < children->len; i++) {
-		XbBuilderNode *bc = g_ptr_array_index (children, i);
-		xb_builder_node_traverse_cb (helper, bc, depth + 1);
+	if (helper->max_depth < 0 || depth < helper->max_depth) {
+		for (guint i = 0; i < children->len; i++) {
+			XbBuilderNode *bc = g_ptr_array_index (children, i);
+			xb_builder_node_traverse_cb (helper, bc, depth + 1);
+		}
 	}
 	if (helper->order == G_POST_ORDER) {
 		if (helper->func (bn, helper->user_data))

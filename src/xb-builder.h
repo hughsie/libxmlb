@@ -9,6 +9,7 @@
 
 #include <gio/gio.h>
 
+#include "xb-builder-fixup.h"
 #include "xb-builder-source.h"
 #include "xb-builder-node.h"
 #include "xb-silo.h"
@@ -69,6 +70,8 @@ XbSilo		*xb_builder_ensure		(XbBuilder		*self,
 						 GError			**error);
 void		 xb_builder_add_locale		(XbBuilder		*self,
 						 const gchar		*locale);
+void		 xb_builder_add_fixup		(XbBuilder		*self,
+						 XbBuilderFixup		*fixup);
 void		 xb_builder_set_profile_flags	(XbBuilder		*self,
 						 XbSiloProfileFlags	 profile_flags);
 

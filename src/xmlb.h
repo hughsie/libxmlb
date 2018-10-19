@@ -10,6 +10,7 @@
 #define __LIBXMLB_H_INSIDE__
 
 #include <libxmlb/xb-builder.h>
+#include <libxmlb/xb-builder-fixup.h>
 #include <libxmlb/xb-builder-node.h>
 #include <libxmlb/xb-builder-source.h>
 #include <libxmlb/xb-machine.h>

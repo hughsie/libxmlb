@@ -13,6 +13,7 @@
 
 #include "xb-silo-private.h"
 #include "xb-builder.h"
+#include "xb-builder-fixup-private.h"
 #include "xb-builder-source-private.h"
 #include "xb-builder-node-private.h"
 
@@ -20,6 +21,7 @@ typedef struct {
 	GObject			 parent_instance;
 	GPtrArray		*sources;	/* of XbBuilderSource */
 	GPtrArray		*nodes;		/* of XbBuilderNode */
+	GPtrArray		*fixups;	/* of XbBuilderFixup */
 	GPtrArray		*locales;	/* of str */
 	XbSilo			*silo;
 	XbSiloProfileFlags	 profile_flags;
@@ -195,50 +197,6 @@ xb_builder_import_source (XbBuilder *self, XbBuilderSource *source)
 	g_ptr_array_add (priv->sources, g_object_ref (source));
 }
 
-typedef struct {
-	XbBuilderSource	*source;
-	gboolean	 ret;
-	GError		*error;
-} XbBuilderNodeFuncHelper;
-
-static gboolean
-xb_builder_node_func_cb (XbBuilderNode *bn, gpointer data)
-{
-	XbBuilderNodeFuncHelper *helper = (XbBuilderNodeFuncHelper *) data;
-
-	/* root node */
-	if (xb_builder_node_get_element (bn) == NULL)
-		return FALSE;
-
-	/* run all node funcs on the source */
-	if (!xb_builder_source_funcs_node (helper->source, bn, &helper->error)) {
-		helper->ret = FALSE;
-		return TRUE;
-	}
-
-	/* keep going */
-	return FALSE;
-}
-
-static gboolean
-xb_builder_node_func_call (XbBuilderSource *source, XbBuilderNode *bn, GError **error)
-{
-	XbBuilderNodeFuncHelper helper = {
-		.source = source,
-		.ret = TRUE,
-		.error = NULL,
-	};
-
-	/* call the builder node vfuncs */
-	xb_builder_node_traverse (bn, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
-				  xb_builder_node_func_cb, &helper);
-	if (!helper.ret) {
-		g_propagate_error (error, helper.error);
-		return FALSE;
-	}
-	return TRUE;
-}
-
 static gboolean
 xb_builder_compile_source (XbBuilderCompileHelper *helper,
 			   XbBuilderSource *source,
@@ -295,7 +253,7 @@ xb_builder_compile_source (XbBuilderCompileHelper *helper,
 	}
 
 	/* run any node functions */
-	if (!xb_builder_node_func_call (source, root_tmp, error))
+	if (!xb_builder_source_fixup (source, root_tmp, error))
 		return FALSE;
 
 	/* this is something we can query with later */
@@ -808,6 +766,13 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 			return NULL;
 	}
 
+	/* run any node functions */
+	for (guint i = 0; i < priv->fixups->len; i++) {
+		XbBuilderFixup *fixup = g_ptr_array_index (priv->fixups, i);
+		if (!xb_builder_fixup_node (fixup, helper->root, error))
+			return FALSE;
+	}
+
 	/* only include the highest priority translation */
 	if (flags & XB_BUILDER_COMPILE_FLAG_SINGLE_LANG) {
 		xb_builder_node_traverse (helper->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
@@ -1015,6 +980,32 @@ xb_builder_set_profile_flags (XbBuilder *self, XbSiloProfileFlags profile_flags)
 	xb_silo_set_profile_flags (priv->silo, profile_flags);
 }
 
+/**
+ * xb_builder_add_fixup:
+ * @self: a #XbBuilder
+ * @fixup: a #XbBuilderFixup
+ *
+ * Adds a function that will get run on every #XbBuilderNode compile creates
+ * for the silo. This is run after all the #XbBuilderSource fixups have been
+ * run.
+ *
+ * Since: 0.1.3
+ **/
+void
+xb_builder_add_fixup (XbBuilder *self, XbBuilderFixup *fixup)
+{
+	XbBuilderPrivate *priv = GET_PRIVATE (self);
+	g_autofree gchar *guid = NULL;
+
+	g_return_if_fail (XB_IS_BUILDER (self));
+	g_return_if_fail (XB_IS_BUILDER_FIXUP (fixup));
+
+	/* append function IDs */
+	guid = g_strdup_printf ("func-id=%s", xb_builder_fixup_get_id (fixup));
+	xb_builder_append_guid (self, guid);
+	g_ptr_array_add (priv->fixups, g_object_ref (fixup));
+}
+
 static void
 xb_builder_finalize (GObject *obj)
 {
@@ -1024,6 +1015,7 @@ xb_builder_finalize (GObject *obj)
 	g_ptr_array_unref (priv->sources);
 	g_ptr_array_unref (priv->nodes);
 	g_ptr_array_unref (priv->locales);
+	g_ptr_array_unref (priv->fixups);
 	g_object_unref (priv->silo);
 	g_string_free (priv->guid, TRUE);
 
@@ -1043,6 +1035,7 @@ xb_builder_init (XbBuilder *self)
 	XbBuilderPrivate *priv = GET_PRIVATE (self);
 	priv->sources = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	priv->nodes = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+	priv->fixups = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	priv->locales = g_ptr_array_new_with_free_func (g_free);
 	priv->silo = xb_silo_new ();
 	priv->guid = g_string_new (NULL);

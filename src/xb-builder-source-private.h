@@ -21,7 +21,7 @@ GInputStream	*xb_builder_source_get_istream	(XbBuilderSource	*self,
 						 GCancellable		*cancellable,
 						 GError			**error);
 GFile		*xb_builder_source_get_file	(XbBuilderSource	*self);
-gboolean	 xb_builder_source_funcs_node	(XbBuilderSource	*self,
+gboolean	 xb_builder_source_fixup	(XbBuilderSource	*self,
 						 XbBuilderNode		*bn,
 						 GError			**error);
 XbBuilderSourceFlags xb_builder_source_get_flags(XbBuilderSource	*self);
