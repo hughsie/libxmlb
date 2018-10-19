@@ -86,6 +86,22 @@ xb_builder_fixup_get_id (XbBuilderFixup *self)
 	return priv->id;
 }
 
+/* private */
+gchar *
+xb_builder_fixup_get_guid (XbBuilderFixup *self)
+{
+	GString *str = g_string_new ("func-id=");
+	XbBuilderFixupPrivate *priv = GET_PRIVATE (self);
+
+	g_return_val_if_fail (XB_IS_BUILDER_FIXUP (self), 0);
+
+	/* build GUID using ID and max-depth, if set */
+	g_string_append (str, priv->id);
+	if (priv->max_depth != -1)
+		g_string_append_printf (str, "@%i", priv->max_depth);
+	return g_string_free (str, FALSE);
+}
+
 /**
  * xb_builder_fixup_get_max_depth:
  * @self: a #XbBuilderFixup

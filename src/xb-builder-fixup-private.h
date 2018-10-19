@@ -17,6 +17,7 @@ gboolean	 xb_builder_fixup_node		(XbBuilderFixup		*self,
 						 XbBuilderNode		*bn,
 						 GError			**error);
 const gchar	*xb_builder_fixup_get_id	(XbBuilderFixup		*self);
+gchar		*xb_builder_fixup_get_guid	(XbBuilderFixup		*self);
 
 G_END_DECLS
 

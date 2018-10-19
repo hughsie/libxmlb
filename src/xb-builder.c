@@ -1001,7 +1001,7 @@ xb_builder_add_fixup (XbBuilder *self, XbBuilderFixup *fixup)
 	g_return_if_fail (XB_IS_BUILDER_FIXUP (fixup));
 
 	/* append function IDs */
-	guid = g_strdup_printf ("func-id=%s", xb_builder_fixup_get_id (fixup));
+	guid = xb_builder_fixup_get_guid (fixup);
 	xb_builder_append_guid (self, guid);
 	g_ptr_array_add (priv->fixups, g_object_ref (fixup));
 }

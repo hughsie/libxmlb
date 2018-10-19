@@ -362,8 +362,8 @@ xb_builder_source_get_guid (XbBuilderSource *self)
 	/* append function IDs */
 	for (guint i = 0; i < priv->fixups->len; i++) {
 		XbBuilderFixup *fixup = g_ptr_array_index (priv->fixups, i);
-		g_string_append_printf (str, ":func-id=%s",
-					xb_builder_fixup_get_id (fixup));
+		g_autofree gchar *tmp = xb_builder_fixup_get_guid (fixup);
+		g_string_append_printf (str, ":%s", tmp);
 	}
 
 	/* append any info */
