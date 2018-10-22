@@ -152,3 +152,11 @@ LIBXMLB_0.1.3 {
     xb_stack_push_steal;
   local: *;
 } LIBXMLB_0.1.2;
+
+LIBXMLB_0.1.4 {
+  global:
+    xb_query_get_type;
+    xb_query_get_xpath;
+    xb_query_new;
+  local: *;
+} LIBXMLB_0.1.3;

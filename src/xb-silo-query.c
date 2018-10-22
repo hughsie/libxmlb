@@ -16,172 +16,13 @@
 #include "xb-silo-private.h"
 #include "xb-silo-query-private.h"
 #include "xb-stack-private.h"
-
-typedef enum {
-	XB_SILO_QUERY_KIND_UNKNOWN,
-	XB_SILO_QUERY_KIND_WILDCARD,
-	XB_SILO_QUERY_KIND_PARENT,
-	XB_SILO_QUERY_KIND_LAST
-} XbSiloQueryKind;
-
-typedef struct {
-	gchar		*element;
-	guint32		 element_idx;
-	GPtrArray	*predicates;
-	gboolean	 is_wildcard;
-	gboolean	 is_parent;
-	XbSiloQueryKind	 kind;
-} XbSiloQuerySection;
-
-static void
-xb_silo_query_section_free (XbSiloQuerySection *section)
-{
-	if (section->predicates != NULL)
-		g_ptr_array_unref (section->predicates);
-	g_free (section->element);
-	g_slice_free (XbSiloQuerySection, section);
-}
-
-G_DEFINE_AUTOPTR_CLEANUP_FUNC(XbSiloQuerySection, xb_silo_query_section_free)
-
-static gboolean
-xb_silo_query_parse_predicate (XbSilo *self,
-			       XbSiloQuerySection *section,
-			       const gchar *text,
-			       gssize text_len,
-			       GError **error)
-{
-	XbStack *opcodes;
-
-	/* parse */
-	opcodes = xb_machine_parse (xb_silo_get_machine (self), text, text_len, error);
-	if (opcodes == NULL)
-		return FALSE;
-
-	/* create array if it does not exist */
-	if (section->predicates == NULL)
-		section->predicates = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_stack_unref);
-	g_ptr_array_add (section->predicates, opcodes);
-	return TRUE;
-}
-
-static XbSiloQuerySection *
-xb_silo_query_parse_section (XbSilo *self, const gchar *xpath, GError **error)
-{
-	g_autoptr(XbSiloQuerySection) section = g_slice_new0 (XbSiloQuerySection);
-	guint start = 0;
-
-	/* common XPath parts */
-	if (g_strcmp0 (xpath, "parent::*") == 0 ||
-	    g_strcmp0 (xpath, "..") == 0) {
-		section->kind = XB_SILO_QUERY_KIND_PARENT;
-		return g_steal_pointer (&section);
-	}
-
-	/* parse element and predicate */
-	for (guint i = 0; xpath[i] != '\0'; i++) {
-		if (start == 0 && xpath[i] == '[') {
-			if (section->element == NULL)
-				section->element = g_strndup (xpath, i);
-			start = i;
-			continue;
-		}
-		if (start > 0 && xpath[i] == ']') {
-			if (!xb_silo_query_parse_predicate (self,
-							    section,
-							    xpath + start + 1,
-							    i - start - 1,
-							    error)) {
-				return NULL;
-			}
-			start = 0;
-			continue;
-		}
-	}
-
-	/* incomplete predicate */
-	if (start != 0) {
-		g_set_error (error,
-			     G_IO_ERROR,
-			     G_IO_ERROR_INVALID_ARGUMENT,
-			     "predicate %s was unfinished, missing ']'",
-			     xpath + start);
-		return NULL;
-	}
-
-	if (section->element == NULL)
-		section->element = g_strdup (xpath);
-	if (g_strcmp0 (section->element, "child::*") == 0 ||
-	    g_strcmp0 (section->element, "*") == 0) {
-		section->kind = XB_SILO_QUERY_KIND_WILDCARD;
-		return g_steal_pointer (&section);
-	}
-	section->element_idx = xb_silo_get_strtab_idx (self, section->element);
-	if (section->element_idx == XB_SILO_UNSET) {
-		g_set_error (error,
-			     G_IO_ERROR,
-			     G_IO_ERROR_INVALID_ARGUMENT,
-			     "element name %s is unknown in silo",
-			     section->element);
-		return NULL;
-	}
-	return g_steal_pointer (&section);
-}
-
-static GPtrArray *
-xb_silo_query_parse_sections (XbSilo *self, const gchar *xpath, GError **error)
-{
-	XbSiloQuerySection *section;
-	g_autoptr(GPtrArray) sections = NULL;
-	g_autoptr(GString) acc = g_string_new (NULL);
-
-//	g_debug ("parsing XPath %s", xpath);
-	sections = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_silo_query_section_free);
-	for (gsize i = 0; xpath[i] != '\0'; i++) {
-
-		/* escaped chars */
-		if (xpath[i] == '\\') {
-			if (xpath[i+1] == '/' ||
-			    xpath[i+1] == 't' ||
-			    xpath[i+1] == 'n') {
-				g_string_append_c (acc, xpath[i+1]);
-				i += 1;
-				continue;
-			}
-		}
-
-		/* split */
-		if (xpath[i] == '/') {
-			if (acc->len == 0) {
-				g_set_error_literal (error,
-						     G_IO_ERROR,
-						     G_IO_ERROR_NOT_FOUND,
-						     "xpath section empty");
-				return NULL;
-			}
-			section = xb_silo_query_parse_section (self, acc->str, error);
-			if (section == NULL)
-				return NULL;
-			g_ptr_array_add (sections, section);
-			g_string_truncate (acc, 0);
-			continue;
-		}
-		g_string_append_c (acc, xpath[i]);
-	}
-
-	/* add any remaining section */
-	section = xb_silo_query_parse_section (self, acc->str, error);
-	if (section == NULL)
-		return NULL;
-	g_ptr_array_add (sections, section);
-	return g_steal_pointer (&sections);
-}
+#include "xb-query-private.h"
 
 static gboolean
 xb_silo_query_node_matches (XbSilo *self,
 			    XbMachine *machine,
 			    XbSiloNode *sn,
-			    XbSiloQuerySection *section,
+			    XbQuerySection *section,
 			    XbSiloQueryData *query_data,
 			    gboolean *result,
 			    GError **error)
@@ -210,7 +51,7 @@ xb_silo_query_node_matches (XbSilo *self,
 }
 
 typedef struct {
-	GPtrArray	*sections;	/* of XbSiloQuerySection */
+	GPtrArray	*sections;	/* of XbQuerySection */
 	GPtrArray	*results;	/* of XbNode */
 	GHashTable	*results_hash;	/* of sn:1 */
 	guint		 limit;
@@ -239,7 +80,7 @@ xb_silo_query_section_root (XbSilo *self,
 {
 	XbMachine *machine = xb_silo_get_machine (self);
 	XbSiloQueryData *query_data = helper->query_data;
-	XbSiloQuerySection *section = g_ptr_array_index (helper->sections, i);
+	XbQuerySection *section = g_ptr_array_index (helper->sections, i);
 
 	/* handle parent */
 	if (section->kind == XB_SILO_QUERY_KIND_PARENT) {
@@ -324,12 +165,11 @@ xb_silo_query_part (XbSilo *self,
 		    XbSiloNode *sroot,
 		    GPtrArray *results,
 		    GHashTable *results_hash,
-		    const gchar *xpath,
+		    XbQuery *query,
 		    guint limit,
 		    XbSiloQueryData *query_data,
 		    GError **error)
 {
-	g_autoptr(GPtrArray) sections = NULL;
 	XbSiloQueryHelper helper = {
 		.results = results,
 		.limit = limit,
@@ -337,21 +177,8 @@ xb_silo_query_part (XbSilo *self,
 		.query_data = query_data,
 	};
 
-	/* handle each section */
-	sections = xb_silo_query_parse_sections (self, xpath, error);
-	if (sections == NULL)
-		return FALSE;
-	if (sections->len == 0) {
-		g_set_error (error,
-			     G_IO_ERROR,
-			     G_IO_ERROR_NOT_SUPPORTED,
-			     "No query sections for '%s'",
-			     xpath);
-		return FALSE;
-	}
-
 	/* find each section */
-	helper.sections = sections;
+	helper.sections = xb_query_get_sections (query);
 	return xb_silo_query_section_root (self, sroot, 0, &helper, error);
 }
 
@@ -419,10 +246,8 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 	split = g_strsplit (xpath, "|", -1);
 	for (guint i = 0; split[i] != NULL; i++) {
 		g_autoptr(GError) error_local = NULL;
-		if (!xb_silo_query_part (self, sn,
-					 results, results_hash,
-					 split[i], limit, &query_data,
-					 &error_local)) {
+		g_autoptr(XbQuery) query = xb_query_new (self, split[i], &error_local);
+		if (query == NULL) {
 			if (g_error_matches (error_local, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT) &&
 			    (split[i + 1] != NULL || results->len > 0)) {
 				g_debug ("ignoring for OR statement: %s",
@@ -434,6 +259,12 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 						    "failed to process %s: ",
 						    xpath);
 			return NULL;
+		}
+		if (!xb_silo_query_part (self, sn,
+					 results, results_hash,
+					 query, limit, &query_data,
+					 error)) {
+			return FALSE;
 		}
 	}
 

@@ -7,3 +7,4 @@ xb_builder_get_type
 xb_builder_fixup_get_type
 xb_builder_node_get_type
 xb_builder_source_get_type
+xb_query_get_type
