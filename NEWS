@@ -1,3 +1,19 @@
+Version 0.1.3
+~~~~~~~~~~~~~
+Released: 2018-10-22
+
+New Features:
+ - Add XbBuilderFixup (Richard Hughes)
+ - Add xb_builder_node_get_attr_as_uint() (Richard Hughes)
+ - Add xb_builder_node_get_text_as_uint() (Richard Hughes)
+ - Add xb_builder_node_sort_children() (Richard Hughes)
+
+Bugfixes:
+ - Allow being used as a meson subproject (Jan Tojnar)
+ - Fix compiling on Ubuntu Xenial (Richard Hughes)
+ - Switch from GPtrArray to XbStack for performance reasons (Richard Hughes)
+ - Update meson relro checks (Jan Tojnar)
+
 Version 0.1.2
 ~~~~~~~~~~~~~
 Released: 2018-10-16
