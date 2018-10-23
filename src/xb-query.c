@@ -20,6 +20,7 @@ typedef struct {
 	GPtrArray		*sections;		/* of XbQuerySection */
 	XbSilo			*silo;
 	gchar			*xpath;
+	guint			 limit;
 } XbQueryPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (XbQuery, xb_query, G_TYPE_OBJECT)
@@ -59,6 +60,41 @@ xb_query_get_xpath (XbQuery *self)
 	XbQueryPrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_QUERY (self), NULL);
 	return priv->xpath;
+}
+
+/**
+ * xb_query_get_limit:
+ * @self: a #XbQuery
+ *
+ * Gets the results limit on this query, where 0 is 'all'.
+ *
+ * Returns: integer, default 0
+ *
+ * Since: 0.1.4
+ **/
+guint
+xb_query_get_limit (XbQuery *self)
+{
+	XbQueryPrivate *priv = GET_PRIVATE (self);
+	g_return_val_if_fail (XB_IS_QUERY (self), 0);
+	return priv->limit;
+}
+
+/**
+ * xb_query_set_limit:
+ * @self: a #XbQuery
+ * @limit: integer
+ *
+ * Sets the results limit on this query, where 0 is 'all'.
+ *
+ * Since: 0.1.4
+ **/
+void
+xb_query_set_limit (XbQuery *self, guint limit)
+{
+	XbQueryPrivate *priv = GET_PRIVATE (self);
+	g_return_if_fail (XB_IS_QUERY (self));
+	priv->limit = limit;
 }
 
 static void

@@ -32,6 +32,9 @@ XbQuery		*xb_query_new			(XbSilo		*silo,
 						 const gchar	*xpath,
 						 GError		**error);
 const gchar	*xb_query_get_xpath		(XbQuery	*self);
+guint		 xb_query_get_limit		(XbQuery	*self);
+void		 xb_query_set_limit		(XbQuery	*self,
+						 guint		 limit);
 
 G_END_DECLS
 
