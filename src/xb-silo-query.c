@@ -166,13 +166,12 @@ xb_silo_query_part (XbSilo *self,
 		    GPtrArray *results,
 		    GHashTable *results_hash,
 		    XbQuery *query,
-		    guint limit,
 		    XbSiloQueryData *query_data,
 		    GError **error)
 {
 	XbSiloQueryHelper helper = {
 		.results = results,
-		.limit = limit,
+		.limit = xb_query_get_limit (query),
 		.results_hash = results_hash,
 		.query_data = query_data,
 	};
@@ -260,9 +259,10 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 						    xpath);
 			return NULL;
 		}
+		xb_query_set_limit (query, limit);
 		if (!xb_silo_query_part (self, sn,
 					 results, results_hash,
-					 query, limit, &query_data,
+					 query, &query_data,
 					 error)) {
 			return FALSE;
 		}
@@ -283,6 +283,80 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 			     G_IO_ERROR_NOT_FOUND,
 			     "no results for XPath query '%s'",
 			     xpath);
+		return NULL;
+	}
+	return g_steal_pointer (&results);
+}
+
+/**
+ * xb_silo_query_full: (skip)
+ * @self: a #XbSilo
+ * @n: a #XbNode
+ * @query: an #XbQuery
+ * @limit: maximum number of results to return, or 0 for "all"
+ * @error: the #GError, or %NULL
+ *
+ * Searches the silo using an XPath query, returning up to @limit results.
+ *
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbSilo.
+ *
+ * Please note: Only a subset of XPath is supported.
+ *
+ * Returns: (transfer container) (element-type XbNode): results, or %NULL if unfound
+ *
+ * Since: 0.1.4
+ **/
+GPtrArray *
+xb_silo_query_full (XbSilo *self, XbNode *n, XbQuery *query, GError **error)
+{
+	XbSiloNode *sn = NULL;
+	g_autoptr(GHashTable) results_hash = g_hash_table_new (g_direct_hash, g_direct_equal);
+	g_autoptr(GPtrArray) results = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+	g_autoptr(GTimer) timer = g_timer_new ();
+	XbSiloQueryData query_data = {
+		.sn = NULL,
+		.position = 0,
+	};
+
+	g_return_val_if_fail (XB_IS_SILO (self), NULL);
+	g_return_val_if_fail (XB_IS_QUERY (query), NULL);
+
+	/* empty silo */
+	if (xb_silo_is_empty (self)) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_NOT_FOUND,
+				     "silo has no data");
+		return NULL;
+	}
+
+	/* subtree query */
+	if (n != NULL)
+		sn = xb_node_get_sn (n);
+
+	/* only one query allowed */
+	if (!xb_silo_query_part (self, sn, results, results_hash,
+				 query, &query_data, error))
+		return FALSE;
+
+	/* profile */
+	if (xb_silo_get_profile_flags (self) & XB_SILO_PROFILE_FLAG_XPATH) {
+		xb_silo_add_profile (self, timer,
+				     "query on %s with `%s` limit=%u -> %u results",
+				     n != NULL ? xb_node_get_element (n) : "/",
+				     xb_query_get_xpath (query),
+				     xb_query_get_limit (query),
+				     results->len);
+	}
+
+	/* nothing found */
+	if (results->len == 0) {
+		g_set_error (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_NOT_FOUND,
+			     "no results for XPath query '%s'",
+			     xb_query_get_xpath (query));
 		return NULL;
 	}
 	return g_steal_pointer (&results);

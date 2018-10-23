@@ -15,6 +15,7 @@
 #include <libxmlb/xb-builder-source.h>
 #include <libxmlb/xb-machine.h>
 #include <libxmlb/xb-node.h>
+#include <libxmlb/xb-node-query.h>
 #include <libxmlb/xb-opcode.h>
 #include <libxmlb/xb-silo-export.h>
 #include <libxmlb/xb-silo.h>

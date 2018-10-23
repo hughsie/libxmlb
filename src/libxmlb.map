@@ -155,6 +155,7 @@ LIBXMLB_0.1.3 {
 
 LIBXMLB_0.1.4 {
   global:
+    xb_node_query_full;
     xb_query_get_limit;
     xb_query_get_type;
     xb_query_get_xpath;

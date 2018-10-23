@@ -11,6 +11,7 @@
 #include "xb-builder.h"
 #include "xb-builder-node.h"
 #include "xb-machine.h"
+#include "xb-node-query.h"
 #include "xb-opcode.h"
 #include "xb-silo-export.h"
 #include "xb-silo-private.h"
