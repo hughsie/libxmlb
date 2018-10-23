@@ -11,6 +11,7 @@
 #include <gio/gio.h>
 
 #include "xb-machine.h"
+#include "xb-opcode-private.h"
 #include "xb-query-private.h"
 #include "xb-silo-private.h"
 #include "xb-stack-private.h"
@@ -95,6 +96,96 @@ xb_query_set_limit (XbQuery *self, guint limit)
 	XbQueryPrivate *priv = GET_PRIVATE (self);
 	g_return_if_fail (XB_IS_QUERY (self));
 	priv->limit = limit;
+}
+
+static XbOpcode *
+xb_query_get_bound_opcode (XbQuery *self, guint idx)
+{
+	XbQueryPrivate *priv = GET_PRIVATE (self);
+	guint idx_cnt = 0;
+
+	for (guint i = 0; i < priv->sections->len; i++) {
+		XbQuerySection *section = g_ptr_array_index (priv->sections, i);
+		if (section->predicates == NULL)
+			continue;
+		for (guint j = 0; j < section->predicates->len; j++) {
+			XbStack *stack = g_ptr_array_index (section->predicates, j);
+			for (guint k = 0; k < xb_stack_get_size (stack); k++) {
+				XbOpcode *op = xb_stack_peek (stack, k);
+				if (xb_opcode_is_bound (op)) {
+					if (idx == idx_cnt++)
+						return op;
+				}
+			}
+		}
+	}
+	return NULL;
+}
+
+/**
+ * xb_query_bind_str:
+ * @self: a #XbQuery
+ * @idx: an integer index
+ * @str: string to assign to the bound variable
+ * @error: a #GError, or %NULL
+ *
+ * Assigns a string to a bound value specified using `?`.
+ *
+ * Returns: %TRUE if the @idx existed
+ *
+ * Since: 0.1.4
+ **/
+gboolean
+xb_query_bind_str (XbQuery *self, guint idx, const gchar *str, GError **error)
+{
+	XbOpcode *op;
+
+	g_return_val_if_fail (XB_IS_QUERY (self), FALSE);
+
+	/* get the correct opcode */
+	op = xb_query_get_bound_opcode (self, idx);
+	if (op == NULL) {
+		g_set_error (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_INVALID_ARGUMENT,
+			     "no bound opcode with index %u", idx);
+		return FALSE;
+	}
+	xb_opcode_bind_str (op, str, NULL);
+	return TRUE;
+}
+
+/**
+ * xb_query_bind_val:
+ * @self: a #XbQuery
+ * @idx: an integer index
+ * @val: value to assign to the bound variable
+ * @error: a #GError, or %NULL
+ *
+ * Assigns a string to a bound value specified using `?`.
+ *
+ * Returns: %TRUE if the @idx existed
+ *
+ * Since: 0.1.4
+ **/
+gboolean
+xb_query_bind_val (XbQuery *self, guint idx, guint32 val, GError **error)
+{
+	XbOpcode *op;
+
+	g_return_val_if_fail (XB_IS_QUERY (self), FALSE);
+
+	/* get the correct opcode */
+	op = xb_query_get_bound_opcode (self, idx);
+	if (op == NULL) {
+		g_set_error (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_INVALID_ARGUMENT,
+			     "no bound opcode with index %u", idx);
+		return FALSE;
+	}
+	xb_opcode_bind_val (op, val);
+	return TRUE;
 }
 
 static void

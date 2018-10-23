@@ -16,7 +16,7 @@
 #endif
 
 #include "xb-machine.h"
-#include "xb-opcode.h"
+#include "xb-opcode-private.h"
 #include "xb-stack-private.h"
 #include "xb-string-private.h"
 
@@ -372,6 +372,12 @@ xb_machine_parse_add_text_raw (XbMachine *self,
 		}
 	}
 
+	/* bind variables */
+	if (g_strcmp0 (str, "?") == 0) {
+		xb_stack_push_steal (opcodes, xb_opcode_bind_new ());
+		return TRUE;
+	}
+
 	/* check for plain integer */
 	if (g_ascii_string_to_unsigned (str, 10, 0, G_MAXUINT32, &val, NULL)) {
 		xb_stack_push_steal (opcodes, xb_opcode_integer_new (val));
@@ -486,6 +492,10 @@ xb_machine_get_opcodes_sig (XbMachine *self, XbStack *opcodes)
 		}
 		if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_INTEGER) {
 			g_string_append (str, "INTE,");
+			continue;
+		}
+		if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_BIND) {
+			g_string_append (str, "BIND,");
 			continue;
 		}
 		g_critical ("unknown type");
@@ -684,6 +694,12 @@ xb_machine_opcode_to_string (XbMachine *self, XbOpcode *opcode)
 		return g_strdup_printf ("'%s'", xb_opcode_get_str (opcode));
 	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_INTEGER)
 		return g_strdup_printf ("%u", xb_opcode_get_val (opcode));
+	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_BIND)
+		return g_strdup ("?");
+	if (xb_opcode_get_kind (opcode) == (XB_OPCODE_KIND_BIND | XB_OPCODE_KIND_TEXT))
+		return g_strdup_printf ("?'%s'", xb_opcode_get_str (opcode));
+	if (xb_opcode_get_kind (opcode) == (XB_OPCODE_KIND_BIND | XB_OPCODE_KIND_INTEGER))
+		return g_strdup_printf ("?%u", xb_opcode_get_val (opcode));
 	g_critical ("no to_string for kind %u", xb_opcode_get_kind (opcode));
 	return NULL;
 }
@@ -754,13 +770,6 @@ xb_machine_run (XbMachine *self,
 		XbOpcode *opcode = xb_stack_peek (opcodes, i);
 		XbOpcodeKind kind = xb_opcode_get_kind (opcode);
 
-		/* add to stack */
-		if (kind == XB_OPCODE_KIND_TEXT ||
-		    kind == XB_OPCODE_KIND_INTEGER) {
-			xb_machine_stack_push (self, stack, opcode);
-			continue;
-		}
-
 		/* process the stack */
 		if (kind == XB_OPCODE_KIND_FUNCTION) {
 			if (!xb_machine_run_func (self,
@@ -773,6 +782,25 @@ xb_machine_run (XbMachine *self,
 			if (*result == FALSE)
 				return TRUE;
 			continue;
+		}
+
+		/* add to stack */
+		if ((kind & XB_OPCODE_KIND_TEXT) > 0 ||
+		    (kind & XB_OPCODE_KIND_INTEGER) > 0) {
+			xb_machine_stack_push (self, stack, opcode);
+			continue;
+		}
+
+		/* unbound */
+		if (kind == XB_OPCODE_KIND_BIND) {
+			g_autofree gchar *tmp1 = xb_machine_opcodes_to_string (self, stack);
+			g_autofree gchar *tmp2 = xb_machine_opcodes_to_string (self, opcodes);
+			g_set_error (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_INVALID_DATA,
+				     "opcode was not bound at runtime, stack:%s, opcodes:%s",
+				     tmp1, tmp2);
+			return FALSE;
 		}
 
 		/* invalid */

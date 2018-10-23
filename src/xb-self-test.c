@@ -1458,6 +1458,58 @@ xb_xpath_parent_func (void)
 }
 
 static void
+xb_xpath_prepared_func (void)
+{
+	XbNode *n;
+	gboolean ret;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbSilo) silo = NULL;
+	g_autoptr(XbQuery) query = NULL;
+	g_autoptr(XbNode) component = NULL;
+	g_autoptr(GPtrArray) components = NULL;
+	const gchar *xml =
+	"<components origin=\"lvfs\">\n"
+	"  <component type=\"desktop\">\n"
+	"    <id>gimp.desktop</id>\n"
+	"    <id>org.gnome.Gimp.desktop</id>\n"
+	"  </component>\n"
+	"  <component type=\"firmware\">\n"
+	"    <id>org.hughski.ColorHug2.firmware</id>\n"
+	"    <pkgname>colorhug-client</pkgname>\n"
+	"  </component>\n"
+	"</components>\n";
+
+	/* import from XML */
+	ret = xb_test_import_xml (builder, xml, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	xb_builder_add_locale (builder, "C");
+	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* get first component */
+	component = xb_silo_query_first (silo, "components/component", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (component);
+
+	/* prepared statement on node */
+	query = xb_query_new (silo, "id[text()=?]/..", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (query);
+	ret = xb_query_bind_str (query, 0, "gimp.desktop", &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	components = xb_node_query_full (component, query, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (components);
+	g_assert_cmpint (components->len, ==, 1);
+	n = g_ptr_array_index (components, 0);
+	g_assert_cmpstr (xb_node_get_attr (n, "type"), ==, "desktop");
+}
+
+static void
 xb_xpath_glob_func (void)
 {
 	g_autofree gchar *xml2 = NULL;
@@ -1944,6 +1996,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/xpath", xb_xpath_func);
 	g_test_add_func ("/libxmlb/xpath-query", xb_xpath_query_func);
 	g_test_add_func ("/libxmlb/xpath{helpers}", xb_xpath_helpers_func);
+	g_test_add_func ("/libxmlb/xpath{prepared}", xb_xpath_prepared_func);
 	g_test_add_func ("/libxmlb/xpath{incomplete}", xb_xpath_incomplete_func);
 	g_test_add_func ("/libxmlb/xpath-parent", xb_xpath_parent_func);
 	g_test_add_func ("/libxmlb/xpath-glob", xb_xpath_glob_func);

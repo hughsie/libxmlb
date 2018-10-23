@@ -17,15 +17,23 @@ G_BEGIN_DECLS
  * @XB_OPCODE_KIND_INTEGER:			An integer operand
  * @XB_OPCODE_KIND_TEXT:			A text operand
  * @XB_OPCODE_KIND_FUNCTION:			An operator
+ * @XB_OPCODE_KIND_BIND:			A bound value, assigned later
  *
  * The kinds of opcode. The values have been carefully chosen so that a simple
  * bitmask can be done to know how to compare for equality.
+ *
+ * function─┐ ┌─string
+ * bound──┐ │ │ ┌──integer
+ *        │ │ │ │
+ *  X X X X X X X
+ *        8 4 2 1
  **/
 typedef enum {
 	XB_OPCODE_KIND_UNKNOWN		= 0x0,	/* Since: 0.1.1 */
 	XB_OPCODE_KIND_INTEGER		= 0x1,	/* Since: 0.1.1 */
 	XB_OPCODE_KIND_TEXT		= 0x2,	/* Since: 0.1.1 */
 	XB_OPCODE_KIND_FUNCTION		= 0x5,	/* Since: 0.1.1 */
+	XB_OPCODE_KIND_BIND		= 0x8,	/* Since: 0.1.4 */
 	/*< private >*/
 	XB_OPCODE_KIND_LAST
 } XbOpcodeKind;

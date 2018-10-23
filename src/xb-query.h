@@ -35,6 +35,14 @@ const gchar	*xb_query_get_xpath		(XbQuery	*self);
 guint		 xb_query_get_limit		(XbQuery	*self);
 void		 xb_query_set_limit		(XbQuery	*self,
 						 guint		 limit);
+gboolean	 xb_query_bind_str		(XbQuery	*self,
+						 guint		 idx,
+						 const gchar	*str,
+						 GError		**error);
+gboolean	 xb_query_bind_val		(XbQuery	*self,
+						 guint		 idx,
+						 guint32	 val,
+						 GError		**error);
 
 G_END_DECLS
 

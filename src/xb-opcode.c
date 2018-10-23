@@ -10,14 +10,14 @@
 
 #include <gio/gio.h>
 
-#include "xb-opcode.h"
+#include "xb-opcode-private.h"
 
 struct _XbOpcode {
 	gint		 ref;
 	XbOpcodeKind	 kind;
 	guint32		 val;
 	gpointer	 ptr;
-	gboolean	 freeptr;
+	GDestroyNotify	 destroy_func;
 };
 
 /**
@@ -39,6 +39,12 @@ xb_opcode_kind_to_string (XbOpcodeKind kind)
 		return "TEXT";
 	if (kind == XB_OPCODE_KIND_INTEGER)
 		return "INTE";
+	if (kind == XB_OPCODE_KIND_BIND)
+		return "BIND";
+	if (kind == (XB_OPCODE_KIND_BIND | XB_OPCODE_KIND_TEXT))
+		return "?TXT";
+	if (kind == (XB_OPCODE_KIND_BIND | XB_OPCODE_KIND_INTEGER))
+		return "?INT";
 	return NULL;
 }
 
@@ -61,6 +67,12 @@ xb_opcode_kind_from_string (const gchar *str)
 		return XB_OPCODE_KIND_TEXT;
 	if (g_strcmp0 (str, "INTE") == 0)
 		return XB_OPCODE_KIND_INTEGER;
+	if (g_strcmp0 (str, "BIND") == 0)
+		return XB_OPCODE_KIND_BIND;
+	if (g_strcmp0 (str, "?TXT") == 0)
+		return XB_OPCODE_KIND_BIND | XB_OPCODE_KIND_TEXT;
+	if (g_strcmp0 (str, "?INT") == 0)
+		return XB_OPCODE_KIND_BIND | XB_OPCODE_KIND_INTEGER;
 	return XB_OPCODE_KIND_UNKNOWN;
 }
 
@@ -112,6 +124,13 @@ xb_opcode_cmp_str (XbOpcode *self)
 	return (self->kind & 0x02) > 0;
 }
 
+/* private */
+gboolean
+xb_opcode_is_bound (XbOpcode *self)
+{
+	return (self->kind & XB_OPCODE_KIND_BIND) > 0;
+}
+
 /**
  * xb_opcode_get_val:
  * @self: a #XbOpcode
@@ -160,8 +179,8 @@ xb_opcode_unref (XbOpcode *self)
 	g_assert (self->ref > 0);
 	if (--self->ref > 0)
 		return;
-	if (self->freeptr)
-		g_free (self->ptr);
+	if (self->destroy_func)
+		self->destroy_func (self->ptr);
 	g_slice_free (XbOpcode, self);
 }
 
@@ -186,7 +205,8 @@ xb_opcode_ref (XbOpcode *self)
  * xb_opcode_text_new:
  * @str: a string
  *
- * Creates a new text literal opcode.
+ * Creates a new text literal opcode. The @str argument is copied internally
+ * and is not tied to the lifecycle of the #XbOpcode.
  *
  * Returns: (transfer full): a #XbOpcode
  *
@@ -199,7 +219,7 @@ xb_opcode_text_new (const gchar *str)
 	self->ref = 1;
 	self->kind = XB_OPCODE_KIND_TEXT;
 	self->ptr = g_strdup (str);
-	self->freeptr = TRUE;
+	self->destroy_func = g_free;
 	return self;
 }
 
@@ -242,7 +262,7 @@ xb_opcode_text_new_steal (gchar *str)
 	self->ref = 1;
 	self->kind = XB_OPCODE_KIND_TEXT;
 	self->ptr = (gpointer) str;
-	self->freeptr = TRUE;
+	self->destroy_func = g_free;
 	return self;
 }
 
@@ -265,6 +285,50 @@ xb_opcode_func_new (guint32 func)
 	self->kind = XB_OPCODE_KIND_FUNCTION;
 	self->val = func;
 	return self;
+}
+
+/**
+ * xb_opcode_bind_new:
+ *
+ * Creates an opcode for a bind variable. A value needs to be assigned to this
+ * opcode at runtime using xb_query_bind_str().
+ *
+ * Returns: (transfer full): a #XbOpcode
+ *
+ * Since: 0.1.4
+ **/
+XbOpcode *
+xb_opcode_bind_new (void)
+{
+	XbOpcode *self = g_slice_new0 (XbOpcode);
+	self->ref = 1;
+	self->kind = XB_OPCODE_KIND_BIND;
+	return self;
+}
+
+/* private */
+void
+xb_opcode_bind_str (XbOpcode *self, gchar *str, GDestroyNotify destroy_func)
+{
+	if (self->destroy_func) {
+		self->destroy_func (self->ptr);
+		self->destroy_func = NULL;
+	}
+	self->kind = XB_OPCODE_KIND_BIND | XB_OPCODE_KIND_TEXT;
+	self->ptr = (gpointer) str;
+	self->destroy_func = (gpointer) destroy_func;
+}
+
+/* private */
+void
+xb_opcode_bind_val (XbOpcode *self, guint32 val)
+{
+	if (self->destroy_func) {
+		self->destroy_func (self->ptr);
+		self->destroy_func = NULL;
+	}
+	self->kind = XB_OPCODE_KIND_BIND | XB_OPCODE_KIND_INTEGER;
+	self->val = val;
 }
 
 /**
