@@ -15,7 +15,7 @@
 #include "xb-opcode.h"
 #include "xb-silo-export.h"
 #include "xb-silo-private.h"
-#include "xb-silo-query.h"
+#include "xb-silo-query-private.h"
 #include "xb-stack-private.h"
 #include "xb-string-private.h"
 
@@ -200,6 +200,8 @@ xb_predicate_func (void)
 		  "2,position(),eq()" },
 		{ "text()=lower-case('firefox')",
 		  "text(),'firefox',lower-case(),eq()" },
+		{ "$'a'=$'b'",
+		  "$'a',$'b',eq()" },
 		/* sentinel */
 		{ NULL, NULL }
 	};
@@ -1859,7 +1861,7 @@ xb_speed_func (void)
 	XbNode *n;
 	const gchar *fn = "/tmp/test.xmlb";
 	gboolean ret;
-	guint n_components = 10000;
+	guint n_components = 5000;
 	g_autofree gchar *xpath1 = NULL;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GFile) file = NULL;
@@ -1877,7 +1879,7 @@ xb_speed_func (void)
 	/* create a huge document */
 	g_string_append (xml, "<components>");
 	for (guint i = 0; i < n_components; i++) {
-		g_string_append (xml, "<component>");
+		g_string_append (xml, "<component type=\"firmware\">");
 		g_string_append_printf (xml, "  <id>%06u.firmware</id>", i);
 		g_string_append (xml, "  <name>ColorHug2</name>");
 		g_string_append (xml, "  <summary>Firmware</summary>");
@@ -1951,7 +1953,48 @@ xb_speed_func (void)
 	/* factorial search */
 	for (guint i = 0; i < n_components; i += 20) {
 		g_autofree gchar *xpath2 = NULL;
-		xpath2 = g_strdup_printf ("components/component/id[text()='%06u.firmware']", i);
+		xpath2 = g_strdup_printf ("components/component[@type='firmware']/id[text()='%06u.firmware']", i);
+		n = xb_silo_query_first (silo, xpath2, &error);
+		g_assert_no_error (error);
+		g_assert_nonnull (n);
+		g_clear_object (&n);
+	}
+	g_print ("query[x%u]: %.3fms\n", n_components, g_timer_elapsed (timer, NULL) * 1000);
+	g_timer_reset (timer);
+
+	/* factorial search, again */
+	for (guint i = 0; i < n_components; i += 20) {
+		g_autofree gchar *xpath2 = NULL;
+		xpath2 = g_strdup_printf ("components/component[@type='firmware']/id[text()='%06u.firmware']", i);
+		n = xb_silo_query_first (silo, xpath2, &error);
+		g_assert_no_error (error);
+		g_assert_nonnull (n);
+		g_clear_object (&n);
+	}
+	g_print ("query[x%u]: %.3fms\n", n_components, g_timer_elapsed (timer, NULL) * 1000);
+	g_timer_reset (timer);
+
+	/* create an index */
+	ret = xb_silo_query_build_index (silo, "components/component/id", NULL, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	ret = xb_silo_query_build_index (silo, "components/component", "type", &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	g_print ("create index: %.3fms\n", g_timer_elapsed (timer, NULL) * 1000);
+	g_timer_reset (timer);
+
+	/* index not found */
+	n = xb_silo_query_first (silo, "components[text()=$'dave']", &error);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT);
+	g_assert_null (n);
+	g_clear_error (&error);
+
+	/* do the search again, this time with an index */
+	g_timer_reset (timer);
+	for (guint i = 0; i < n_components; i += 20) {
+		g_autofree gchar *xpath2 = NULL;
+		xpath2 = g_strdup_printf ("components/component[attr($'type')=$'firmware']/id[text()=$'%06u.firmware']", i);
 		n = xb_silo_query_first (silo, xpath2, &error);
 		g_assert_no_error (error);
 		g_assert_nonnull (n);

@@ -200,6 +200,26 @@ xb_query_section_free (XbQuerySection *section)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(XbQuerySection, xb_query_section_free)
 
 static gboolean
+xb_query_repair_opcode_texi (XbQuery *self, XbOpcode *op, GError **error)
+{
+	XbQueryPrivate *priv = GET_PRIVATE (self);
+	if (xb_opcode_get_val (op) == XB_SILO_UNSET) {
+		const gchar *tmp = xb_opcode_get_str (op);
+		guint32 val = xb_silo_strtab_index_lookup (priv->silo, tmp);
+		if (val == XB_SILO_UNSET) {
+			g_set_error (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_INVALID_ARGUMENT,
+				     "indexed string '%s' was unfound",
+				     tmp);
+			return FALSE;
+		}
+		xb_opcode_set_val (op, val);
+	}
+	return TRUE;
+}
+
+static gboolean
 xb_query_parse_predicate (XbQuery *self,
 			  XbQuerySection *section,
 			  const gchar *text,
@@ -207,7 +227,7 @@ xb_query_parse_predicate (XbQuery *self,
 			  GError **error)
 {
 	XbQueryPrivate *priv = GET_PRIVATE (self);
-	XbStack *opcodes;
+	g_autoptr(XbStack) opcodes = NULL;
 
 	/* parse */
 	opcodes = xb_machine_parse (xb_silo_get_machine (priv->silo),
@@ -215,10 +235,19 @@ xb_query_parse_predicate (XbQuery *self,
 	if (opcodes == NULL)
 		return FALSE;
 
+	/* repair the indexed strings */
+	for (guint i = 0; i < xb_stack_get_size (opcodes); i++) {
+		XbOpcode *op = xb_stack_peek (opcodes, i);
+		if (xb_opcode_get_kind (op) != XB_OPCODE_KIND_INDEXED_TEXT)
+			continue;
+		if (!xb_query_repair_opcode_texi (self, op, error))
+			return FALSE;
+	}
+
 	/* create array if it does not exist */
 	if (section->predicates == NULL)
 		section->predicates = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_stack_unref);
-	g_ptr_array_add (section->predicates, opcodes);
+	g_ptr_array_add (section->predicates, g_steal_pointer (&opcodes));
 	return TRUE;
 }
 

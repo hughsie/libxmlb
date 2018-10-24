@@ -55,6 +55,10 @@ typedef struct {
 
 const gchar	*xb_silo_from_strtab		(XbSilo		*self,
 						 guint32	 offset);
+void		 xb_silo_strtab_index_insert	(XbSilo		*self,
+						 guint32	 offset);
+guint32		 xb_silo_strtab_index_lookup	(XbSilo		*self,
+						 const gchar	*str);
 XbSiloNode	*xb_silo_get_node		(XbSilo		*self,
 						 guint32	 off);
 XbSiloAttr	*xb_silo_get_attr		(XbSilo		*self,
@@ -78,7 +82,7 @@ const gchar	*xb_silo_node_get_element	(XbSilo		*self,
 						 XbSiloNode	*n);
 const gchar	*xb_silo_node_get_text		(XbSilo		*self,
 						 XbSiloNode	*n);
-const gchar	*xb_silo_node_get_attr		(XbSilo		*self,
+XbSiloAttr	*xb_silo_node_get_attr_by_str	(XbSilo		*self,
 						 XbSiloNode	*n,
 						 const gchar	*name);
 guint		 xb_silo_node_get_depth		(XbSilo		*self,

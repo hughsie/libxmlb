@@ -21,6 +21,10 @@ GPtrArray	*xb_silo_query			(XbSilo		*self,
 XbNode		*xb_silo_query_first		(XbSilo		*self,
 						 const gchar	*xpath,
 						 GError		**error);
+gboolean	 xb_silo_query_build_index	(XbSilo		*self,
+						 const gchar	*xpath,
+						 const gchar	*attr,
+						 GError		**error);
 
 G_END_DECLS
 

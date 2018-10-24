@@ -106,6 +106,9 @@ XbOpcode	*xb_machine_stack_pop		(XbMachine		*self,
 void		 xb_machine_stack_push		(XbMachine		*self,
 						 XbStack		*stack,
 						 XbOpcode		*opcode);
+void		 xb_machine_stack_push_steal	(XbMachine		*self,
+						 XbStack		*stack,
+						 XbOpcode		*opcode);
 void		 xb_machine_stack_push_text	(XbMachine		*self,
 						 XbStack		*stack,
 						 const gchar		*str);

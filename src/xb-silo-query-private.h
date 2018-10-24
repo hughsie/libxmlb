@@ -24,7 +24,6 @@ GPtrArray	*xb_silo_query_full		(XbSilo		*self,
 						 XbQuery	*query,
 						 GError		**error);
 
-
 G_END_DECLS
 
 #endif /* __XB_SILO_QUERY_PRIVATE_H */

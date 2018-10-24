@@ -45,6 +45,8 @@ xb_opcode_kind_to_string (XbOpcodeKind kind)
 		return "?TXT";
 	if (kind == XB_OPCODE_KIND_BOUND_INTEGER)
 		return "?INT";
+	if (kind == XB_OPCODE_KIND_INDEXED_TEXT)
+		return "TEXI";
 	return NULL;
 }
 
@@ -73,6 +75,8 @@ xb_opcode_kind_from_string (const gchar *str)
 		return XB_OPCODE_KIND_BOUND_TEXT;
 	if (g_strcmp0 (str, "?INT") == 0)
 		return XB_OPCODE_KIND_BOUND_INTEGER;
+	if (g_strcmp0 (str, "TEXI") == 0)
+		return XB_OPCODE_KIND_INDEXED_TEXT;
 	return XB_OPCODE_KIND_UNKNOWN;
 }
 
@@ -224,6 +228,34 @@ xb_opcode_text_new (const gchar *str)
 }
 
 /**
+ * xb_opcode_new:
+ * @kind: a #XbOpcodeKind, e.g. %XB_OPCODE_KIND_INTEGER
+ * @str: a string
+ * @val: a integer value
+ * @destroy_func: (nullable): a #GDestroyNotify, e.g. g_free()
+ *
+ * Creates a new opcode.
+ *
+ * Returns: (transfer full): a #XbOpcode
+ *
+ * Since: 0.1.4
+ **/
+XbOpcode *
+xb_opcode_new (XbOpcodeKind kind,
+	       const gchar *str,
+	       guint32 val,
+	       GDestroyNotify destroy_func)
+{
+	XbOpcode *self = g_slice_new0 (XbOpcode);
+	self->ref = 1;
+	self->kind = kind;
+	self->ptr = (gpointer) str;
+	self->val = val;
+	self->destroy_func = destroy_func;
+	return self;
+}
+
+/**
  * xb_opcode_text_new_static:
  * @str: a string
  *
@@ -328,6 +360,13 @@ xb_opcode_bind_val (XbOpcode *self, guint32 val)
 		self->destroy_func = NULL;
 	}
 	self->kind = XB_OPCODE_KIND_BOUND_INTEGER;
+	self->val = val;
+}
+
+/* private */
+void
+xb_opcode_set_val (XbOpcode *self, guint32 val)
+{
 	self->val = val;
 }
 

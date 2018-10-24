@@ -11,12 +11,18 @@ G_BEGIN_DECLS
 
 #include "xb-opcode.h"
 
+XbOpcode	*xb_opcode_new			(XbOpcodeKind	 kind,
+						 const gchar	*str,
+						 guint32	 val,
+						 GDestroyNotify	 destroy_func);
 XbOpcode	*xb_opcode_bind_new		(void);
 gboolean	 xb_opcode_is_bound		(XbOpcode	*self);
 void		 xb_opcode_bind_str		(XbOpcode	*self,
 						 gchar		*str,
 						 GDestroyNotify	 destroy_func);
 void		 xb_opcode_bind_val		(XbOpcode	*self,
+						 guint32	 val);
+void		 xb_opcode_set_val		(XbOpcode	*self,
 						 guint32	 val);
 
 G_END_DECLS

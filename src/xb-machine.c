@@ -17,6 +17,7 @@
 
 #include "xb-machine.h"
 #include "xb-opcode-private.h"
+#include "xb-silo-private.h"
 #include "xb-stack-private.h"
 #include "xb-string-private.h"
 
@@ -372,6 +373,17 @@ xb_machine_parse_add_text_raw (XbMachine *self,
 		}
 	}
 
+	/* indexed text */
+	if (text_len >= 3) {
+		if (str[0] == '$' && str[1] == '\'' && str[text_len - 1] == '\'') {
+			gchar *tmp = g_strndup (str + 2, text_len - 3);
+			XbOpcode *op = xb_opcode_new (XB_OPCODE_KIND_INDEXED_TEXT,
+						      tmp, XB_SILO_UNSET, g_free);
+			xb_stack_push_steal (opcodes, op);
+			return TRUE;
+		}
+	}
+
 	/* bind variables */
 	if (g_strcmp0 (str, "?") == 0) {
 		xb_stack_push_steal (opcodes, xb_opcode_bind_new ());
@@ -681,6 +693,8 @@ xb_machine_opcode_to_string (XbMachine *self, XbOpcode *opcode)
 	}
 	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_TEXT)
 		return g_strdup_printf ("'%s'", xb_opcode_get_str (opcode));
+	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_INDEXED_TEXT)
+		return g_strdup_printf ("$'%s'", xb_opcode_get_str (opcode));
 	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_INTEGER)
 		return g_strdup_printf ("%u", xb_opcode_get_val (opcode));
 	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_BOUND_INTEGER)
@@ -776,6 +790,7 @@ xb_machine_run (XbMachine *self,
 		/* add to stack */
 		if (kind == XB_OPCODE_KIND_TEXT ||
 		    kind == XB_OPCODE_KIND_INTEGER ||
+		    kind == XB_OPCODE_KIND_INDEXED_TEXT ||
 		    kind == XB_OPCODE_KIND_BOUND_TEXT ||
 		    kind == XB_OPCODE_KIND_BOUND_INTEGER) {
 			xb_machine_stack_push (self, stack, opcode);
@@ -861,6 +876,29 @@ xb_machine_stack_push (XbMachine *self, XbStack *stack, XbOpcode *opcode)
 		g_debug ("pushing: %s", str);
 	}
 	xb_stack_push (stack, opcode);
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+		xb_machine_debug_show_stack (self, stack);
+}
+
+/**
+ * xb_machine_stack_push_steal:
+ * @self: a #XbMachine
+ * @stack: a #XbStack
+ * @opcode: a #XbOpcode
+ *
+ * Adds an stolen opcode to the stack.
+ *
+ * Since: 0.1.4
+ **/
+void
+xb_machine_stack_push_steal (XbMachine *self, XbStack *stack, XbOpcode *opcode)
+{
+	XbMachinePrivate *priv = GET_PRIVATE (self);
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
+		g_autofree gchar *str = xb_machine_opcode_to_string (self, opcode);
+		g_debug ("pushing: %s", str);
+	}
+	xb_stack_push_steal (stack, opcode);
 	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
 		xb_machine_debug_show_stack (self, stack);
 }

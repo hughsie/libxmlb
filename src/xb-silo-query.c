@@ -414,3 +414,52 @@ xb_silo_query_first (XbSilo *self, const gchar *xpath, GError **error)
 		return NULL;
 	return g_object_ref (g_ptr_array_index (results, 0));
 }
+
+/**
+ * xb_silo_query_build_index:
+ * @self: a #XbSilo
+ * @xpath: An XPath, e.g. `/components/component[@type=desktop]/id[abe.desktop]`
+ * @attr: (nullable): Attribute name, e.g. `type`, or NULL
+ * @error: the #GError, or %NULL
+ *
+ * Adds the `attr()` or `text()` results of a query to the index.
+ *
+ * Returns: %TRUE for success
+ *
+ * Since: 0.1.4
+ **/
+gboolean
+xb_silo_query_build_index (XbSilo *self,
+			   const gchar *xpath,
+			   const gchar *attr,
+			   GError **error)
+{
+	g_autoptr(GPtrArray) array = NULL;
+
+	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
+	g_return_val_if_fail (xpath != NULL, FALSE);
+
+	/* do the query */
+	array = xb_silo_query_with_root (self, NULL, xpath, 0, error);
+	if (array == NULL)
+		return FALSE;
+
+	/* add each attribute name AND value */
+	for (guint i = 0; i < array->len; i++) {
+		XbNode *n = g_ptr_array_index (array, i);
+		XbSiloNode *sn = xb_node_get_sn (n);
+		if (attr != NULL) {
+			guint32 off = xb_silo_get_offset_for_node (self, sn);
+			for (guint8 j = 0; j < sn->nr_attrs; j++) {
+				XbSiloAttr *a = xb_silo_get_attr (self, off, j);
+				xb_silo_strtab_index_insert (self, a->attr_name);
+				xb_silo_strtab_index_insert (self, a->attr_value);
+			}
+		} else {
+			xb_silo_strtab_index_insert (self, sn->text);
+		}
+	}
+
+	/* success */
+	return TRUE;
+}

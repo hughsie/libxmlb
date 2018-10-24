@@ -295,9 +295,15 @@ const gchar *
 xb_node_get_attr (XbNode *self, const gchar *name)
 {
 	XbNodePrivate *priv = GET_PRIVATE (self);
+	XbSiloAttr *a;
+
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (name != NULL, NULL);
-	return xb_silo_node_get_attr (priv->silo, priv->sn, name);
+
+	a = xb_silo_node_get_attr_by_str (priv->silo, priv->sn, name);
+	if (a == NULL)
+		return NULL;
+	return xb_silo_from_strtab (priv->silo, a->attr_value);
 }
 
 /**
@@ -314,13 +320,12 @@ xb_node_get_attr (XbNode *self, const gchar *name)
 guint64
 xb_node_get_attr_as_uint (XbNode *self, const gchar *name)
 {
-	XbNodePrivate *priv = GET_PRIVATE (self);
 	const gchar *tmp;
 
 	g_return_val_if_fail (XB_IS_NODE (self), G_MAXUINT64);
 	g_return_val_if_fail (name != NULL, G_MAXUINT64);
 
-	tmp = xb_silo_node_get_attr (priv->silo, priv->sn, name);
+	tmp = xb_node_get_attr (self, name);
 	if (tmp == NULL)
 		return G_MAXUINT64;
 	if (g_str_has_prefix (tmp, "0x"))

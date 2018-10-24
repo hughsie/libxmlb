@@ -14,7 +14,7 @@
 
 #include "xb-builder.h"
 #include "xb-node-private.h"
-#include "xb-opcode.h"
+#include "xb-opcode-private.h"
 #include "xb-silo-private.h"
 #include "xb-stack.h"
 #include "xb-string-private.h"
@@ -29,6 +29,7 @@ typedef struct {
 	guint32			 datasz;
 	guint32			 strtab;
 	GHashTable		*strtab_tags;
+	GHashTable		*strindex;
 	GHashTable		*nodes;
 	GMutex			 nodes_mutex;
 	GHashTable		*file_monitors;	/* of fn:XbSiloFileMonitorItem */
@@ -100,6 +101,35 @@ xb_silo_from_strtab (XbSilo *self, guint32 offset)
 		return NULL;
 	}
 	return (const gchar *) (priv->data + priv->strtab + offset);
+}
+
+/* private */
+void
+xb_silo_strtab_index_insert (XbSilo *self, guint32 offset)
+{
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	const gchar *tmp;
+
+	/* get the string version */
+	tmp = xb_silo_from_strtab (self, offset);
+	if (tmp == NULL)
+		return;
+	if (g_hash_table_lookup (priv->strindex, tmp) != NULL)
+		return;
+	g_hash_table_insert (priv->strindex,
+			     (gpointer) tmp,
+			     GUINT_TO_POINTER (offset));
+}
+
+/* private */
+guint32
+xb_silo_strtab_index_lookup (XbSilo *self, const gchar *str)
+{
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	gpointer val = NULL;
+	if (!g_hash_table_lookup_extended (priv->strindex, str, NULL, &val))
+		return XB_SILO_UNSET;
+	return GPOINTER_TO_INT (val);
 }
 
 /* private */
@@ -312,17 +342,34 @@ xb_silo_node_get_element (XbSilo *self, XbSiloNode *n)
 }
 
 /* private */
-const gchar *
-xb_silo_node_get_attr (XbSilo *self, XbSiloNode *n, const gchar *name)
+XbSiloAttr *
+xb_silo_node_get_attr_by_str (XbSilo *self, XbSiloNode *n, const gchar *name)
 {
 	guint32 off;
 
-	/* calculate offset to fist attribute */
+	/* calculate offset to first attribute */
 	off = xb_silo_get_offset_for_node (self, n);
 	for (guint8 i = 0; i < n->nr_attrs; i++) {
 		XbSiloAttr *a = xb_silo_get_attr (self, off, i);
 		if (g_strcmp0 (xb_silo_from_strtab (self, a->attr_name), name) == 0)
-			return xb_silo_from_strtab (self, a->attr_value);
+			return a;
+	}
+
+	/* nothing matched */
+	return NULL;
+}
+
+static XbSiloAttr *
+xb_silo_node_get_attr_by_val (XbSilo *self, XbSiloNode *n, guint32 name)
+{
+	guint32 off;
+
+	/* calculate offset to first attribute */
+	off = xb_silo_get_offset_for_node (self, n);
+	for (guint8 i = 0; i < n->nr_attrs; i++) {
+		XbSiloAttr *a = xb_silo_get_attr (self, off, i);
+		if (a->attr_name == name)
+			return a;
 	}
 
 	/* nothing matched */
@@ -878,12 +925,29 @@ xb_silo_machine_func_attr_cb (XbMachine *self,
 			      gpointer exec_data,
 			      GError **error)
 {
+	XbOpcode *op2;
+	XbSiloAttr *a;
 	XbSilo *silo = XB_SILO (user_data);
 	XbSiloQueryData *query_data = (XbSiloQueryData *) exec_data;
 	g_autoptr(XbOpcode) op = xb_machine_stack_pop (self, stack);
-	const gchar *tmp = xb_opcode_get_str (op);
-	xb_machine_stack_push_text_static (self, stack,
-					   xb_silo_node_get_attr (silo, query_data->sn, tmp));
+
+	/* indexed string */
+	if (xb_opcode_cmp_val (op)) {
+		guint32 val = xb_opcode_get_val (op);
+		a = xb_silo_node_get_attr_by_val (silo, query_data->sn, val);
+	} else {
+		const gchar *str = xb_opcode_get_str (op);
+		a = xb_silo_node_get_attr_by_str (silo, query_data->sn, str);
+	}
+	if (a == NULL) {
+		xb_machine_stack_push_text_static (self, stack, NULL);
+		return TRUE;
+	}
+	op2 = xb_opcode_new (XB_OPCODE_KIND_INDEXED_TEXT,
+			     xb_silo_from_strtab (silo, a->attr_value),
+			     a->attr_value,
+			     NULL);
+	xb_machine_stack_push_steal (self, stack, op2);
 	return TRUE;
 }
 
@@ -897,8 +961,11 @@ xb_silo_machine_func_text_cb (XbMachine *self,
 {
 	XbSilo *silo = XB_SILO (user_data);
 	XbSiloQueryData *query_data = (XbSiloQueryData *) exec_data;
-	xb_machine_stack_push_text_static (self, stack,
-					   xb_silo_node_get_text (silo, query_data->sn));
+	XbOpcode *op = xb_opcode_new (XB_OPCODE_KIND_INDEXED_TEXT,
+				      xb_silo_node_get_text (silo, query_data->sn),
+				      query_data->sn->text,
+				      NULL);
+	xb_machine_stack_push_steal (self, stack, op);
 	return TRUE;
 }
 
@@ -1049,6 +1116,7 @@ xb_silo_init (XbSilo *self)
 	priv->nodes = g_hash_table_new_full (g_direct_hash, g_direct_equal,
 					     NULL, (GDestroyNotify) g_object_unref);
 	priv->strtab_tags = g_hash_table_new (g_str_hash, g_str_equal);
+	priv->strindex = g_hash_table_new (g_str_hash, g_str_equal);
 	priv->profile_str = g_string_new (NULL);
 
 	g_mutex_init (&priv->nodes_mutex);
@@ -1086,6 +1154,7 @@ xb_silo_finalize (GObject *obj)
 	g_free (priv->guid);
 	g_string_free (priv->profile_str, TRUE);
 	g_object_unref (priv->machine);
+	g_hash_table_unref (priv->strindex);
 	g_hash_table_unref (priv->file_monitors);
 	g_hash_table_unref (priv->nodes);
 	g_hash_table_unref (priv->strtab_tags);

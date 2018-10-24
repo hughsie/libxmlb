@@ -46,6 +46,7 @@ typedef enum {
  * @XB_OPCODE_KIND_FUNCTION:			An operator
  * @XB_OPCODE_KIND_BOUND_INTEGER:		A bound integer value
  * @XB_OPCODE_KIND_BOUND_TEXT:			A bound text value
+ * @XB_OPCODE_KIND_INDEXED_TEXT:		An indexed text value
  **/
 typedef enum {
 	XB_OPCODE_KIND_UNKNOWN		= 0x0,							/* Since: 0.1.1 */
@@ -55,6 +56,7 @@ typedef enum {
 	XB_OPCODE_KIND_BOUND_UNSET	= XB_OPCODE_FLAG_BOUND,					/* Since: 0.1.4 */
 	XB_OPCODE_KIND_BOUND_INTEGER	= XB_OPCODE_FLAG_BOUND | XB_OPCODE_FLAG_INTEGER,	/* Since: 0.1.4 */
 	XB_OPCODE_KIND_BOUND_TEXT	= XB_OPCODE_FLAG_BOUND | XB_OPCODE_FLAG_TEXT,		/* Since: 0.1.4 */
+	XB_OPCODE_KIND_INDEXED_TEXT	= XB_OPCODE_FLAG_INTEGER | XB_OPCODE_FLAG_TEXT,		/* Since: 0.1.4 */
 	/*< private >*/
 	XB_OPCODE_KIND_LAST
 } XbOpcodeKind;
