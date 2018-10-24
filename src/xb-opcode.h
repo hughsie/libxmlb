@@ -12,14 +12,14 @@ G_BEGIN_DECLS
 #include <glib-object.h>
 
 /**
- * XbOpcodeKind:
- * @XB_OPCODE_KIND_UNKNOWN:			Unknown opcode
- * @XB_OPCODE_KIND_INTEGER:			An integer operand
- * @XB_OPCODE_KIND_TEXT:			A text operand
- * @XB_OPCODE_KIND_FUNCTION:			An operator
- * @XB_OPCODE_KIND_BIND:			A bound value, assigned later
+ * XbOpcodeFlags:
+ * @XB_OPCODE_FLAG_NONE:			No flags set
+ * @XB_OPCODE_FLAG_INTEGER:			Integer value set
+ * @XB_OPCODE_FLAG_TEXT:			Text value set
+ * @XB_OPCODE_FLAG_FUNCTION:			An operator
+ * @XB_OPCODE_FLAG_BOUND:			A bound value, assigned later
  *
- * The kinds of opcode. The values have been carefully chosen so that a simple
+ * The opcode flags. The values have been carefully chosen so that a simple
  * bitmask can be done to know how to compare for equality.
  *
  * function─┐ ┌─string
@@ -29,11 +29,32 @@ G_BEGIN_DECLS
  *        8 4 2 1
  **/
 typedef enum {
-	XB_OPCODE_KIND_UNKNOWN		= 0x0,	/* Since: 0.1.1 */
-	XB_OPCODE_KIND_INTEGER		= 0x1,	/* Since: 0.1.1 */
-	XB_OPCODE_KIND_TEXT		= 0x2,	/* Since: 0.1.1 */
-	XB_OPCODE_KIND_FUNCTION		= 0x5,	/* Since: 0.1.1 */
-	XB_OPCODE_KIND_BIND		= 0x8,	/* Since: 0.1.4 */
+	XB_OPCODE_FLAG_UNKNOWN		= 0x0,		/* Since: 0.1.4 */
+	XB_OPCODE_FLAG_INTEGER		= 1 << 0,	/* Since: 0.1.4 */
+	XB_OPCODE_FLAG_TEXT		= 1 << 1,	/* Since: 0.1.4 */
+	XB_OPCODE_FLAG_FUNCTION		= 1 << 2,	/* Since: 0.1.4 */
+	XB_OPCODE_FLAG_BOUND		= 1 << 3,	/* Since: 0.1.4 */
+	/*< private >*/
+	XB_OPCODE_FLAG_LAST
+} XbOpcodeFlags;
+
+/**
+ * XbOpcodeKind:
+ * @XB_OPCODE_KIND_UNKNOWN:			Unknown opcode
+ * @XB_OPCODE_KIND_INTEGER:			A literal integer value
+ * @XB_OPCODE_KIND_TEXT:			A literal text value
+ * @XB_OPCODE_KIND_FUNCTION:			An operator
+ * @XB_OPCODE_KIND_BOUND_INTEGER:		A bound integer value
+ * @XB_OPCODE_KIND_BOUND_TEXT:			A bound text value
+ **/
+typedef enum {
+	XB_OPCODE_KIND_UNKNOWN		= 0x0,							/* Since: 0.1.1 */
+	XB_OPCODE_KIND_INTEGER		= XB_OPCODE_FLAG_INTEGER,				/* Since: 0.1.1 */
+	XB_OPCODE_KIND_TEXT		= XB_OPCODE_FLAG_TEXT,					/* Since: 0.1.1 */
+	XB_OPCODE_KIND_FUNCTION		= XB_OPCODE_FLAG_FUNCTION | XB_OPCODE_FLAG_INTEGER,	/* Since: 0.1.1 */
+	XB_OPCODE_KIND_BOUND_UNSET	= XB_OPCODE_FLAG_BOUND,					/* Since: 0.1.4 */
+	XB_OPCODE_KIND_BOUND_INTEGER	= XB_OPCODE_FLAG_BOUND | XB_OPCODE_FLAG_INTEGER,	/* Since: 0.1.4 */
+	XB_OPCODE_KIND_BOUND_TEXT	= XB_OPCODE_FLAG_BOUND | XB_OPCODE_FLAG_TEXT,		/* Since: 0.1.4 */
 	/*< private >*/
 	XB_OPCODE_KIND_LAST
 } XbOpcodeKind;

@@ -486,19 +486,8 @@ xb_machine_get_opcodes_sig (XbMachine *self, XbStack *opcodes)
 			}
 			continue;
 		}
-		if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_TEXT) {
-			g_string_append (str, "TEXT,");
-			continue;
-		}
-		if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_INTEGER) {
-			g_string_append (str, "INTE,");
-			continue;
-		}
-		if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_BIND) {
-			g_string_append (str, "BIND,");
-			continue;
-		}
-		g_critical ("unknown type");
+		g_string_append_printf (str, "%s,",
+					xb_opcode_kind_to_string (xb_opcode_get_kind (opcode)));
 	}
 	if (str->len > 0)
 		g_string_truncate (str, str->len - 1);
@@ -694,11 +683,11 @@ xb_machine_opcode_to_string (XbMachine *self, XbOpcode *opcode)
 		return g_strdup_printf ("'%s'", xb_opcode_get_str (opcode));
 	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_INTEGER)
 		return g_strdup_printf ("%u", xb_opcode_get_val (opcode));
-	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_BIND)
+	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_BOUND_INTEGER)
 		return g_strdup ("?");
-	if (xb_opcode_get_kind (opcode) == (XB_OPCODE_KIND_BIND | XB_OPCODE_KIND_TEXT))
+	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_BOUND_TEXT)
 		return g_strdup_printf ("?'%s'", xb_opcode_get_str (opcode));
-	if (xb_opcode_get_kind (opcode) == (XB_OPCODE_KIND_BIND | XB_OPCODE_KIND_INTEGER))
+	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_BOUND_INTEGER)
 		return g_strdup_printf ("?%u", xb_opcode_get_val (opcode));
 	g_critical ("no to_string for kind %u", xb_opcode_get_kind (opcode));
 	return NULL;
@@ -785,14 +774,16 @@ xb_machine_run (XbMachine *self,
 		}
 
 		/* add to stack */
-		if ((kind & XB_OPCODE_KIND_TEXT) > 0 ||
-		    (kind & XB_OPCODE_KIND_INTEGER) > 0) {
+		if (kind == XB_OPCODE_KIND_TEXT ||
+		    kind == XB_OPCODE_KIND_INTEGER ||
+		    kind == XB_OPCODE_KIND_BOUND_TEXT ||
+		    kind == XB_OPCODE_KIND_BOUND_INTEGER) {
 			xb_machine_stack_push (self, stack, opcode);
 			continue;
 		}
 
 		/* unbound */
-		if (kind == XB_OPCODE_KIND_BIND) {
+		if (kind == XB_OPCODE_KIND_BOUND_UNSET) {
 			g_autofree gchar *tmp1 = xb_machine_opcodes_to_string (self, stack);
 			g_autofree gchar *tmp2 = xb_machine_opcodes_to_string (self, opcodes);
 			g_set_error (error,

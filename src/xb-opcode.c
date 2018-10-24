@@ -39,11 +39,11 @@ xb_opcode_kind_to_string (XbOpcodeKind kind)
 		return "TEXT";
 	if (kind == XB_OPCODE_KIND_INTEGER)
 		return "INTE";
-	if (kind == XB_OPCODE_KIND_BIND)
+	if (kind == XB_OPCODE_KIND_BOUND_UNSET)
 		return "BIND";
-	if (kind == (XB_OPCODE_KIND_BIND | XB_OPCODE_KIND_TEXT))
+	if (kind == XB_OPCODE_KIND_BOUND_TEXT)
 		return "?TXT";
-	if (kind == (XB_OPCODE_KIND_BIND | XB_OPCODE_KIND_INTEGER))
+	if (kind == XB_OPCODE_KIND_BOUND_INTEGER)
 		return "?INT";
 	return NULL;
 }
@@ -68,11 +68,11 @@ xb_opcode_kind_from_string (const gchar *str)
 	if (g_strcmp0 (str, "INTE") == 0)
 		return XB_OPCODE_KIND_INTEGER;
 	if (g_strcmp0 (str, "BIND") == 0)
-		return XB_OPCODE_KIND_BIND;
+		return XB_OPCODE_KIND_BOUND_INTEGER;
 	if (g_strcmp0 (str, "?TXT") == 0)
-		return XB_OPCODE_KIND_BIND | XB_OPCODE_KIND_TEXT;
+		return XB_OPCODE_KIND_BOUND_TEXT;
 	if (g_strcmp0 (str, "?INT") == 0)
-		return XB_OPCODE_KIND_BIND | XB_OPCODE_KIND_INTEGER;
+		return XB_OPCODE_KIND_BOUND_INTEGER;
 	return XB_OPCODE_KIND_UNKNOWN;
 }
 
@@ -105,7 +105,7 @@ xb_opcode_get_kind (XbOpcode *self)
 inline gboolean
 xb_opcode_cmp_val (XbOpcode *self)
 {
-	return (self->kind & 0x01) > 0;
+	return (self->kind & XB_OPCODE_FLAG_INTEGER) > 0;
 }
 
 /**
@@ -121,14 +121,14 @@ xb_opcode_cmp_val (XbOpcode *self)
 inline gboolean
 xb_opcode_cmp_str (XbOpcode *self)
 {
-	return (self->kind & 0x02) > 0;
+	return (self->kind & XB_OPCODE_FLAG_TEXT) > 0;
 }
 
 /* private */
 gboolean
 xb_opcode_is_bound (XbOpcode *self)
 {
-	return (self->kind & XB_OPCODE_KIND_BIND) > 0;
+	return (self->kind & XB_OPCODE_FLAG_BOUND) > 0;
 }
 
 /**
@@ -302,7 +302,7 @@ xb_opcode_bind_new (void)
 {
 	XbOpcode *self = g_slice_new0 (XbOpcode);
 	self->ref = 1;
-	self->kind = XB_OPCODE_KIND_BIND;
+	self->kind = XB_OPCODE_KIND_BOUND_INTEGER;
 	return self;
 }
 
@@ -314,7 +314,7 @@ xb_opcode_bind_str (XbOpcode *self, gchar *str, GDestroyNotify destroy_func)
 		self->destroy_func (self->ptr);
 		self->destroy_func = NULL;
 	}
-	self->kind = XB_OPCODE_KIND_BIND | XB_OPCODE_KIND_TEXT;
+	self->kind = XB_OPCODE_KIND_BOUND_TEXT;
 	self->ptr = (gpointer) str;
 	self->destroy_func = (gpointer) destroy_func;
 }
@@ -327,7 +327,7 @@ xb_opcode_bind_val (XbOpcode *self, guint32 val)
 		self->destroy_func (self->ptr);
 		self->destroy_func = NULL;
 	}
-	self->kind = XB_OPCODE_KIND_BIND | XB_OPCODE_KIND_INTEGER;
+	self->kind = XB_OPCODE_KIND_BOUND_INTEGER;
 	self->val = val;
 }
 
