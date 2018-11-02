@@ -162,6 +162,7 @@ if get_option('introspection')
     input: gir[0],
     output: 'libxmlb.map',
     command: [
+      python3,
       join_paths(meson.current_source_dir(), 'generate-version-script.py'),
       'LIBXMLB',
       '@INPUT@',
