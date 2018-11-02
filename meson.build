@@ -123,6 +123,9 @@ configure_file(
   configuration : conf
 )
 
+python = import('python')
+python3 = python.find_installation('python3')
+
 subdir('src')
 if get_option('gtkdoc')
   gtkdocscan = find_program('gtkdoc-scan', required : true)
