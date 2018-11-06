@@ -1260,9 +1260,21 @@ xb_machine_func_lower_cb (XbMachine *self,
 			  GError **error)
 {
 	g_autoptr(XbOpcode) op = xb_machine_stack_pop (self, stack);
-	xb_machine_stack_push_text_steal (self, stack,
-					  g_ascii_strdown (xb_opcode_get_str (op), -1));
-	return TRUE;
+
+	/* TEXT */
+	if (xb_opcode_cmp_str (op)) {
+		xb_machine_stack_push_text_steal (self, stack,
+						  g_ascii_strdown (xb_opcode_get_str (op), -1));
+		return TRUE;
+	}
+
+	/* fail */
+	g_set_error (error,
+		     G_IO_ERROR,
+		     G_IO_ERROR_NOT_SUPPORTED,
+		     "%s type not supported",
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op)));
+	return FALSE;
 }
 
 static gboolean
@@ -1274,9 +1286,21 @@ xb_machine_func_upper_cb (XbMachine *self,
 			  GError **error)
 {
 	g_autoptr(XbOpcode) op = xb_machine_stack_pop (self, stack);
-	xb_machine_stack_push_text_steal (self, stack,
-					  g_ascii_strup (xb_opcode_get_str (op), -1));
-	return TRUE;
+
+	/* TEXT */
+	if (xb_opcode_cmp_str (op)) {
+		xb_machine_stack_push_text_steal (self, stack,
+						  g_ascii_strup (xb_opcode_get_str (op), -1));
+		return TRUE;
+	}
+
+	/* fail */
+	g_set_error (error,
+		     G_IO_ERROR,
+		     G_IO_ERROR_NOT_SUPPORTED,
+		     "%s type not supported",
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op)));
+	return FALSE;
 }
 
 static gboolean
