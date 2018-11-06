@@ -931,6 +931,13 @@ xb_silo_machine_func_attr_cb (XbMachine *self,
 	XbSiloQueryData *query_data = (XbSiloQueryData *) exec_data;
 	g_autoptr(XbOpcode) op = xb_machine_stack_pop (self, stack);
 
+	/* optimize pass */
+	if (query_data == NULL) {
+		g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_FAILED_HANDLED,
+				     "cannot optimize: no silo to query");
+		return FALSE;
+	}
+
 	/* indexed string */
 	if (xb_opcode_get_kind (op) == XB_OPCODE_KIND_INDEXED_TEXT) {
 		guint32 val = xb_opcode_get_val (op);
@@ -961,11 +968,18 @@ xb_silo_machine_func_text_cb (XbMachine *self,
 {
 	XbSilo *silo = XB_SILO (user_data);
 	XbSiloQueryData *query_data = (XbSiloQueryData *) exec_data;
-	XbOpcode *op = xb_opcode_new (XB_OPCODE_KIND_INDEXED_TEXT,
-				      xb_silo_node_get_text (silo, query_data->sn),
-				      query_data->sn->text,
-				      NULL);
-	xb_machine_stack_push_steal (self, stack, op);
+
+	/* optimize pass */
+	if (query_data == NULL) {
+		g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_FAILED_HANDLED,
+				     "cannot optimize: no silo to query");
+		return FALSE;
+	}
+	xb_machine_stack_push_steal (self, stack,
+				     xb_opcode_new (XB_OPCODE_KIND_INDEXED_TEXT,
+						    xb_silo_node_get_text (silo, query_data->sn),
+						    query_data->sn->text,
+						    NULL));
 	return TRUE;
 }
 
@@ -978,6 +992,13 @@ xb_silo_machine_func_first_cb (XbMachine *self,
 			       GError **error)
 {
 	XbSiloQueryData *query_data = (XbSiloQueryData *) exec_data;
+
+	/* optimize pass */
+	if (query_data == NULL) {
+		g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_FAILED_HANDLED,
+				     "cannot optimize: no silo to query");
+		return FALSE;
+	}
 	*result = query_data->position == 1;
 	return TRUE;
 }
@@ -991,6 +1012,13 @@ xb_silo_machine_func_last_cb (XbMachine *self,
 			      GError **error)
 {
 	XbSiloQueryData *query_data = (XbSiloQueryData *) exec_data;
+
+	/* optimize pass */
+	if (query_data == NULL) {
+		g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_FAILED_HANDLED,
+				     "cannot optimize: no silo to query");
+		return FALSE;
+	}
 	*result = query_data->sn->next == 0;
 	return TRUE;
 }
@@ -1004,6 +1032,13 @@ xb_silo_machine_func_position_cb (XbMachine *self,
 				  GError **error)
 {
 	XbSiloQueryData *query_data = (XbSiloQueryData *) exec_data;
+
+	/* optimize pass */
+	if (query_data == NULL) {
+		g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_FAILED_HANDLED,
+				     "cannot optimize: no silo to query");
+		return FALSE;
+	}
 	xb_machine_stack_push_integer (self, stack, query_data->position);
 	return TRUE;
 }
