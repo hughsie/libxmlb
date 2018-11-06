@@ -240,7 +240,9 @@ xb_machine_opcode_func_new (XbMachine *self, const gchar *func_name)
 		g_critical ("failed to find %s", func_name);
 		return NULL;
 	}
-	return xb_opcode_func_new (item->idx);
+	return xb_opcode_new (XB_OPCODE_KIND_FUNCTION,
+			      g_strdup (func_name),
+			      item->idx, g_free);
 }
 
 static gboolean
@@ -250,6 +252,7 @@ xb_machine_parse_add_func (XbMachine *self,
 			   GError **error)
 {
 	XbMachineMethodItem *item;
+	XbOpcode *op;
 
 	/* find function by name */
 	item = xb_machine_find_func (self, func_name);
@@ -263,7 +266,10 @@ xb_machine_parse_add_func (XbMachine *self,
 	}
 
 	/* create new opcode */
-	xb_stack_push_steal (opcodes, xb_opcode_func_new (item->idx));
+	op = xb_opcode_new (XB_OPCODE_KIND_FUNCTION,
+			    g_strdup (func_name),
+			    item->idx, g_free);
+	xb_stack_push_steal (opcodes, op);
 	return TRUE;
 }
 
