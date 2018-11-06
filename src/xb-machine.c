@@ -623,7 +623,7 @@ xb_machine_debug_show_stack (XbMachine *self, XbStack *stack)
 		g_debug ("stack is empty");
 		return;
 	}
-	str = xb_machine_opcodes_to_string (self, stack);
+	str = xb_stack_to_string (stack);
 	g_debug ("stack: %s", str);
 }
 
@@ -692,19 +692,7 @@ xb_machine_opcode_to_string (XbMachine *self, XbOpcode *opcode)
 gchar *
 xb_machine_opcodes_to_string (XbMachine *self, XbStack *opcodes)
 {
-	GString *str = g_string_new (NULL);
-
-	g_return_val_if_fail (XB_IS_MACHINE (self), NULL);
-	g_return_val_if_fail (opcodes != NULL, NULL);
-
-	for (guint i = 0; i < xb_stack_get_size (opcodes); i++) {
-		XbOpcode *opcode = xb_stack_peek (opcodes, i);
-		g_autofree gchar *tmp = xb_machine_opcode_to_string (self, opcode);
-		g_string_append_printf (str, "%s,", tmp);
-	}
-	if (str->len > 0)
-		g_string_truncate (str, str->len - 1);
-	return g_string_free (str, FALSE);
+	return xb_stack_to_string (opcodes);
 }
 
 /**
@@ -770,8 +758,8 @@ xb_machine_run (XbMachine *self,
 
 		/* unbound */
 		if (kind == XB_OPCODE_KIND_BOUND_UNSET) {
-			g_autofree gchar *tmp1 = xb_machine_opcodes_to_string (self, stack);
-			g_autofree gchar *tmp2 = xb_machine_opcodes_to_string (self, opcodes);
+			g_autofree gchar *tmp1 = xb_stack_to_string (stack);
+			g_autofree gchar *tmp2 = xb_stack_to_string (opcodes);
 			g_set_error (error,
 				     G_IO_ERROR,
 				     G_IO_ERROR_INVALID_DATA,
@@ -791,7 +779,7 @@ xb_machine_run (XbMachine *self,
 
 	/* the stack should have been completely consumed */
 	if (xb_stack_get_size (stack) > 0) {
-		g_autofree gchar *tmp = xb_machine_opcodes_to_string (self, stack);
+		g_autofree gchar *tmp = xb_stack_to_string (stack);
 		g_set_error (error,
 			     G_IO_ERROR,
 			     G_IO_ERROR_INVALID_DATA,

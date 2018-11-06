@@ -242,7 +242,7 @@ xb_predicate_func (void)
 		opcodes = xb_machine_parse (xb_silo_get_machine (silo), tests[i].pred, -1, &error);
 		g_assert_no_error (error);
 		g_assert_nonnull (opcodes);
-		str = xb_machine_opcodes_to_string (xb_silo_get_machine (silo), opcodes);
+		str = xb_stack_to_string (opcodes);
 		g_assert_nonnull (str);
 		g_assert_cmpstr (str, ==, tests[i].str);
 	}

@@ -166,5 +166,6 @@ LIBXMLB_0.1.4 {
     xb_query_new;
     xb_query_set_limit;
     xb_silo_query_build_index;
+    xb_stack_to_string;
   local: *;
 } LIBXMLB_0.1.3;

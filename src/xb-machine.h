@@ -100,7 +100,8 @@ gchar		*xb_machine_opcode_to_string	(XbMachine		*self,
 						 XbOpcode		*opcode)
 G_DEPRECATED_FOR(xb_opcode_to_string);
 gchar		*xb_machine_opcodes_to_string	(XbMachine		*self,
-						 XbStack		*opcodes);
+						 XbStack		*opcodes)
+G_DEPRECATED_FOR(xb_stack_to_string);
 
 XbOpcode	*xb_machine_stack_pop		(XbMachine		*self,
 						 XbStack		*stack);

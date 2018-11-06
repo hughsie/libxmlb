@@ -185,6 +185,29 @@ xb_stack_get_max_size (XbStack *self)
 }
 
 /**
+ * xb_stack_to_string:
+ * @self: a #XbStack
+ *
+ * Returns a string representing a stack.
+ *
+ * Returns: text
+ *
+ * Since: 0.1.4
+ **/
+gchar *
+xb_stack_to_string (XbStack *self)
+{
+	GString *str = g_string_new (NULL);
+	for (guint i = 0; i < self->pos; i++) {
+		g_autofree gchar *tmp = xb_opcode_to_string (self->opcodes[i]);
+		g_string_append_printf (str, "%s,", tmp);
+	}
+	if (str->len > 0)
+		g_string_truncate (str, str->len - 1);
+	return g_string_free (str, FALSE);
+}
+
+/**
  * xb_stack_new:
  * @max_size: maximum size of the stack
  *
