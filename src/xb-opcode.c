@@ -152,7 +152,8 @@ xb_opcode_get_kind (XbOpcode *self)
 inline gboolean
 xb_opcode_cmp_val (XbOpcode *self)
 {
-	return (self->kind & XB_OPCODE_FLAG_INTEGER) > 0;
+	return self->kind == XB_OPCODE_KIND_INTEGER ||
+		self->kind == XB_OPCODE_KIND_BOUND_INTEGER;
 }
 
 /**
@@ -168,7 +169,9 @@ xb_opcode_cmp_val (XbOpcode *self)
 inline gboolean
 xb_opcode_cmp_str (XbOpcode *self)
 {
-	return (self->kind & XB_OPCODE_FLAG_TEXT) > 0;
+	return self->kind == XB_OPCODE_KIND_TEXT ||
+		self->kind == XB_OPCODE_KIND_BOUND_TEXT ||
+		self->kind == XB_OPCODE_KIND_INDEXED_TEXT;
 }
 
 /* private */

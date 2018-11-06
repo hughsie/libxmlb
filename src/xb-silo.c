@@ -932,7 +932,7 @@ xb_silo_machine_func_attr_cb (XbMachine *self,
 	g_autoptr(XbOpcode) op = xb_machine_stack_pop (self, stack);
 
 	/* indexed string */
-	if (xb_opcode_cmp_val (op)) {
+	if (xb_opcode_get_kind (op) == XB_OPCODE_KIND_INDEXED_TEXT) {
 		guint32 val = xb_opcode_get_val (op);
 		a = xb_silo_node_get_attr_by_val (silo, query_data->sn, val);
 	} else {

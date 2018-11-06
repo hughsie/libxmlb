@@ -169,7 +169,7 @@ xb_opcodes_kind_func (void)
 	g_assert_cmpstr (xb_opcode_kind_to_string (XB_OPCODE_KIND_UNKNOWN), ==, NULL);
 
 	/* integer compare */
-	g_assert_true (xb_opcode_cmp_val (op1));
+	g_assert_false (xb_opcode_cmp_val (op1));
 	g_assert_true (xb_opcode_cmp_val (op2));
 	g_assert_false (xb_opcode_cmp_val (op3));
 
