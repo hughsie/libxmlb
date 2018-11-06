@@ -58,7 +58,7 @@ xb_silo_export_node (XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, G
 	}
 
 	/* finish the opening tag and add any text if it exists */
-	if (sn->has_text) {
+	if (sn->text != XB_SILO_UNSET) {
 		g_autofree gchar *text = xb_silo_export_escape (xb_silo_from_strtab (self, sn->text));
 		g_string_append (helper->xml, ">");
 		g_string_append (helper->xml, text);
@@ -92,7 +92,7 @@ xb_silo_export_node (XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, G
 
 	/* add closing tag */
 	if ((helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_INDENT) > 0 &&
-	    !sn->has_text) {
+	    sn->text == XB_SILO_UNSET) {
 		for (guint i = 0; i < helper->level; i++)
 			g_string_append (helper->xml, "  ");
 	}

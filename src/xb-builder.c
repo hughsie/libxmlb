@@ -415,8 +415,6 @@ xb_builder_nodetab_size_cb (XbBuilderNode *bn, gpointer user_data)
 	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE))
 		return FALSE;
 	*sz += xb_builder_node_size (bn) + 1; /* +1 for the sentinel */
-	if (xb_builder_node_get_text (bn) == NULL)
-		*sz -= sizeof(guint32);
 	return FALSE;
 }
 
@@ -429,7 +427,6 @@ xb_builder_nodetab_write_sentinel (XbBuilderNodetabHelper *helper)
 {
 	XbSiloNode sn = {
 		.is_node	= FALSE,
-		.has_text	= FALSE,
 		.nr_attrs	= 0,
 	};
 //	g_debug ("SENT @%u", (guint) helper->buf->len);
@@ -442,7 +439,6 @@ xb_builder_nodetab_write_node (XbBuilderNodetabHelper *helper, XbBuilderNode *bn
 	GPtrArray *attrs = xb_builder_node_get_attrs (bn);
 	XbSiloNode sn = {
 		.is_node	= TRUE,
-		.has_text	= xb_builder_node_get_text (bn) != NULL,
 		.nr_attrs	= attrs->len,
 		.element_name	= xb_builder_node_get_element_idx (bn),
 		.next		= 0x0,
@@ -456,11 +452,7 @@ xb_builder_nodetab_write_node (XbBuilderNodetabHelper *helper, XbBuilderNode *bn
 //	g_debug ("NODE @%u (%s)", (guint) helper->buf->len, xb_builder_node_get_element (bn));
 
 	/* add to the buf */
-	if (sn.has_text) {
-		XB_SILO_APPENDBUF (helper->buf, &sn, sizeof(XbSiloNode));
-	} else {
-		XB_SILO_APPENDBUF (helper->buf, &sn, sizeof(XbSiloNode) - sizeof(guint32));
-	}
+	XB_SILO_APPENDBUF (helper->buf, &sn, sizeof(XbSiloNode));
 
 	/* add to the buf */
 	for (guint i = 0; i < attrs->len; i++) {

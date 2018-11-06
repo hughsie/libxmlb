@@ -29,17 +29,16 @@ typedef struct __attribute__ ((packed)) {
 } XbSiloHeader;
 
 #define XB_SILO_MAGIC_BYTES		0x624c4d58
-#define XB_SILO_VERSION			0x00000004
+#define XB_SILO_VERSION			0x00000005
 #define XB_SILO_UNSET			0xffffffff
 
 typedef struct __attribute__ ((packed)) {
 	guint8		is_node:1;
-	guint8		has_text:1;
-	guint8		nr_attrs:6;
+	guint8		nr_attrs:7;
 	guint32		element_name;	/* ONLY when is_node: from strtab */
 	guint32		parent;		/* ONLY when is_node: from 0 */
 	guint32		next;		/* ONLY when is_node: from 0 */
-	guint32		text;		/* ONLY when is_node && has_text: from strtab */
+	guint32		text;		/* ONLY when is_node: from strtab */
 } XbSiloNode;
 
 typedef struct __attribute__ ((packed)) {

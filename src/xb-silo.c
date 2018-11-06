@@ -184,11 +184,8 @@ XbSiloAttr *
 xb_silo_get_attr (XbSilo *self, guint32 off, guint8 idx)
 {
 	XbSiloPrivate *priv = GET_PRIVATE (self);
-	XbSiloNode *n = xb_silo_get_node (self, off);
 	off += sizeof(XbSiloNode);
 	off += sizeof(XbSiloAttr) * idx;
-	if (!n->has_text)
-		off -= sizeof(guint32);
 	return (XbSiloAttr *) (priv->data + off);
 }
 
@@ -199,8 +196,6 @@ xb_silo_node_get_size (XbSiloNode *n)
 	if (n->is_node) {
 		guint8 sz = sizeof(XbSiloNode);
 		sz += n->nr_attrs * sizeof(XbSiloAttr);
-		if (!n->has_text)
-			sz -= sizeof(guint32);
 		return sz;
 	}
 	/* sentinel */
@@ -331,7 +326,7 @@ xb_silo_to_string (XbSilo *self, GError **error)
 						n->element_name);
 			g_string_append_printf (str, "next:         %" G_GUINT32_FORMAT "\n", n->next);
 			g_string_append_printf (str, "parent:       %" G_GUINT32_FORMAT "\n", n->parent);
-			if (n->has_text) {
+			if (n->text != XB_SILO_UNSET) {
 				g_string_append_printf (str, "text:         %s\n",
 							xb_silo_from_strtab (self, n->text));
 			}
@@ -368,7 +363,7 @@ xb_silo_to_string (XbSilo *self, GError **error)
 const gchar *
 xb_silo_node_get_text (XbSilo *self, XbSiloNode *n)
 {
-	if (!n->has_text)
+	if (n->text == XB_SILO_UNSET)
 		return NULL;
 	return xb_silo_from_strtab (self, n->text);
 }
