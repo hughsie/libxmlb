@@ -155,6 +155,7 @@ LIBXMLB_0.1.3 {
 
 LIBXMLB_0.1.4 {
   global:
+    xb_machine_parse_full;
     xb_machine_stack_push_steal;
     xb_node_query_full;
     xb_opcode_to_string;

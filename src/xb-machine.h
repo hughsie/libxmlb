@@ -34,6 +34,7 @@ struct _XbMachineClass {
  * @XB_MACHINE_DEBUG_FLAG_NONE:			No debug flags to use
  * @XB_MACHINE_DEBUG_FLAG_SHOW_STACK:		Show the stack addition and removal
  * @XB_MACHINE_DEBUG_FLAG_SHOW_PARSING:		Show the XPath predicate parsing
+ * @XB_MACHINE_DEBUG_FLAG_SHOW_OPTIMIZER:	Show the optimizer operation
  *
  * The flags to control the amount of debugging is generated.
  **/
@@ -41,9 +42,24 @@ typedef enum {
 	XB_MACHINE_DEBUG_FLAG_NONE		= 0,
 	XB_MACHINE_DEBUG_FLAG_SHOW_STACK	= 1 << 0,
 	XB_MACHINE_DEBUG_FLAG_SHOW_PARSING	= 1 << 1,
+	XB_MACHINE_DEBUG_FLAG_SHOW_OPTIMIZER	= 1 << 2,
 	/*< private >*/
 	XB_MACHINE_DEBUG_FLAG_LAST
 } XbMachineDebugFlags;
+
+/**
+ * XbMachineParseFlags:
+ * @XB_MACHINE_PARSE_FLAG_NONE:			No flags set
+ * @XB_MACHINE_PARSE_FLAG_OPTIMIZE:		Run an optimization pass on the predicate
+ *
+ * The flags to control the parsing behaviour.
+ **/
+typedef enum {
+	XB_MACHINE_PARSE_FLAG_NONE		= 0,
+	XB_MACHINE_PARSE_FLAG_OPTIMIZE		= 1 << 0,
+	/*< private >*/
+	XB_MACHINE_PARSE_FLAG_LAST
+} XbMachineParseFlags;
 
 typedef gboolean (*XbMachineOpcodeFixupFunc)	(XbMachine		*self,
 						 XbStack		*opcodes,
@@ -68,6 +84,12 @@ void		 xb_machine_set_debug_flags	(XbMachine		*self,
 XbStack		*xb_machine_parse		(XbMachine		*self,
 						 const gchar		*text,
 						 gssize			 text_len,
+						 GError			**error)
+G_DEPRECATED_FOR(xb_machine_parse_full);
+XbStack		*xb_machine_parse_full		(XbMachine		*self,
+						 const gchar		*text,
+						 gssize			 text_len,
+						 XbMachineParseFlags	 flags,
 						 GError			**error);
 gboolean	 xb_machine_run			(XbMachine		*self,
 						 XbStack		*opcodes,

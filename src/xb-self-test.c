@@ -239,7 +239,10 @@ xb_predicate_func (void)
 		g_autoptr(XbStack) opcodes = NULL;
 
 		g_debug ("testing %s", tests[i].pred);
-		opcodes = xb_machine_parse (xb_silo_get_machine (silo), tests[i].pred, -1, &error);
+		opcodes = xb_machine_parse_full (xb_silo_get_machine (silo),
+						 tests[i].pred, -1,
+						 XB_MACHINE_PARSE_FLAG_NONE,
+						 &error);
 		g_assert_no_error (error);
 		g_assert_nonnull (opcodes);
 		str = xb_stack_to_string (opcodes);
@@ -249,7 +252,65 @@ xb_predicate_func (void)
 	for (guint i = 0; invalid[i] != NULL; i++) {
 		g_autoptr(GError) error = NULL;
 		g_autoptr(XbStack) opcodes = NULL;
-		opcodes = xb_machine_parse (xb_silo_get_machine (silo), invalid[i], -1, &error);
+		opcodes = xb_machine_parse_full (xb_silo_get_machine (silo),
+						 invalid[i], -1,
+						 XB_MACHINE_PARSE_FLAG_NONE,
+						 &error);
+		g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
+		g_assert_null (opcodes);
+	}
+}
+
+static void
+xb_predicate_optimize_func (void)
+{
+	g_autoptr(XbSilo) silo = xb_silo_new ();
+	struct {
+		const gchar	*pred;
+		const gchar	*str;
+	} tests[] = {
+		{ "@a='b'",		"'a',attr(),'b',eq()" },
+		{ "'a'<'b'",		"" },		/* to nothing! */
+		{ "999>=123",		"" },		/* to nothing! */
+		{ "not(0)",		"" },		/* to nothing! */
+		{ "lower-case('Fire')",	"'fire'" },
+		{ "upper-case(lower-case('Fire'))",
+					"'FIRE'" },	/* 2nd pass */
+		/* sentinel */
+		{ NULL, NULL }
+	};
+	const gchar *invalid[] = {
+		"'a'='b'",
+		"123>=999",
+		"not(1)",
+		NULL
+	};
+	xb_machine_set_debug_flags (xb_silo_get_machine (silo),
+				    XB_MACHINE_DEBUG_FLAG_SHOW_STACK |
+				    XB_MACHINE_DEBUG_FLAG_SHOW_OPTIMIZER);
+	for (guint i = 0; tests[i].pred != NULL; i++) {
+		g_autofree gchar *str = NULL;
+		g_autoptr(GError) error = NULL;
+		g_autoptr(XbStack) opcodes = NULL;
+
+		g_debug ("testing %s", tests[i].pred);
+		opcodes = xb_machine_parse_full (xb_silo_get_machine (silo),
+						 tests[i].pred, -1,
+						 XB_MACHINE_PARSE_FLAG_OPTIMIZE,
+						 &error);
+		g_assert_no_error (error);
+		g_assert_nonnull (opcodes);
+		str = xb_stack_to_string (opcodes);
+		g_assert_nonnull (str);
+		g_assert_cmpstr (str, ==, tests[i].str);
+	}
+	for (guint i = 0; invalid[i] != NULL; i++) {
+		g_autoptr(GError) error = NULL;
+		g_autoptr(XbStack) opcodes = NULL;
+		opcodes = xb_machine_parse_full (xb_silo_get_machine (silo),
+						 invalid[i], -1,
+						 XB_MACHINE_PARSE_FLAG_OPTIMIZE,
+						 &error);
 		g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
 		g_assert_null (opcodes);
 	}
@@ -2037,6 +2098,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/common", xb_common_func);
 	g_test_add_func ("/libxmlb/common{union}", xb_common_union_func);
 	g_test_add_func ("/libxmlb/opcodes", xb_predicate_func);
+	g_test_add_func ("/libxmlb/opcodes{optimize}", xb_predicate_optimize_func);
 	g_test_add_func ("/libxmlb/opcodes{kind}", xb_opcodes_kind_func);
 	g_test_add_func ("/libxmlb/stack", xb_stack_func);
 	g_test_add_func ("/libxmlb/stack{peek}", xb_stack_peek_func);

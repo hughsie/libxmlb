@@ -516,11 +516,130 @@ xb_machine_parse_part (XbMachine *self,
 	return TRUE;
 }
 
+static gboolean
+xb_machine_opcodes_optimize_fn (XbMachine *self,
+				XbOpcode *op,
+				guint *idx,
+				GPtrArray *src,
+				GPtrArray *dst,
+				GError **error)
+{
+	XbMachineMethodItem *item;
+	XbMachinePrivate *priv = GET_PRIVATE (self);
+	XbOpcode *op_tmp;
+	gboolean result = TRUE;
+	g_autofree gchar *stack_str = NULL;
+	g_autoptr(GError) error_local = NULL;
+	g_autoptr(XbStack) stack = NULL;
+
+	/* a function! lets check the arg length */
+	if (xb_opcode_get_kind (op) != XB_OPCODE_KIND_FUNCTION) {
+		g_ptr_array_add (dst, xb_opcode_ref (op));
+		return TRUE;
+	}
+
+	/* get function, check if we have enough arguments */
+	item = g_ptr_array_index (priv->methods, xb_opcode_get_val (op));
+	if (item->n_opcodes > *idx) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_INVALID_DATA,
+				     "predicate invalid -- not enough args");
+		return FALSE;
+	}
+
+	/* make a copy of the stack with the arguments */
+	stack = xb_stack_new (item->n_opcodes);
+	for (guint i = item->n_opcodes; i > 0; i--) {
+		op_tmp = g_ptr_array_index (src, *idx - (i + 1));
+		xb_stack_push (stack, op_tmp);
+	}
+
+	/* run the method */
+	stack_str = xb_stack_to_string (stack);
+	if (!item->method_cb (self, stack, &result, item->user_data, NULL, &error_local)) {
+		if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_OPTIMIZER) {
+			g_debug ("ignoring opimized call to %s(%s): %s",
+				 item->name,
+				 stack_str,
+				 error_local->message);
+		}
+		g_ptr_array_add (dst, xb_opcode_ref (op));
+		return TRUE;
+	}
+
+	/* the method ran, add the result and discard the arguments */
+	op_tmp = xb_stack_pop (stack);
+	if (op_tmp != NULL) {
+		if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_OPTIMIZER)
+			g_debug ("method ran, adding result");
+		*idx -= item->n_opcodes;
+		g_ptr_array_add (dst, op_tmp);
+		return TRUE;
+	}
+
+	/* nothing was added to the stack, so check if the predicate will
+	 * always evaluate to TRUE */
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_OPTIMIZER) {
+		g_debug ("method ran, result %s",
+			 result ? "TRUE" : "FALSE");
+	}
+	if (result) {
+		*idx -= item->n_opcodes;
+		return TRUE;
+	}
+
+	/* the predicate will always evalulate to FALSE */
+	g_set_error (error,
+		     G_IO_ERROR,
+		     G_IO_ERROR_INVALID_DATA,
+		     "the predicate will always evalulate to FALSE: %s",
+		     stack_str);
+	return FALSE;
+}
+
+static gboolean
+xb_machine_opcodes_optimize (XbMachine *self, XbStack *opcodes, GError **error)
+{
+	XbMachinePrivate *priv = GET_PRIVATE (self);
+	g_autoptr(GPtrArray) dst = NULL;
+	g_autoptr(GPtrArray) src = NULL;
+
+	/* debug */
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
+		g_autofree gchar *str = xb_stack_to_string (opcodes);
+		g_debug ("before optimizing: %s", str);
+	}
+
+	/* process the stack in reverse order */
+	src = xb_stack_steal_all (opcodes);
+	dst = xb_stack_steal_all (opcodes);
+	for (guint i = src->len; i > 0; i--) {
+		XbOpcode *op = g_ptr_array_index (src, i - 1);
+		if (!xb_machine_opcodes_optimize_fn (self, op, &i, src, dst, error))
+			return FALSE;
+	}
+
+	/* copy back the result into the opcodes stack */
+	for (guint i = dst->len; i > 0; i--) {
+		XbOpcode *op = g_ptr_array_index (dst, i - 1);
+		xb_stack_push (opcodes, op);
+	}
+
+	/* debug */
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
+		g_autofree gchar *str = xb_stack_to_string (opcodes);
+		g_debug ("after optimizing: %s", str);
+	}
+	return TRUE;
+}
+
 /**
- * xb_machine_parse:
+ * xb_machine_parse_full:
  * @self: a #XbMachine
  * @text: predicate to parse, e.g. `contains(text(),'xyx')`
  * @text_len: length of @text, or -1 if @text is `NUL` terminated
+ * @flags: #XbMachineParseFlags, e.g. %XB_MACHINE_PARSE_FLAG_OPTIMIZE
  * @error: a #GError, or %NULL
  *
  * Parses an XPath predicate. Not all of XPath 1.0 or XPath 1.0 is supported,
@@ -529,13 +648,14 @@ xb_machine_parse_part (XbMachine *self,
  *
  * Returns: (transfer full): opcodes, or %NULL on error
  *
- * Since: 0.1.1
+ * Since: 0.1.4
  **/
 XbStack *
-xb_machine_parse (XbMachine *self,
-		  const gchar *text,
-		  gssize text_len,
-		  GError **error)
+xb_machine_parse_full (XbMachine *self,
+		       const gchar *text,
+		       gssize text_len,
+		       XbMachineParseFlags flags,
+		       GError **error)
 {
 	XbMachineOpcodeFixupItem *item;
 	XbMachinePrivate *priv = GET_PRIVATE (self);
@@ -611,8 +731,45 @@ xb_machine_parse (XbMachine *self,
 			return NULL;
 	}
 
+	/* optimize */
+	if (flags & XB_MACHINE_PARSE_FLAG_OPTIMIZE) {
+		for (guint i = 0; i < 10; i++) {
+			guint oldsz = xb_stack_get_size (opcodes);
+			if (!xb_machine_opcodes_optimize (self, opcodes, error))
+				return NULL;
+			if (oldsz == xb_stack_get_size (opcodes))
+				break;
+		}
+	}
+
 	/* success */
 	return g_steal_pointer (&opcodes);
+}
+
+/**
+ * xb_machine_parse:
+ * @self: a #XbMachine
+ * @text: predicate to parse, e.g. `contains(text(),'xyx')`
+ * @text_len: length of @text, or -1 if @text is `NUL` terminated
+ * @error: a #GError, or %NULL
+ *
+ * Parses an XPath predicate. Not all of XPath 1.0 or XPath 1.0 is supported,
+ * and new functions and mnemonics can be added using xb_machine_add_method()
+ * and xb_machine_add_text_handler().
+ *
+ * Returns: (transfer full): opcodes, or %NULL on error
+ *
+ * Since: 0.1.1
+ **/
+XbStack *
+xb_machine_parse (XbMachine *self,
+		  const gchar *text,
+		  gssize text_len,
+		  GError **error)
+{
+	return xb_machine_parse_full (self, text, text_len,
+				      XB_MACHINE_PARSE_FLAG_OPTIMIZE,
+				      error);
 }
 
 static void

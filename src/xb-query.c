@@ -230,8 +230,10 @@ xb_query_parse_predicate (XbQuery *self,
 	g_autoptr(XbStack) opcodes = NULL;
 
 	/* parse */
-	opcodes = xb_machine_parse (xb_silo_get_machine (priv->silo),
-				    text, text_len, error);
+	opcodes = xb_machine_parse_full (xb_silo_get_machine (priv->silo),
+					 text, text_len,
+					 XB_MACHINE_PARSE_FLAG_OPTIMIZE,
+					 error);
 	if (opcodes == NULL)
 		return FALSE;
 
