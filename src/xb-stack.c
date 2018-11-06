@@ -94,6 +94,24 @@ xb_stack_peek (XbStack *self, guint idx)
 	return self->opcodes[idx];
 }
 
+/* private */
+XbOpcode *
+xb_stack_peek_head (XbStack *self)
+{
+	if (self->pos == 0)
+		return NULL;
+	return self->opcodes[0];
+}
+
+/* private */
+XbOpcode *
+xb_stack_peek_tail (XbStack *self)
+{
+	if (self->pos == 0)
+		return NULL;
+	return self->opcodes[self->pos - 1];
+}
+
 /**
  * xb_stack_push:
  * @self: a #XbStack

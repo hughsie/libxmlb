@@ -20,6 +20,8 @@ guint		 xb_stack_get_size		(XbStack	*self);
 guint		 xb_stack_get_max_size		(XbStack	*self);
 XbOpcode	*xb_stack_peek			(XbStack	*self,
 						 guint		 idx);
+XbOpcode	*xb_stack_peek_head		(XbStack	*self);
+XbOpcode	*xb_stack_peek_tail		(XbStack	*self);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(XbStack, xb_stack_unref)
 

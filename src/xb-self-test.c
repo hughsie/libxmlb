@@ -104,6 +104,27 @@ xb_stack_func (void)
 }
 
 static void
+xb_stack_peek_func (void)
+{
+	g_autoptr(XbOpcode) op1 = xb_opcode_func_new (0);
+	g_autoptr(XbOpcode) op2 = xb_opcode_integer_new (1);
+	g_autoptr(XbOpcode) op3 = xb_opcode_text_new ("dave");
+	g_autoptr(XbStack) stack = xb_stack_new (3);
+
+	/* push three opcodes */
+	g_assert_true (xb_stack_push (stack, op1));
+	g_assert_true (xb_stack_push (stack, op2));
+	g_assert_true (xb_stack_push (stack, op3));
+
+	/* pop the same opcodes */
+	g_assert (xb_stack_peek_head (stack) == op1);
+	g_assert (xb_stack_peek_tail (stack) == op3);
+	g_assert (xb_stack_peek (stack, 0) == op1);
+	g_assert (xb_stack_peek (stack, 1) == op2);
+	g_assert (xb_stack_peek (stack, 2) == op3);
+}
+
+static void
 xb_common_union_func (void)
 {
 	g_autoptr(GString) xpath = g_string_new (NULL);
@@ -2018,6 +2039,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/opcodes", xb_predicate_func);
 	g_test_add_func ("/libxmlb/opcodes{kind}", xb_opcodes_kind_func);
 	g_test_add_func ("/libxmlb/stack", xb_stack_func);
+	g_test_add_func ("/libxmlb/stack{peek}", xb_stack_peek_func);
 	g_test_add_func ("/libxmlb/node{data}", xb_node_data_func);
 	g_test_add_func ("/libxmlb/builder", xb_builder_func);
 	g_test_add_func ("/libxmlb/builder{native-lang}", xb_builder_native_lang_func);
