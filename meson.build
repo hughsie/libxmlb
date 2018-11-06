@@ -114,6 +114,14 @@ libxmlb_deps = [
   uuid,
 ]
 
+# support stemming of search tokens
+if get_option('stemmer')
+  cc = meson.get_compiler('c')
+  stemmer = cc.find_library('stemmer')
+  libxmlb_deps += stemmer
+  conf.set('HAVE_LIBSTEMMER', 1)
+endif
+
 gnome = import('gnome')
 
 conf.set_quoted('PACKAGE_NAME', meson.project_name())

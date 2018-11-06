@@ -12,11 +12,15 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 
+#ifdef HAVE_LIBSTEMMER
+#include <libstemmer.h>
+#endif
+
 #include "xb-builder.h"
 #include "xb-node-private.h"
 #include "xb-opcode-private.h"
 #include "xb-silo-private.h"
-#include "xb-stack.h"
+#include "xb-stack-private.h"
 #include "xb-string-private.h"
 
 typedef struct {
@@ -36,6 +40,10 @@ typedef struct {
 	XbMachine		*machine;
 	XbSiloProfileFlags	 profile_flags;
 	GString			*profile_str;
+#ifdef HAVE_LIBSTEMMER
+	struct sb_stemmer	*stemmer_ctx;
+	GMutex			 stemmer_mutex;
+#endif
 } XbSiloPrivate;
 
 typedef struct {
@@ -87,6 +95,37 @@ xb_silo_add_profile (XbSilo *self, GTimer *timer, const gchar *fmt, ...)
 	/* reset automatically */
 	if (timer != NULL)
 		g_timer_reset (timer);
+}
+
+/* private */
+static gchar *
+xb_silo_stem (XbSilo *self, const gchar *value)
+{
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+#ifdef HAVE_LIBSTEMMER
+	const gchar *tmp;
+	gsize len_dst;
+	gsize len_src;
+	g_autofree gchar *value_casefold = NULL;
+	g_autoptr(GMutexLocker) locker = g_mutex_locker_new (&priv->stemmer_mutex);
+
+	/* not enabled */
+	value_casefold = g_utf8_casefold (value, -1);
+	if (priv->stemmer_ctx == NULL)
+		return g_steal_pointer (&value_casefold);
+
+	/* stem */
+	len_src = strlen (value_casefold);
+	tmp = (const gchar *) sb_stemmer_stem (priv->stemmer_ctx,
+					       (guchar *) value_casefold,
+					       (gint) len_src);
+	len_dst = (gsize) sb_stemmer_length (priv->stemmer_ctx);
+	if (len_src == len_dst)
+		return g_steal_pointer (&value_casefold);
+	return g_strndup (tmp, len_dst);
+#else
+	return g_utf8_casefold (value, -1);
+#endif
 }
 
 /* private */
@@ -959,6 +998,33 @@ xb_silo_machine_func_attr_cb (XbMachine *self,
 }
 
 static gboolean
+xb_silo_machine_func_stem_cb (XbMachine *self,
+			      XbStack *stack,
+			      gboolean *result,
+			      gpointer user_data,
+			      gpointer exec_data,
+			      GError **error)
+{
+	XbSilo *silo = XB_SILO (user_data);
+	g_autoptr(XbOpcode) op = xb_machine_stack_pop (self, stack);
+
+	/* TEXT */
+	if (xb_opcode_cmp_str (op)) {
+		const gchar *str = xb_opcode_get_str (op);
+		xb_machine_stack_push_text_steal (self, stack, xb_silo_stem (silo, str));
+		return TRUE;
+	}
+
+	/* fail */
+	g_set_error (error,
+		     G_IO_ERROR,
+		     G_IO_ERROR_NOT_SUPPORTED,
+		     "%s type not supported",
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op)));
+	return FALSE;
+}
+
+static gboolean
 xb_silo_machine_func_text_cb (XbMachine *self,
 			      XbStack *stack,
 			      gboolean *result,
@@ -1156,9 +1222,16 @@ xb_silo_init (XbSilo *self)
 
 	g_mutex_init (&priv->nodes_mutex);
 
+#ifdef HAVE_LIBSTEMMER
+	priv->stemmer_ctx = sb_stemmer_new ("en", NULL);
+	g_mutex_init (&priv->stemmer_mutex);
+#endif
+
 	priv->machine = xb_machine_new ();
 	xb_machine_add_method (priv->machine, "attr", 1,
 			       xb_silo_machine_func_attr_cb, self, NULL);
+	xb_machine_add_method (priv->machine, "stem", 1,
+			       xb_silo_machine_func_stem_cb, self, NULL);
 	xb_machine_add_method (priv->machine, "text", 0,
 			       xb_silo_machine_func_text_cb, self, NULL);
 	xb_machine_add_method (priv->machine, "first", 0,
@@ -1185,6 +1258,11 @@ xb_silo_finalize (GObject *obj)
 	XbSiloPrivate *priv = GET_PRIVATE (self);
 
 	g_mutex_clear (&priv->nodes_mutex);
+
+#ifdef HAVE_LIBSTEMMER
+	sb_stemmer_delete (priv->stemmer_ctx);
+	g_mutex_clear (&priv->stemmer_mutex);
+#endif
 
 	g_free (priv->guid);
 	g_string_free (priv->profile_str, TRUE);

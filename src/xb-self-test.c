@@ -232,7 +232,8 @@ xb_predicate_func (void)
 		NULL
 	};
 	xb_machine_set_debug_flags (xb_silo_get_machine (silo),
-				    XB_MACHINE_DEBUG_FLAG_SHOW_STACK);
+				    XB_MACHINE_DEBUG_FLAG_SHOW_STACK |
+				    XB_MACHINE_DEBUG_FLAG_SHOW_PARSING);
 	for (guint i = 0; tests[i].pred != NULL; i++) {
 		g_autofree gchar *str = NULL;
 		g_autoptr(GError) error = NULL;
@@ -1245,6 +1246,18 @@ xb_xpath_func (void)
 	g_assert_nonnull (n);
 	g_assert_cmpstr (xb_node_get_text (n), ==, "gimp.desktop");
 	g_clear_object (&n);
+
+	/* query with stem */
+	xb_machine_set_debug_flags (xb_silo_get_machine (silo),
+				    XB_MACHINE_DEBUG_FLAG_SHOW_STACK |
+				    XB_MACHINE_DEBUG_FLAG_SHOW_PARSING);
+	n = xb_silo_query_first (silo, "components/component/id[text()~=stem('gimping')]", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "gimp.desktop");
+	g_clear_object (&n);
+	xb_machine_set_debug_flags (xb_silo_get_machine (silo),
+				    XB_MACHINE_DEBUG_FLAG_SHOW_STACK);
 
 	/* query with text:integer */
 	n = xb_silo_query_first (silo, "components/component/id['123'=123]", &error);
