@@ -80,6 +80,18 @@ xb_opcode_kind_from_string (const gchar *str)
 	return XB_OPCODE_KIND_UNKNOWN;
 }
 
+/* private */
+gchar *
+xb_opcode_get_sig (XbOpcode *self)
+{
+	GString *str = g_string_new (xb_opcode_kind_to_string (self->kind));
+	if (self->kind == XB_OPCODE_KIND_FUNCTION) {
+		g_string_append_printf (str, ":%s",
+					self->ptr != NULL ? (gchar *) self->ptr : "???");
+	}
+	return g_string_free (str, FALSE);
+}
+
 /**
  * xb_opcode_get_kind:
  * @self: a #XbOpcode

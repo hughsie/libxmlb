@@ -490,22 +490,10 @@ static gchar *
 xb_machine_get_opcodes_sig (XbMachine *self, XbStack *opcodes)
 {
 	GString *str = g_string_new (NULL);
-	XbMachinePrivate *priv = GET_PRIVATE (self);
 	for (guint i = 0; i < xb_stack_get_size (opcodes); i++) {
-		XbOpcode *opcode = xb_stack_peek (opcodes, i);
-		g_assert (opcode != NULL);
-		if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_FUNCTION) {
-			XbMachineMethodItem *item;
-			item = g_ptr_array_index (priv->methods, xb_opcode_get_val (opcode));
-			if (item == NULL) {
-				g_string_append (str, "FUNC:???,");
-			} else {
-				g_string_append_printf (str, "FUNC:%s,", item->name);
-			}
-			continue;
-		}
-		g_string_append_printf (str, "%s,",
-					xb_opcode_kind_to_string (xb_opcode_get_kind (opcode)));
+		XbOpcode *op = xb_stack_peek (opcodes, i);
+		g_autofree gchar *sig = xb_opcode_get_sig (op);
+		g_string_append_printf (str, "%s,", sig);
 	}
 	if (str->len > 0)
 		g_string_truncate (str, str->len - 1);

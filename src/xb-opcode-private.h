@@ -24,6 +24,7 @@ void		 xb_opcode_bind_val		(XbOpcode	*self,
 						 guint32	 val);
 void		 xb_opcode_set_val		(XbOpcode	*self,
 						 guint32	 val);
+gchar		*xb_opcode_get_sig		(XbOpcode	*self);
 
 G_END_DECLS
 
