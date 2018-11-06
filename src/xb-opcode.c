@@ -93,6 +93,37 @@ xb_opcode_get_sig (XbOpcode *self)
 }
 
 /**
+ * xb_opcode_to_string:
+ * @self: a #XbOpcode
+ *
+ * Returns a string representing the specific opcode.
+ *
+ * Returns: text
+ *
+ * Since: 0.1.4
+ **/
+gchar *
+xb_opcode_to_string (XbOpcode *self)
+{
+	if (self->kind == XB_OPCODE_KIND_FUNCTION)
+		return g_strdup_printf ("%s()", xb_opcode_get_str (self));
+	if (self->kind == XB_OPCODE_KIND_TEXT)
+		return g_strdup_printf ("'%s'", xb_opcode_get_str (self));
+	if (self->kind == XB_OPCODE_KIND_INDEXED_TEXT)
+		return g_strdup_printf ("$'%s'", xb_opcode_get_str (self));
+	if (self->kind == XB_OPCODE_KIND_INTEGER)
+		return g_strdup_printf ("%u", xb_opcode_get_val (self));
+	if (self->kind == XB_OPCODE_KIND_BOUND_INTEGER)
+		return g_strdup ("?");
+	if (self->kind == XB_OPCODE_KIND_BOUND_TEXT)
+		return g_strdup_printf ("?'%s'", xb_opcode_get_str (self));
+	if (self->kind == XB_OPCODE_KIND_BOUND_INTEGER)
+		return g_strdup_printf ("?%u", xb_opcode_get_val (self));
+	g_critical ("no to_string for kind %u", self->kind);
+	return NULL;
+}
+
+/**
  * xb_opcode_get_kind:
  * @self: a #XbOpcode
  *

@@ -97,7 +97,8 @@ void		 xb_machine_add_operator	(XbMachine		*self,
 XbOpcode	*xb_machine_opcode_func_new	(XbMachine		*self,
 						 const gchar		*func_name);
 gchar		*xb_machine_opcode_to_string	(XbMachine		*self,
-						 XbOpcode		*opcode);
+						 XbOpcode		*opcode)
+G_DEPRECATED_FOR(xb_opcode_to_string);
 gchar		*xb_machine_opcodes_to_string	(XbMachine		*self,
 						 XbStack		*opcodes);
 

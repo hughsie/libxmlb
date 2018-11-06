@@ -640,7 +640,7 @@ xb_machine_run_func (XbMachine *self,
 
 	/* optional debugging */
 	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
-		g_autofree gchar *str = xb_machine_opcode_to_string (self, opcode);
+		g_autofree gchar *str = xb_opcode_to_string (opcode);
 		g_debug ("running: %s", str);
 		xb_machine_debug_show_stack (self, stack);
 	}
@@ -675,30 +675,7 @@ xb_machine_run_func (XbMachine *self,
 gchar *
 xb_machine_opcode_to_string (XbMachine *self, XbOpcode *opcode)
 {
-	XbMachinePrivate *priv = GET_PRIVATE (self);
-
-	g_return_val_if_fail (XB_IS_MACHINE (self), NULL);
-	g_return_val_if_fail (opcode != NULL, NULL);
-
-	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_FUNCTION) {
-		XbMachineMethodItem *item;
-		item = g_ptr_array_index (priv->methods, xb_opcode_get_val (opcode));
-		return g_strdup_printf ("%s()", item->name);
-	}
-	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_TEXT)
-		return g_strdup_printf ("'%s'", xb_opcode_get_str (opcode));
-	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_INDEXED_TEXT)
-		return g_strdup_printf ("$'%s'", xb_opcode_get_str (opcode));
-	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_INTEGER)
-		return g_strdup_printf ("%u", xb_opcode_get_val (opcode));
-	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_BOUND_INTEGER)
-		return g_strdup ("?");
-	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_BOUND_TEXT)
-		return g_strdup_printf ("?'%s'", xb_opcode_get_str (opcode));
-	if (xb_opcode_get_kind (opcode) == XB_OPCODE_KIND_BOUND_INTEGER)
-		return g_strdup_printf ("?%u", xb_opcode_get_val (opcode));
-	g_critical ("no to_string for kind %u", xb_opcode_get_kind (opcode));
-	return NULL;
+	return xb_opcode_to_string (opcode);
 }
 
 /**
@@ -844,7 +821,7 @@ xb_machine_stack_pop (XbMachine *self, XbStack *stack)
 	XbMachinePrivate *priv = GET_PRIVATE (self);
 	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
 		XbOpcode *opcode = xb_stack_peek (stack, xb_stack_get_size (stack) - 1);
-		g_autofree gchar *str = xb_machine_opcode_to_string (self, opcode);
+		g_autofree gchar *str = xb_opcode_to_string (opcode);
 		g_debug ("popping: %s", str);
 		xb_machine_debug_show_stack (self, stack);
 	}
@@ -866,7 +843,7 @@ xb_machine_stack_push (XbMachine *self, XbStack *stack, XbOpcode *opcode)
 {
 	XbMachinePrivate *priv = GET_PRIVATE (self);
 	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
-		g_autofree gchar *str = xb_machine_opcode_to_string (self, opcode);
+		g_autofree gchar *str = xb_opcode_to_string (opcode);
 		g_debug ("pushing: %s", str);
 	}
 	xb_stack_push (stack, opcode);
@@ -889,7 +866,7 @@ xb_machine_stack_push_steal (XbMachine *self, XbStack *stack, XbOpcode *opcode)
 {
 	XbMachinePrivate *priv = GET_PRIVATE (self);
 	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
-		g_autofree gchar *str = xb_machine_opcode_to_string (self, opcode);
+		g_autofree gchar *str = xb_opcode_to_string (opcode);
 		g_debug ("pushing: %s", str);
 	}
 	xb_stack_push_steal (stack, opcode);

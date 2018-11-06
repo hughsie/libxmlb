@@ -67,6 +67,7 @@ gboolean	 xb_opcode_cmp_val		(XbOpcode	*self);
 gboolean	 xb_opcode_cmp_str		(XbOpcode	*self);
 
 GType		 xb_opcode_get_type		(void);
+gchar		*xb_opcode_to_string		(XbOpcode	*self);
 const gchar	*xb_opcode_kind_to_string	(XbOpcodeKind	 kind);
 XbOpcodeKind	 xb_opcode_kind_from_string	(const gchar	*str);
 
