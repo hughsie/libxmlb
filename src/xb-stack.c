@@ -75,6 +75,20 @@ xb_stack_pop (XbStack *self)
 	return self->opcodes[--self->pos];
 }
 
+/* private */
+GPtrArray *
+xb_stack_steal_all (XbStack *self)
+{
+	GPtrArray *array;
+
+	/* array takes ownership of the opcodes */
+	array = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_opcode_unref);
+	for (guint i = 0; i < self->pos; i++)
+		g_ptr_array_add (array, self->opcodes[i]);
+	self->pos = 0;
+	return array;
+}
+
 /**
  * xb_stack_peek:
  * @self: a #XbStack
