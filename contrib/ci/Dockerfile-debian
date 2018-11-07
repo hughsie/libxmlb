@@ -7,6 +7,7 @@ RUN apt-get install -yq --no-install-recommends \
 	gtk-doc-tools \
 	libgirepository1.0-dev \
 	libglib2.0-dev \
+	libstemmer-dev \
 	shared-mime-info \
 	uuid-dev \
 	meson \
