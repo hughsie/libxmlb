@@ -540,7 +540,7 @@ xb_machine_opcodes_optimize_fn (XbMachine *self,
 
 	/* get function, check if we have enough arguments */
 	item = g_ptr_array_index (priv->methods, xb_opcode_get_val (op));
-	if (item->n_opcodes > *idx) {
+	if (item->n_opcodes >= *idx) {
 		g_set_error_literal (error,
 				     G_IO_ERROR,
 				     G_IO_ERROR_INVALID_DATA,
