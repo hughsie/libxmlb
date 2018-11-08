@@ -1,3 +1,20 @@
+Version 0.1.4
+~~~~~~~~~~~~~
+Released: 2018-11-08
+
+New Features:
+ - Add support for bound variables (Richard Hughes)
+ - Add support for indexed strings (Richard Hughes)
+ - Optionally optimize predicates (Richard Hughes)
+ - Split out the XPath query logic into XbQuery (Richard Hughes)
+ - Support XPath method to do a Porter stem operation on text (Richard Hughes)
+
+Bugfixes:
+ - Don't hardcode the path of python3 (Ting-Wei Lan)
+ - Only attempt to pass TEXT opcodes for upper-case() (Richard Hughes)
+ - Revert the optional text space saving feature (Richard Hughes)
+ - Use INTE:INTE for comparison where available (Richard Hughes)
+
 Version 0.1.3
 ~~~~~~~~~~~~~
 Released: 2018-10-22
