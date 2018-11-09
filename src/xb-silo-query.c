@@ -434,15 +434,27 @@ xb_silo_query_build_index (XbSilo *self,
 			   const gchar *attr,
 			   GError **error)
 {
+	g_autoptr(GError) error_local = NULL;
 	g_autoptr(GPtrArray) array = NULL;
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (xpath != NULL, FALSE);
 
 	/* do the query */
-	array = xb_silo_query_with_root (self, NULL, xpath, 0, error);
-	if (array == NULL)
+	array = xb_silo_query_with_root (self, NULL, xpath, 0, &error_local);
+	if (array == NULL) {
+		if (g_error_matches (error_local,
+				     G_IO_ERROR,
+				     G_IO_ERROR_INVALID_ARGUMENT) ||
+		    g_error_matches (error_local,
+				     G_IO_ERROR,
+				     G_IO_ERROR_NOT_FOUND)) {
+			g_debug ("ignoring index: %s", error_local->message);
+			return TRUE;
+		}
+		g_propagate_error (error, g_steal_pointer (&error_local));
 		return FALSE;
+	}
 
 	/* add each attribute name AND value */
 	for (guint i = 0; i < array->len; i++) {

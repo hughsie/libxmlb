@@ -2073,6 +2073,12 @@ xb_speed_func (void)
 	ret = xb_silo_query_build_index (silo, "components/component/id", NULL, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
+	ret = xb_silo_query_build_index (silo, "components/component/id[text()='dave']", NULL, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	ret = xb_silo_query_build_index (silo, "components/component/DAVE", NULL, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
 	ret = xb_silo_query_build_index (silo, "components/component", "type", &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
