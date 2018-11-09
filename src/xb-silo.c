@@ -101,8 +101,8 @@ xb_silo_add_profile (XbSilo *self, GTimer *timer, const gchar *fmt, ...)
 static gchar *
 xb_silo_stem (XbSilo *self, const gchar *value)
 {
-	XbSiloPrivate *priv = GET_PRIVATE (self);
 #ifdef HAVE_LIBSTEMMER
+	XbSiloPrivate *priv = GET_PRIVATE (self);
 	const gchar *tmp;
 	gsize len_dst;
 	gsize len_src;

@@ -1248,6 +1248,7 @@ xb_xpath_func (void)
 	g_clear_object (&n);
 
 	/* query with stem */
+#ifdef HAVE_LIBSTEMMER
 	xb_machine_set_debug_flags (xb_silo_get_machine (silo),
 				    XB_MACHINE_DEBUG_FLAG_SHOW_STACK |
 				    XB_MACHINE_DEBUG_FLAG_SHOW_PARSING);
@@ -1258,6 +1259,7 @@ xb_xpath_func (void)
 	g_clear_object (&n);
 	xb_machine_set_debug_flags (xb_silo_get_machine (silo),
 				    XB_MACHINE_DEBUG_FLAG_SHOW_STACK);
+#endif
 
 	/* query with text:integer */
 	n = xb_silo_query_first (silo, "components/component/id['123'=123]", &error);
