@@ -151,7 +151,7 @@ xb_query_bind_str (XbQuery *self, guint idx, const gchar *str, GError **error)
 			     "no bound opcode with index %u", idx);
 		return FALSE;
 	}
-	xb_opcode_bind_str (op, str, NULL);
+	xb_opcode_bind_str (op, g_strdup (str), g_free);
 	return TRUE;
 }
 
