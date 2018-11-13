@@ -454,6 +454,9 @@ main (int argc, char *argv[])
 		{ NULL}
 	};
 
+	/* do not let GIO start a session bus */
+	g_setenv ("GIO_USE_VFS", "local", 1);
+
 	/* add commands */
 	priv->cmd_array = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_tool_item_free);
 	xb_tool_add (priv->cmd_array,
