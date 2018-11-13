@@ -1286,14 +1286,17 @@ xb_silo_class_init (XbSiloClass *klass)
 	 * XbSilo:guid:
 	 */
 	pspec = g_param_spec_string ("guid", NULL, NULL, NULL,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+				     G_PARAM_READWRITE |
+				     G_PARAM_CONSTRUCT |
+				     G_PARAM_STATIC_NAME);
 	g_object_class_install_property (object_class, PROP_GUID, pspec);
 
 	/**
 	 * XbSilo:allow-cancel:
 	 */
 	pspec = g_param_spec_boolean ("valid", NULL, NULL, TRUE,
-				      G_PARAM_READABLE);
+				      G_PARAM_READABLE |
+				      G_PARAM_STATIC_NAME);
 	g_object_class_install_property (object_class, PROP_VALID, pspec);
 }
 
