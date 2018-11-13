@@ -41,7 +41,7 @@ typedef struct {
 	XbSiloProfileFlags	 profile_flags;
 	GString			*profile_str;
 #ifdef HAVE_LIBSTEMMER
-	struct sb_stemmer	*stemmer_ctx;
+	struct sb_stemmer	*stemmer_ctx;	/* lazy loaded */
 	GMutex			 stemmer_mutex;
 #endif
 } XbSiloPrivate;
@@ -112,7 +112,7 @@ xb_silo_stem (XbSilo *self, const gchar *value)
 	/* not enabled */
 	value_casefold = g_utf8_casefold (value, -1);
 	if (priv->stemmer_ctx == NULL)
-		return g_steal_pointer (&value_casefold);
+		priv->stemmer_ctx = sb_stemmer_new ("en", NULL);
 
 	/* stem */
 	len_src = strlen (value_casefold);
@@ -1218,7 +1218,6 @@ xb_silo_init (XbSilo *self)
 	g_mutex_init (&priv->nodes_mutex);
 
 #ifdef HAVE_LIBSTEMMER
-	priv->stemmer_ctx = sb_stemmer_new ("en", NULL);
 	g_mutex_init (&priv->stemmer_mutex);
 #endif
 
@@ -1255,7 +1254,8 @@ xb_silo_finalize (GObject *obj)
 	g_mutex_clear (&priv->nodes_mutex);
 
 #ifdef HAVE_LIBSTEMMER
-	sb_stemmer_delete (priv->stemmer_ctx);
+	if (priv->stemmer_ctx != NULL)
+		sb_stemmer_delete (priv->stemmer_ctx);
 	g_mutex_clear (&priv->stemmer_mutex);
 #endif
 
