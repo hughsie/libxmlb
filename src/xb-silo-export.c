@@ -22,18 +22,6 @@ typedef struct {
 	guint			 level;
 } XbSiloExportHelper;
 
-static gchar *
-xb_silo_export_escape (const gchar *val)
-{
-	GString *str = g_string_new (val);
-	xb_string_replace (str, "&", "&amp;");
-	xb_string_replace (str, "<", "&lt;");
-	xb_string_replace (str, ">", "&gt;");
-	xb_string_replace (str, "\"", "&quot;");
-	xb_string_replace (str, "'", "&apos;");
-	return g_string_free (str, FALSE);
-}
-
 static gboolean
 xb_silo_export_node (XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, GError **error)
 {
@@ -52,14 +40,14 @@ xb_silo_export_node (XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, G
 	/* add any attributes */
 	for (guint8 i = 0; i < sn->nr_attrs; i++) {
 		XbSiloAttr *a = xb_silo_get_attr (self, helper->off, i);
-		g_autofree gchar *key = xb_silo_export_escape (xb_silo_from_strtab (self, a->attr_name));
-		g_autofree gchar *val = xb_silo_export_escape (xb_silo_from_strtab (self, a->attr_value));
+		g_autofree gchar *key = xb_string_xml_escape (xb_silo_from_strtab (self, a->attr_name));
+		g_autofree gchar *val = xb_string_xml_escape (xb_silo_from_strtab (self, a->attr_value));
 		g_string_append_printf (helper->xml, " %s=\"%s\"", key, val);
 	}
 
 	/* finish the opening tag and add any text if it exists */
 	if (sn->text != XB_SILO_UNSET) {
-		g_autofree gchar *text = xb_silo_export_escape (xb_silo_from_strtab (self, sn->text));
+		g_autofree gchar *text = xb_string_xml_escape (xb_silo_from_strtab (self, sn->text));
 		g_string_append (helper->xml, ">");
 		g_string_append (helper->xml, text);
 	} else {

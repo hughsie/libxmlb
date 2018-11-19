@@ -19,6 +19,7 @@ gboolean	 xb_string_contains			(const gchar	*text,
 							 const gchar	*search);
 gboolean	 xb_string_search			(const gchar	*text,
 							 const gchar	*search);
+gchar		*xb_string_xml_escape			(const gchar	*str);
 
 G_END_DECLS
 

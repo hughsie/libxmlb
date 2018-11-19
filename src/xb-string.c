@@ -197,3 +197,15 @@ xb_string_escape (const gchar *str)
 	xb_string_replace (tmp, "\n", "\\n");
 	return g_string_free (tmp, FALSE);
 }
+
+gchar *
+xb_string_xml_escape (const gchar *str)
+{
+	GString *tmp = g_string_new (str);
+	xb_string_replace (tmp, "&", "&amp;");
+	xb_string_replace (tmp, "<", "&lt;");
+	xb_string_replace (tmp, ">", "&gt;");
+	xb_string_replace (tmp, "\"", "&quot;");
+	xb_string_replace (tmp, "'", "&apos;");
+	return g_string_free (tmp, FALSE);
+}
