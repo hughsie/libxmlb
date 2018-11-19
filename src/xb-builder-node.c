@@ -13,6 +13,7 @@
 
 #include "xb-builder-node-private.h"
 #include "xb-silo-private.h"
+#include "xb-string-private.h"
 
 typedef struct {
 	GObject			 parent_instance;
@@ -841,4 +842,93 @@ xb_builder_node_insert_text (XbBuilderNode *parent,
 		xb_builder_node_set_attr (self, key, value);
 	}
 	va_end (args);
+}
+
+typedef struct {
+	GString			*xml;
+	XbNodeExportFlags	 flags;
+	guint			 level;
+} XbBuilderNodeExportHelper;
+
+static gboolean
+xb_builder_node_export_helper (XbBuilderNode *self,
+			       XbBuilderNodeExportHelper *helper,
+			       GError **error)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+
+	/* add start of opening tag */
+	if (helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_INDENT) {
+		for (guint i = 0; i < helper->level; i++)
+			g_string_append (helper->xml, "  ");
+	}
+	g_string_append_printf (helper->xml, "<%s", priv->element);
+
+	/* add any attributes */
+	for (guint i = 0; i < priv->attrs->len; i++) {
+		XbBuilderNodeAttr *a = g_ptr_array_index (priv->attrs, i);
+		g_autofree gchar *key = xb_string_xml_escape (a->name);
+		g_autofree gchar *val = xb_string_xml_escape (a->value);
+		g_string_append_printf (helper->xml, " %s=\"%s\"", key, val);
+	}
+
+	/* finish the opening tag and add any text if it exists */
+	if (priv->text != NULL) {
+		g_autofree gchar *text = xb_string_xml_escape (priv->text);
+		g_string_append (helper->xml, ">");
+		g_string_append (helper->xml, text);
+	} else {
+		g_string_append (helper->xml, ">");
+		if (helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE)
+			g_string_append (helper->xml, "\n");
+	}
+
+	/* recurse deeper */
+	for (guint i = 0; i < priv->children->len; i++) {
+		XbBuilderNode *child = g_ptr_array_index (priv->children, i);
+		helper->level++;
+		if (!xb_builder_node_export_helper (child, helper, error))
+			return FALSE;
+		helper->level--;
+	}
+
+	/* add closing tag */
+	if ((helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_INDENT) > 0 &&
+	    priv->text == NULL) {
+		for (guint i = 0; i < helper->level; i++)
+			g_string_append (helper->xml, "  ");
+	}
+	g_string_append_printf (helper->xml, "</%s>", priv->element);
+	if (helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE)
+		g_string_append (helper->xml, "\n");
+	return TRUE;
+}
+
+/**
+ * xb_builder_node_export:
+ * @self: a #XbBuilderNode
+ * @flags: some #XbNodeExportFlags, e.g. #XB_NODE_EXPORT_FLAG_NONE
+ * @error: the #GError, or %NULL
+ *
+ * Exports the node to XML.
+ *
+ * Returns: XML data, or %NULL for an error
+ *
+ * Since: 0.1.5
+ **/
+gchar *
+xb_builder_node_export (XbBuilderNode *self, XbNodeExportFlags flags, GError **error)
+{
+	g_autoptr(GString) xml = g_string_new (NULL);
+	XbBuilderNodeExportHelper helper = {
+		.flags		= flags,
+		.level		= 0,
+		.xml		= xml,
+	};
+	g_return_val_if_fail (XB_IS_BUILDER_NODE (self), NULL);
+	if ((flags & XB_NODE_EXPORT_FLAG_ADD_HEADER) > 0)
+		g_string_append (xml, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+	if (!xb_builder_node_export_helper (self, &helper, error))
+		return NULL;
+	return g_string_free (g_steal_pointer (&xml), FALSE);
 }

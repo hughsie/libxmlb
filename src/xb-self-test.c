@@ -1685,6 +1685,7 @@ static void
 xb_builder_node_func (void)
 {
 	g_autofree gchar *xml = NULL;
+	g_autofree gchar *xml_src = NULL;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
 	g_autoptr(XbBuilderNode) child_by_element = NULL;
@@ -1719,6 +1720,20 @@ xb_builder_node_func (void)
 	child_by_text = xb_builder_node_get_child (component, "id", "gimp.desktop");
 	g_assert_nonnull (child_by_text);
 	g_assert_cmpstr (xb_builder_node_get_element (child_by_text), ==, "id");
+
+	/* check the source XML */
+	xml_src = xb_builder_node_export (components,
+					  XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE,
+					  &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (xml_src);
+	g_print ("%s", xml_src);
+	g_assert_cmpstr ("<components origin=\"lvfs\">\n"
+			 "<component type=\"desktop\">\n"
+			 "<id>gimp.desktop</id>\n"
+			 "<icon type=\"stock\">dave</icon>\n"
+			 "</component>\n"
+			 "</components>\n", ==, xml_src);
 
 	/* import the doc */
 	xb_builder_import_node (builder, root);

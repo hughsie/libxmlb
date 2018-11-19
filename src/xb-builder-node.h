@@ -11,6 +11,8 @@ G_BEGIN_DECLS
 
 #include <glib-object.h>
 
+#include "xb-node.h"
+
 #define XB_TYPE_BUILDER_NODE (xb_builder_node_get_type ())
 G_DECLARE_DERIVABLE_TYPE (XbBuilderNode, xb_builder_node, XB, BUILDER_NODE, GObject)
 
@@ -98,6 +100,9 @@ void		 xb_builder_node_traverse	(XbBuilderNode		*self,
 void		 xb_builder_node_sort_children	(XbBuilderNode		*self,
 						 XbBuilderNodeSortFunc	 func,
 						 gpointer		 user_data);
+gchar		*xb_builder_node_export		(XbBuilderNode		*self,
+						 XbNodeExportFlags	 flags,
+						 GError			**error);
 
 G_END_DECLS
 
