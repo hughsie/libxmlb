@@ -1,3 +1,15 @@
+Version 0.1.5
+~~~~~~~~~~~~~
+Released: 2018-11-21
+
+New Features:
+ - Add xb_builder_node_export() (Richard Hughes)
+
+Bugfixes:
+ - Do not start a GIO session bus when using xb-tool (Richard Hughes)
+ - Ignore calls to xb_silo_query_build_index() with no results (Richard Hughes)
+ - Lazy load the stemmer when required (Richard Hughes)
+
 Version 0.1.4
 ~~~~~~~~~~~~~
 Released: 2018-11-08
