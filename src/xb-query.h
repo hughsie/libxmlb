@@ -28,8 +28,28 @@ struct _XbQueryClass {
 	void (*_xb_reserved7)		(void);
 };
 
+/**
+ * XbQueryFlags:
+ * @XB_QUERY_FLAG_NONE:			No extra flags to use
+ * @XB_QUERY_FLAG_OPTIMIZE:		Optimize the query when possible
+ * @XB_QUERY_FLAG_USE_INDEXES:		Use the indexed parameters
+ *
+ * The flags used fo query.
+ **/
+typedef enum {
+	XB_QUERY_FLAG_NONE		= 0,			/* Since: 0.1.6 */
+	XB_QUERY_FLAG_OPTIMIZE		= 1 << 0,		/* Since: 0.1.6 */
+	XB_QUERY_FLAG_USE_INDEXES	= 1 << 1,		/* Since: 0.1.6 */
+	/*< private >*/
+	XB_QUERY_FLAG_LAST
+} XbQueryFlags;
+
 XbQuery		*xb_query_new			(XbSilo		*silo,
 						 const gchar	*xpath,
+						 GError		**error);
+XbQuery		*xb_query_new_full		(XbSilo		*silo,
+						 const gchar	*xpath,
+						 XbQueryFlags	 flags,
 						 GError		**error);
 const gchar	*xb_query_get_xpath		(XbQuery	*self);
 guint		 xb_query_get_limit		(XbQuery	*self);

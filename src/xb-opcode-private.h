@@ -22,6 +22,8 @@ void		 xb_opcode_bind_str		(XbOpcode	*self,
 						 GDestroyNotify	 destroy_func);
 void		 xb_opcode_bind_val		(XbOpcode	*self,
 						 guint32	 val);
+void		 xb_opcode_set_kind		(XbOpcode	*self,
+						 XbOpcodeKind	 kind);
 void		 xb_opcode_set_val		(XbOpcode	*self,
 						 guint32	 val);
 gchar		*xb_opcode_get_sig		(XbOpcode	*self);

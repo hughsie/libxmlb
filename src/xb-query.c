@@ -224,26 +224,40 @@ xb_query_parse_predicate (XbQuery *self,
 			  XbQuerySection *section,
 			  const gchar *text,
 			  gssize text_len,
+			  XbQueryFlags flags,
 			  GError **error)
 {
 	XbQueryPrivate *priv = GET_PRIVATE (self);
+	XbMachineParseFlags machine_flags = XB_MACHINE_PARSE_FLAG_NONE;
 	g_autoptr(XbStack) opcodes = NULL;
+
+	/* set flags */
+	if (flags & XB_QUERY_FLAG_OPTIMIZE)
+		machine_flags |= XB_MACHINE_PARSE_FLAG_OPTIMIZE;
 
 	/* parse */
 	opcodes = xb_machine_parse_full (xb_silo_get_machine (priv->silo),
 					 text, text_len,
-					 XB_MACHINE_PARSE_FLAG_OPTIMIZE,
+					 machine_flags,
 					 error);
 	if (opcodes == NULL)
 		return FALSE;
 
-	/* repair the indexed strings */
-	for (guint i = 0; i < xb_stack_get_size (opcodes); i++) {
-		XbOpcode *op = xb_stack_peek (opcodes, i);
-		if (xb_opcode_get_kind (op) != XB_OPCODE_KIND_INDEXED_TEXT)
-			continue;
-		if (!xb_query_repair_opcode_texi (self, op, error))
-			return FALSE;
+	/* repair or convert the indexed strings */
+	if (flags & XB_QUERY_FLAG_USE_INDEXES) {
+		for (guint i = 0; i < xb_stack_get_size (opcodes); i++) {
+			XbOpcode *op = xb_stack_peek (opcodes, i);
+			if (xb_opcode_get_kind (op) != XB_OPCODE_KIND_INDEXED_TEXT)
+				continue;
+			if (!xb_query_repair_opcode_texi (self, op, error))
+				return FALSE;
+		}
+	} else {
+		for (guint i = 0; i < xb_stack_get_size (opcodes); i++) {
+			XbOpcode *op = xb_stack_peek (opcodes, i);
+			if (xb_opcode_get_kind (op) == XB_OPCODE_KIND_INDEXED_TEXT)
+				xb_opcode_set_kind (op, XB_OPCODE_KIND_TEXT);
+		}
 	}
 
 	/* create array if it does not exist */
@@ -254,7 +268,10 @@ xb_query_parse_predicate (XbQuery *self,
 }
 
 static XbQuerySection *
-xb_query_parse_section (XbQuery *self, const gchar *xpath, GError **error)
+xb_query_parse_section (XbQuery *self,
+			const gchar *xpath,
+			XbQueryFlags flags,
+			GError **error)
 {
 	XbQueryPrivate *priv = GET_PRIVATE (self);
 	g_autoptr(XbQuerySection) section = g_slice_new0 (XbQuerySection);
@@ -280,6 +297,7 @@ xb_query_parse_section (XbQuery *self, const gchar *xpath, GError **error)
 						       section,
 						       xpath + start + 1,
 						       i - start - 1,
+						       flags,
 						       error)) {
 				return NULL;
 			}
@@ -318,7 +336,7 @@ xb_query_parse_section (XbQuery *self, const gchar *xpath, GError **error)
 }
 
 static gboolean
-xb_query_parse (XbQuery *self, const gchar *xpath, GError **error)
+xb_query_parse (XbQuery *self, const gchar *xpath, XbQueryFlags flags, GError **error)
 {
 	XbQueryPrivate *priv = GET_PRIVATE (self);
 	XbQuerySection *section;
@@ -347,7 +365,8 @@ xb_query_parse (XbQuery *self, const gchar *xpath, GError **error)
 						     "xpath section empty");
 				return FALSE;
 			}
-			section = xb_query_parse_section (self, acc->str, error);
+			section = xb_query_parse_section (self, acc->str,
+							  flags, error);
 			if (section == NULL)
 				return FALSE;
 			g_ptr_array_add (priv->sections, section);
@@ -358,7 +377,7 @@ xb_query_parse (XbQuery *self, const gchar *xpath, GError **error)
 	}
 
 	/* add any remaining section */
-	section = xb_query_parse_section (self, acc->str, error);
+	section = xb_query_parse_section (self, acc->str, flags, error);
 	if (section == NULL)
 		return FALSE;
 	g_ptr_array_add (priv->sections, section);
@@ -366,19 +385,21 @@ xb_query_parse (XbQuery *self, const gchar *xpath, GError **error)
 }
 
 /**
- * xb_query_new:
+ * xb_query_new_full:
  * @silo: a #XbSilo
  * @xpath: The XPath query
+ * @flags: some #XbQueryFlags, e.g. #XB_QUERY_FLAG_USE_INDEXES
+ * @error: the #GError, or %NULL
  *
  * Creates a query to be used by @silo. It may be quicker to create a query
  * manually and re-use it multiple times.
  *
  * Returns: (transfer full): a #XbQuery
  *
- * Since: 0.1.4
+ * Since: 0.1.6
  **/
 XbQuery *
-xb_query_new (XbSilo *silo, const gchar *xpath, GError **error)
+xb_query_new_full (XbSilo *silo, const gchar *xpath, XbQueryFlags flags, GError **error)
 {
 	g_autoptr(XbQuery) self = g_object_new (XB_TYPE_QUERY, NULL);
 	XbQueryPrivate *priv = GET_PRIVATE (self);
@@ -389,7 +410,7 @@ xb_query_new (XbSilo *silo, const gchar *xpath, GError **error)
 	priv->sections = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_query_section_free);
 
 	/* add each section */
-	if (!xb_query_parse (self, xpath, error))
+	if (!xb_query_parse (self, xpath, flags, error))
 		return NULL;
 
 	/* nothing here! */
@@ -404,6 +425,28 @@ xb_query_new (XbSilo *silo, const gchar *xpath, GError **error)
 
 	/* success */
 	return g_steal_pointer (&self);
+}
+
+/**
+ * xb_query_new:
+ * @silo: a #XbSilo
+ * @xpath: The XPath query
+ * @error: the #GError, or %NULL
+ *
+ * Creates a query to be used by @silo. It may be quicker to create a query
+ * manually and re-use it multiple times.
+ *
+ * Returns: (transfer full): a #XbQuery
+ *
+ * Since: 0.1.4
+ **/
+XbQuery *
+xb_query_new (XbSilo *silo, const gchar *xpath, GError **error)
+{
+	return xb_query_new_full (silo, xpath,
+				  XB_QUERY_FLAG_OPTIMIZE |
+				  XB_QUERY_FLAG_USE_INDEXES,
+				  error);
 }
 
 static void

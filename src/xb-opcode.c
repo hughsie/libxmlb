@@ -416,6 +416,13 @@ xb_opcode_set_val (XbOpcode *self, guint32 val)
 	self->val = val;
 }
 
+/* private */
+void
+xb_opcode_set_kind (XbOpcode *self, XbOpcodeKind kind)
+{
+	self->kind = kind;
+}
+
 /**
  * xb_opcode_integer_new:
  * @val: a integer value

@@ -176,3 +176,9 @@ LIBXMLB_0.1.5 {
     xb_builder_node_export;
   local: *;
 } LIBXMLB_0.1.4;
+
+LIBXMLB_0.1.6 {
+  global:
+    xb_query_new_full;
+  local: *;
+} LIBXMLB_0.1.5;
