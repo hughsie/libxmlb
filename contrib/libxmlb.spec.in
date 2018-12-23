@@ -20,6 +20,10 @@ BuildRequires: gobject-introspection-devel
 # needed for the self tests
 BuildRequires: shared-mime-info
 
+%if 0%{?rhel} < 8
+BuildRequires: python34
+%endif
+
 Requires: glib2%{?_isa} >= %{glib2_version}
 Requires: shared-mime-info
 
