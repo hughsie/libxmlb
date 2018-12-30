@@ -1,3 +1,10 @@
+Version 0.1.6
+~~~~~~~~~~~~~
+Released: 2018-12-30
+
+New Features:
+ - Allow controlling how the XbQuery is parsed (Richard Hughes)
+
 Version 0.1.5
 ~~~~~~~~~~~~~
 Released: 2018-11-21
