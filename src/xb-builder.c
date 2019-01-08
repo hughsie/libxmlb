@@ -762,7 +762,7 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	for (guint i = 0; i < priv->fixups->len; i++) {
 		XbBuilderFixup *fixup = g_ptr_array_index (priv->fixups, i);
 		if (!xb_builder_fixup_node (fixup, helper->root, error))
-			return FALSE;
+			return NULL;
 	}
 
 	/* only include the highest priority translation */
