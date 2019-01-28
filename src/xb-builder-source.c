@@ -509,7 +509,7 @@ xb_builder_source_init (XbBuilderSource *self)
 
 	/* built-in types */
 	xb_builder_source_add_converter (self,
-					 "application/xml",
+					 "application/xml,text/plain",
 					 xb_builder_source_load_plain_cb,
 					 NULL, NULL);
 	xb_builder_source_add_converter (self,
