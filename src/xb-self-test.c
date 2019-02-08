@@ -478,7 +478,7 @@ xb_builder_ensure_watch_source_func (void)
 	ret = g_file_set_contents ("/tmp/temp.xml", "<id>inkscape</id>", -1, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
-	xb_test_loop_run_with_timeout (2000);
+	xb_test_loop_run_with_timeout (10000);
 	g_assert_false (xb_silo_is_valid (silo));
 	g_assert_cmpint (invalidate_cnt, ==, 1);
 	g_assert_false (xb_silo_is_valid (silo));
@@ -2166,7 +2166,9 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/xpath-node", xb_xpath_node_func);
 	g_test_add_func ("/libxmlb/xpath-parent-subnode", xb_xpath_parent_subnode_func);
 	g_test_add_func ("/libxmlb/multiple-roots", xb_builder_multiple_roots_func);
-	g_test_add_func ("/libxmlb/threading", xb_threading_func);
-	g_test_add_func ("/libxmlb/speed", xb_speed_func);
+	if (g_test_perf()) {
+		g_test_add_func ("/libxmlb/threading", xb_threading_func);
+		g_test_add_func ("/libxmlb/speed", xb_speed_func);
+	}
 	return g_test_run ();
 }
