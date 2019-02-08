@@ -2167,6 +2167,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/xpath-parent-subnode", xb_xpath_parent_subnode_func);
 	g_test_add_func ("/libxmlb/multiple-roots", xb_builder_multiple_roots_func);
 	g_test_add_func ("/libxmlb/threading", xb_threading_func);
-	g_test_add_func ("/libxmlb/speed", xb_speed_func);
+	if (g_test_perf ())
+		g_test_add_func ("/libxmlb/speed", xb_speed_func);
 	return g_test_run ();
 }
