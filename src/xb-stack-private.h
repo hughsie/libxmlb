@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_STACK_PRIVATE_H
-#define __XB_STACK_PRIVATE_H
+#pragma once
 
 G_BEGIN_DECLS
 
@@ -27,5 +26,3 @@ GPtrArray	*xb_stack_steal_all		(XbStack	*self);
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(XbStack, xb_stack_unref)
 
 G_END_DECLS
-
-#endif /* __XB_STACK_PRIVATE_H */

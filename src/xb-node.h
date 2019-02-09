@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_NODE_H
-#define __XB_NODE_H
+#pragma once
 
 G_BEGIN_DECLS
 
@@ -73,6 +72,3 @@ guint		 xb_node_get_depth		(XbNode		*self);
 
 
 G_END_DECLS
-
-#endif /* __XB_NODE_H */
-

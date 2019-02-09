@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_OPCODE_H
-#define __XB_OPCODE_H
+#pragma once
 
 G_BEGIN_DECLS
 
@@ -87,5 +86,3 @@ XbOpcode	*xb_opcode_text_new_steal	(gchar		*str);
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(XbOpcode, xb_opcode_unref)
 
 G_END_DECLS
-
-#endif /* __XB_OPCODE_H */

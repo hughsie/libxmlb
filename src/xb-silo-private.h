@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_SILO_PRIVATE_H__
-#define __XB_SILO_PRIVATE_H__
+#pragma once
 
 #include <uuid.h>
 
@@ -95,5 +94,3 @@ void		 xb_silo_add_profile		(XbSilo		*self,
 gboolean	 xb_silo_is_empty		(XbSilo		*self);
 void		 xb_silo_uninvalidate		(XbSilo		*self);
 XbSiloProfileFlags xb_silo_get_profile_flags	(XbSilo		*self);
-
-#endif /* __XB_SILO_PRIVATE_H__ */

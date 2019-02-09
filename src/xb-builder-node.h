@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_BUILDER_NODE_H
-#define __XB_BUILDER_NODE_H
+#pragma once
 
 G_BEGIN_DECLS
 
@@ -105,5 +104,3 @@ gchar		*xb_builder_node_export		(XbBuilderNode		*self,
 						 GError			**error);
 
 G_END_DECLS
-
-#endif /* __XB_BUILDER_NODE_H */

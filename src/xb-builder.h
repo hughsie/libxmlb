@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_BUILDER_H
-#define __XB_BUILDER_H
+#pragma once
 
 #include <gio/gio.h>
 
@@ -76,5 +75,3 @@ void		 xb_builder_set_profile_flags	(XbBuilder		*self,
 						 XbSiloProfileFlags	 profile_flags);
 
 G_END_DECLS
-
-#endif /* __XB_BUILDER_H */

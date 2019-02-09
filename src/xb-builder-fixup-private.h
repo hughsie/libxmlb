@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_BUILDER_FIXUP_PRIVATE_H
-#define __XB_BUILDER_FIXUP_PRIVATE_H
+#pragma once
 
 #include <gio/gio.h>
 
@@ -20,5 +19,3 @@ const gchar	*xb_builder_fixup_get_id	(XbBuilderFixup		*self);
 gchar		*xb_builder_fixup_get_guid	(XbBuilderFixup		*self);
 
 G_END_DECLS
-
-#endif /* __XB_BUILDER_FIXUP_PRIVATE_H */

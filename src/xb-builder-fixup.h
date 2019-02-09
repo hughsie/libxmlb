@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_BUILDER_FIXUP_H
-#define __XB_BUILDER_FIXUP_H
+#pragma once
 
 #include <gio/gio.h>
 
@@ -43,5 +42,3 @@ void		 xb_builder_fixup_set_max_depth	(XbBuilderFixup		*self,
 						 gint			 max_depth);
 
 G_END_DECLS
-
-#endif /* __XB_BUILDER_FIXUP_H */

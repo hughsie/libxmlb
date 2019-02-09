@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_STACK_H
-#define __XB_STACK_H
+#pragma once
 
 G_BEGIN_DECLS
 
@@ -24,5 +23,3 @@ gboolean	 xb_stack_push_steal		(XbStack	*self,
 						 XbOpcode	*opcode);
 
 G_END_DECLS
-
-#endif /* __XB_STACK_H */

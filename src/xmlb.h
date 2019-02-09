@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XMLB_H
-#define __XMLB_H
+#pragma once
 
 #define __LIBXMLB_H_INSIDE__
 
@@ -25,5 +24,3 @@
 #include <libxmlb/xb-version.h>
 
 #undef __LIBXMLB_H_INSIDE__
-
-#endif /* __XMLB_H */

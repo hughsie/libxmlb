@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_COMMON_H
-#define __XB_COMMON_H
+#pragma once
 
 #include <glib-object.h>
 
@@ -17,5 +16,3 @@ void		 xb_string_append_union			(GString	*xpath,
 gchar		*xb_string_escape			(const gchar	*str);
 
 G_END_DECLS
-
-#endif /* __XB_COMMON_H */

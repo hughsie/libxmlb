@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_NODE_PRIVATE_H
-#define __XB_NODE_PRIVATE_H
+#pragma once
 
 G_BEGIN_DECLS
 
@@ -20,6 +19,3 @@ XbSiloNode	*xb_node_get_sn				(XbNode		*self);
 XbSilo		*xb_node_get_silo			(XbNode		*self);
 
 G_END_DECLS
-
-#endif /* __XB_NODE_PRIVATE_H */
-
