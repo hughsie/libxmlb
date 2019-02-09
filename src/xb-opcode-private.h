@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_OPCODE_PRIVATE_H
-#define __XB_OPCODE_PRIVATE_H
+#pragma once
 
 G_BEGIN_DECLS
 
@@ -29,5 +28,3 @@ void		 xb_opcode_set_val		(XbOpcode	*self,
 gchar		*xb_opcode_get_sig		(XbOpcode	*self);
 
 G_END_DECLS
-
-#endif /* __XB_OPCODE_PRIVATE_H */

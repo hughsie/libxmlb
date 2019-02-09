@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_QUERY_H
-#define __XB_QUERY_H
+#pragma once
 
 G_BEGIN_DECLS
 
@@ -65,5 +64,3 @@ gboolean	 xb_query_bind_val		(XbQuery	*self,
 						 GError		**error);
 
 G_END_DECLS
-
-#endif /* __XB_QUERY_H */

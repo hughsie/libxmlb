@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_BUILDER_SOURCE_PRIVATE_H
-#define __XB_BUILDER_SOURCE_PRIVATE_H
+#pragma once
 
 #include <gio/gio.h>
 
@@ -27,5 +26,3 @@ gboolean	 xb_builder_source_fixup	(XbBuilderSource	*self,
 XbBuilderSourceFlags xb_builder_source_get_flags(XbBuilderSource	*self);
 
 G_END_DECLS
-
-#endif /* __XB_BUILDER_SOURCE_PRIVATE_H */

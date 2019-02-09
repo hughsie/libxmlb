@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_BUILDER_NODE_PRIVATE_H
-#define __XB_BUILDER_NODE_PRIVATE_H
+#pragma once
 
 G_BEGIN_DECLS
 
@@ -37,5 +36,3 @@ void		 xb_builder_node_set_text_idx	(XbBuilderNode		*self,
 						 guint32		 text_idx);
 
 G_END_DECLS
-
-#endif /* __XB_BUILDER_NODE_PRIVATE_H */

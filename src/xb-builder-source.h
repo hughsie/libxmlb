@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_BUILDER_SOURCE_H
-#define __XB_BUILDER_SOURCE_H
+#pragma once
 
 #include <gio/gio.h>
 
@@ -89,5 +88,3 @@ void		 xb_builder_source_add_converter (XbBuilderSource	*self,
 						 GDestroyNotify		 user_data_free);
 
 G_END_DECLS
-
-#endif /* __XB_BUILDER_SOURCE_H */

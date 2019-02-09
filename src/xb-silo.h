@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_SILO_H
-#define __XB_SILO_H
+#pragma once
 
 G_BEGIN_DECLS
 
@@ -95,6 +94,3 @@ void		 xb_silo_set_profile_flags		(XbSilo		*self,
 const gchar	*xb_silo_get_profile_string		(XbSilo		*self);
 
 G_END_DECLS
-
-#endif /* __XB_SILO_H */
-

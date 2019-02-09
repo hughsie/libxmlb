@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_SILO_QUERY_H
-#define __XB_SILO_QUERY_H
+#pragma once
 
 #include <glib-object.h>
 
@@ -27,5 +26,3 @@ gboolean	 xb_silo_query_build_index	(XbSilo		*self,
 						 GError		**error);
 
 G_END_DECLS
-
-#endif /* __XB_SILO_QUERY_H */

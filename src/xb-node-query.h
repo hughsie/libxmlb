@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_NODE_QUERY_H
-#define __XB_NODE_QUERY_H
+#pragma once
 
 G_BEGIN_DECLS
 
@@ -43,6 +42,3 @@ gchar		*xb_node_query_export		(XbNode		*self,
 						 GError		**error);
 
 G_END_DECLS
-
-#endif /* __XB_NODE_QUERY_H */
-

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_QUERY_PRIVATE_H
-#define __XB_QUERY_PRIVATE_H
+#pragma once
 
 G_BEGIN_DECLS
 
@@ -32,5 +31,3 @@ typedef struct {
 GPtrArray	*xb_query_get_sections		(XbQuery	*self);
 
 G_END_DECLS
-
-#endif /* __XB_QUERY_PRIVATE_H */

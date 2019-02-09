@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_SILO_QUERY_PRIVATE_H
-#define __XB_SILO_QUERY_PRIVATE_H
+#pragma once
 
 #include <glib-object.h>
 
@@ -25,5 +24,3 @@ GPtrArray	*xb_silo_query_full		(XbSilo		*self,
 						 GError		**error);
 
 G_END_DECLS
-
-#endif /* __XB_SILO_QUERY_PRIVATE_H */

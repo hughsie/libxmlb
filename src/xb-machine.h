@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#ifndef __XB_MACHINE_H
-#define __XB_MACHINE_H
+#pragma once
 
 G_BEGIN_DECLS
 
@@ -150,5 +149,3 @@ void		 xb_machine_set_stack_size	(XbMachine		*self,
 guint		 xb_machine_get_stack_size	(XbMachine		*self);
 
 G_END_DECLS
-
-#endif /* __XB_MACHINE_H */
