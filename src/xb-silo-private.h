@@ -12,6 +12,8 @@
 #include "xb-node.h"
 #include "xb-silo.h"
 
+G_BEGIN_DECLS
+
 /* for old versions of libuuid */
 #ifndef UUID_STR_LEN
 #define UUID_STR_LEN	37
@@ -94,3 +96,5 @@ void		 xb_silo_add_profile		(XbSilo		*self,
 gboolean	 xb_silo_is_empty		(XbSilo		*self);
 void		 xb_silo_uninvalidate		(XbSilo		*self);
 XbSiloProfileFlags xb_silo_get_profile_flags	(XbSilo		*self);
+
+G_END_DECLS

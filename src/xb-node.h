@@ -6,9 +6,9 @@
 
 #pragma once
 
-G_BEGIN_DECLS
-
 #include <glib-object.h>
+
+G_BEGIN_DECLS
 
 #define XB_TYPE_NODE (xb_node_get_type ())
 G_DECLARE_DERIVABLE_TYPE (XbNode, xb_node, XB, NODE, GObject)

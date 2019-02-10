@@ -6,11 +6,11 @@
 
 #pragma once
 
-G_BEGIN_DECLS
-
 #include <glib-object.h>
 
 #include "xb-node.h"
+
+G_BEGIN_DECLS
 
 #define XB_TYPE_SILO (xb_silo_get_type ())
 G_DECLARE_DERIVABLE_TYPE (XbSilo, xb_silo, XB, SILO, GObject)

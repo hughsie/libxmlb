@@ -6,11 +6,11 @@
 
 #pragma once
 
-G_BEGIN_DECLS
-
 #include <glib-object.h>
 
 #include "xb-opcode.h"
+
+G_BEGIN_DECLS
 
 typedef struct _XbStack XbStack;
 

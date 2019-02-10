@@ -6,11 +6,11 @@
 
 #pragma once
 
-G_BEGIN_DECLS
-
 #include <glib-object.h>
 
 #include "xb-stack.h"
+
+G_BEGIN_DECLS
 
 XbStack		*xb_stack_new			(guint		 max_size);
 void		 xb_stack_unref			(XbStack	*self);

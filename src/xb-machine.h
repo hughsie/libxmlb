@@ -6,12 +6,12 @@
 
 #pragma once
 
-G_BEGIN_DECLS
-
 #include <glib-object.h>
 
 #include "xb-opcode.h"
 #include "xb-stack.h"
+
+G_BEGIN_DECLS
 
 #define XB_TYPE_MACHINE (xb_machine_get_type ())
 G_DECLARE_DERIVABLE_TYPE (XbMachine, xb_machine, XB, MACHINE, GObject)

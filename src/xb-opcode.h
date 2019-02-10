@@ -6,9 +6,9 @@
 
 #pragma once
 
-G_BEGIN_DECLS
-
 #include <glib-object.h>
+
+G_BEGIN_DECLS
 
 /**
  * XbOpcodeFlags:

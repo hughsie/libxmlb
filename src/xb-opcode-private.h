@@ -6,9 +6,9 @@
 
 #pragma once
 
-G_BEGIN_DECLS
-
 #include "xb-opcode.h"
+
+G_BEGIN_DECLS
 
 XbOpcode	*xb_opcode_new			(XbOpcodeKind	 kind,
 						 const gchar	*str,

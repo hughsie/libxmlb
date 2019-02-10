@@ -6,11 +6,11 @@
 
 #pragma once
 
-G_BEGIN_DECLS
-
 #include <glib-object.h>
 
 #include "xb-node.h"
+
+G_BEGIN_DECLS
 
 #define XB_TYPE_BUILDER_NODE (xb_builder_node_get_type ())
 G_DECLARE_DERIVABLE_TYPE (XbBuilderNode, xb_builder_node, XB, BUILDER_NODE, GObject)

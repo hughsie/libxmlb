@@ -6,12 +6,12 @@
 
 #pragma once
 
-G_BEGIN_DECLS
-
 #include <glib-object.h>
 
 #include "xb-query.h"
 #include "xb-node.h"
+
+G_BEGIN_DECLS
 
 GPtrArray	*xb_node_query			(XbNode		*self,
 						 const gchar	*xpath,

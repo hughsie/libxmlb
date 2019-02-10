@@ -6,11 +6,11 @@
 
 #pragma once
 
-G_BEGIN_DECLS
-
 #include <glib-object.h>
 
 #include "xb-query.h"
+
+G_BEGIN_DECLS
 
 typedef enum {
 	XB_SILO_QUERY_KIND_UNKNOWN,

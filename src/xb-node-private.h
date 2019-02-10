@@ -6,12 +6,12 @@
 
 #pragma once
 
-G_BEGIN_DECLS
-
 #include <glib-object.h>
 
 #include "xb-silo-private.h"
 #include "xb-node.h"
+
+G_BEGIN_DECLS
 
 XbNode		*xb_node_new				(XbSilo		*silo,
 							 XbSiloNode	*sn);

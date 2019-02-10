@@ -6,11 +6,11 @@
 
 #pragma once
 
-G_BEGIN_DECLS
-
 #include <glib-object.h>
 
 #include "xb-silo.h"
+
+G_BEGIN_DECLS
 
 #define XB_TYPE_QUERY (xb_query_get_type ())
 G_DECLARE_DERIVABLE_TYPE (XbQuery, xb_query, XB, QUERY, GObject)
