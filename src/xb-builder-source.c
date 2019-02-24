@@ -448,19 +448,94 @@ xb_builder_source_load_plain_cb (XbBuilderSource *self,
 }
 
 static GInputStream *
+get_gzip_stream (GFile *file,
+		 GCancellable *cancellable,
+		 GError **error)
+{
+	g_autoptr(GInputStream) istream = NULL;
+	g_autoptr(GZlibDecompressor) decompressor = NULL;
+
+	istream = G_INPUT_STREAM (g_file_read (file, cancellable, error));
+	if (istream == NULL)
+		return NULL;
+	decompressor = g_zlib_decompressor_new (G_ZLIB_COMPRESSOR_FORMAT_GZIP);
+	return g_converter_input_stream_new (istream, G_CONVERTER (decompressor));
+}
+
+static GInputStream *
 xb_builder_source_load_gzip_cb (XbBuilderSource *self,
 				GFile *file,
 				gpointer user_data,
 				GCancellable *cancellable,
 				GError **error)
 {
-	g_autoptr(GConverter) conv = NULL;
 	g_autoptr(GInputStream) istream = NULL;
-	istream = G_INPUT_STREAM (g_file_read (file, cancellable, error));
+	g_autofree gchar *filename = NULL;
+	guint8 sniff_buffer[4096];
+	gsize sniff_length;
+	g_autofree gchar *content_type = NULL;
+	XbBuilderSourceConverterItem *item;
+	g_autofree gchar *tmp_filename = NULL;
+	g_autoptr(GFile) tmp_file = NULL;
+	GFileIOStream *io_stream = NULL;
+	g_autoptr(GOutputStream) ostream = NULL;
+	GInputStream *result = NULL;
+
+	istream = get_gzip_stream (file, cancellable, error);
 	if (istream == NULL)
 		return NULL;
-	conv = G_CONVERTER (g_zlib_decompressor_new (G_ZLIB_COMPRESSOR_FORMAT_GZIP));
-	return g_converter_input_stream_new (istream, conv);
+
+	/* get the content of the compressed file */
+	filename = g_file_get_basename (file);
+	if (g_str_has_suffix (filename, ".gz"))
+		filename[strlen (filename) - 3] = '\0';
+	if (!g_input_stream_read_all (istream, sniff_buffer, 4096, &sniff_length, cancellable, error))
+		return NULL;
+	content_type = g_content_type_guess (filename, sniff_buffer, sniff_length, NULL);
+
+	g_clear_object (&istream);
+	istream = get_gzip_stream (file, cancellable, error);
+	if (istream == NULL)
+		return NULL;
+
+	item = xb_builder_source_get_converter_by_mime (self, content_type);
+	if (item == NULL) {
+		g_set_error (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_NOT_SUPPORTED,
+			     "cannot process gzip compresed file of type %s",
+			     content_type);
+		return NULL;
+	}
+
+	/* if no futher processing, then just return decompressed stream */
+	if (item->func == xb_builder_source_load_plain_cb)
+		return istream;
+
+	/* decompress into a temporary file for further processing */
+	tmp_filename = g_strdup_printf ("XXXXXX-%s", filename);
+	tmp_file = g_file_new_tmp (tmp_filename, &io_stream, error);
+	if (tmp_file == NULL)
+		return NULL;
+	ostream = g_io_stream_get_output_stream (G_IO_STREAM (io_stream));
+
+	while (TRUE) {
+		guint8 buffer[1024];
+		gssize n_read;
+
+		n_read = g_input_stream_read (istream, buffer, 1024, cancellable, error);
+		if (n_read == 0) {
+			result = item->func (self, tmp_file, user_data, cancellable, error);
+			break;
+		}
+		if (n_read < 0)
+			break;
+		if (!g_output_stream_write_all (ostream, buffer, n_read, NULL, cancellable, error))
+			break;
+	}
+	g_file_delete (tmp_file, cancellable, NULL);
+
+	return result;
 }
 
 static void
