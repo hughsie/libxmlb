@@ -383,14 +383,15 @@ xb_builder_ensure_invalidate_cb (XbSilo *silo, GParamSpec *pspec, gpointer user_
 
 static GInputStream *
 xb_builder_custom_mime_cb (XbBuilderSource *self,
-			   GFile *file,
+			   XbBuilderSourceCtx *ctx,
 			   gpointer user_data,
 			   GCancellable *cancellable,
 			   GError **error)
 {
-	g_autofree gchar *basename = g_file_get_basename (file);
-	gchar *xml = g_strdup_printf ("<component type=\"desktop\">"
-				      "<id>%s</id></component>", basename);
+	gchar *xml = g_strdup_printf ("<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+				      "<component type=\"desktop\">"
+				      "<id>%s</id></component>",
+				      xb_builder_source_ctx_get_filename (ctx));
 	return g_memory_input_stream_new_from_data (xml, -1, g_free);
 }
 
@@ -407,10 +408,8 @@ xb_builder_custom_mime_func (void)
 	g_autoptr(XbSilo) silo = NULL;
 
 	/* add support for desktop files */
-	xb_builder_source_add_converter (source,
-					 "application/x-desktop",
-					 xb_builder_custom_mime_cb,
-					 NULL, NULL);
+	xb_builder_source_add_adapter (source, "application/x-desktop",
+				       xb_builder_custom_mime_cb, NULL, NULL);
 
 	/* import a source file */
 	ret = g_file_set_contents ("/tmp/temp.desktop", "[Desktop Entry]", -1, &error);
@@ -442,6 +441,44 @@ xb_builder_custom_mime_func (void)
 }
 
 static void
+xb_builder_chained_adapters_func (void)
+{
+	gboolean ret;
+	g_autofree gchar *xml = NULL;
+	g_autofree gchar *path = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(GFile) file_src = NULL;
+	g_autoptr(GFile) file = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
+	g_autoptr(XbSilo) silo = NULL;
+
+	/* import a source file */
+	path = g_build_filename (TESTDIR, "test.xml.gz.gz.gz", NULL);
+	file_src = g_file_new_for_path (path);
+	ret = xb_builder_source_load_file (source, file_src,
+					   XB_BUILDER_SOURCE_FLAG_NONE,
+					   NULL, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	xb_builder_import_source (builder, source);
+	file = g_file_new_for_path ("/tmp/temp.xmlb");
+	silo = xb_builder_ensure (builder, file,
+				  XB_BUILDER_COMPILE_FLAG_NONE,
+				  NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* check contents */
+	xml = xb_silo_export (silo, XB_NODE_EXPORT_FLAG_NONE, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (xml);
+	g_print ("%s", xml);
+	g_assert_cmpstr ("<id>Hello world!</id>", ==, xml);
+
+}
+
+static void
 xb_builder_ensure_watch_source_func (void)
 {
 	gboolean ret;
@@ -454,7 +491,9 @@ xb_builder_ensure_watch_source_func (void)
 	g_autoptr(XbSilo) silo = NULL;
 
 	/* import a source file */
-	ret = g_file_set_contents ("/tmp/temp.xml", "<id>gimp</id>", -1, &error);
+	ret = g_file_set_contents ("/tmp/temp.xml",
+				   "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+				   "<id>gimp</id>", -1, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
 	file_xml = g_file_new_for_path ("/tmp/temp.xml");
@@ -477,7 +516,9 @@ xb_builder_ensure_watch_source_func (void)
 			  &invalidate_cnt);
 
 	/* change source file */
-	ret = g_file_set_contents ("/tmp/temp.xml", "<id>inkscape</id>", -1, &error);
+	ret = g_file_set_contents ("/tmp/temp.xml",
+				   "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+				   "<id>inkscape</id>", -1, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
 	xb_test_loop_run_with_timeout (XB_SELF_TEST_INOTIFY_TIMEOUT);
@@ -1851,7 +1892,10 @@ xb_builder_node_info_func (void)
 	g_autoptr(GFile) file = NULL;
 
 	/* create a simple document with some info */
-	ret = g_file_set_contents (fn, "<component><id type=\"desktop\">dave</id></component>", -1, &error);
+	ret = g_file_set_contents (fn,
+				   "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+				   "<component><id type=\"desktop\">dave</id></component>",
+				   -1, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
 	info1 = xb_builder_node_insert (NULL, "info", NULL);
@@ -2154,6 +2198,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/builder{node-vfunc-error}", xb_builder_node_vfunc_error_func);
 	g_test_add_func ("/libxmlb/builder{ignore-invalid}", xb_builder_ignore_invalid_func);
 	g_test_add_func ("/libxmlb/builder{custom-mime}", xb_builder_custom_mime_func);
+	g_test_add_func ("/libxmlb/builder{chained-adapters}", xb_builder_chained_adapters_func);
 	g_test_add_func ("/libxmlb/builder-node", xb_builder_node_func);
 	g_test_add_func ("/libxmlb/builder-node{info}", xb_builder_node_info_func);
 	g_test_add_func ("/libxmlb/builder-node{literal-text}", xb_builder_node_literal_text_func);

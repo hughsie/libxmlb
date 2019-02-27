@@ -182,3 +182,13 @@ LIBXMLB_0.1.6 {
     xb_query_new_full;
   local: *;
 } LIBXMLB_0.1.5;
+
+LIBXMLB_0.1.7 {
+  global:
+    xb_builder_source_add_adapter;
+    xb_builder_source_ctx_get_bytes;
+    xb_builder_source_ctx_get_filename;
+    xb_builder_source_ctx_get_stream;
+    xb_builder_source_ctx_get_type;
+  local: *;
+} LIBXMLB_0.1.6;

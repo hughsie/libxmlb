@@ -14,6 +14,7 @@ xb_headers = files(
   'xb-builder-fixup.h',
   'xb-builder-node.h',
   'xb-builder-source.h',
+  'xb-builder-source-ctx.h',
   'xb-machine.h',
   'xb-node.h',
   'xb-node-query.h',
@@ -42,6 +43,7 @@ libxmlb = library(
     'xb-builder-fixup.c',
     'xb-builder-node.c',
     'xb-builder-source.c',
+    'xb-builder-source-ctx.c',
     'xb-machine.c',
     'xb-opcode.c',
     'xb-node.c',
@@ -110,6 +112,8 @@ if get_option('introspection')
       'xb-builder-node.h',
       'xb-builder-source.c',
       'xb-builder-source.h',
+      'xb-builder-source-ctx.c',
+      'xb-builder-source-ctx.h',
       'xb-machine.c',
       'xb-machine.h',
       'xb-node.c',
@@ -188,6 +192,7 @@ if get_option('tests')
       'xb-builder-fixup.c',
       'xb-builder-node.c',
       'xb-builder-source.c',
+      'xb-builder-source-ctx.c',
       'xb-machine.c',
       'xb-node.c',
       'xb-node-query.c',
@@ -202,6 +207,9 @@ if get_option('tests')
     ],
     include_directories : [
       configinc,
+    ],
+    c_args : [
+      '-DTESTDIR="@0@/../data"'.format(meson.current_source_dir()),
     ],
     dependencies : [
       gio,

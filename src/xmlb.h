@@ -12,6 +12,7 @@
 #include <libxmlb/xb-builder-fixup.h>
 #include <libxmlb/xb-builder-node.h>
 #include <libxmlb/xb-builder-source.h>
+#include <libxmlb/xb-builder-source-ctx.h>
 #include <libxmlb/xb-machine.h>
 #include <libxmlb/xb-node.h>
 #include <libxmlb/xb-node-query.h>
