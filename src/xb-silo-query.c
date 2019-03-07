@@ -265,7 +265,7 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 					 results, results_hash,
 					 query, &query_data,
 					 error)) {
-			return FALSE;
+			return NULL;
 		}
 	}
 
@@ -340,7 +340,7 @@ xb_silo_query_full (XbSilo *self, XbNode *n, XbQuery *query, GError **error)
 	/* only one query allowed */
 	if (!xb_silo_query_part (self, sn, results, results_hash,
 				 query, &query_data, error))
-		return FALSE;
+		return NULL;
 
 	/* profile */
 	if (xb_silo_get_profile_flags (self) & XB_SILO_PROFILE_FLAG_XPATH) {
