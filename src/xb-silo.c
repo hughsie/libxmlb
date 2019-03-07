@@ -312,6 +312,7 @@ xb_silo_to_string (XbSilo *self, GError **error)
 	g_autoptr(GString) str = g_string_new (NULL);
 
 	g_return_val_if_fail (XB_IS_SILO (self), NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
 	g_string_append_printf (str, "magic:        %08x\n", (guint) hdr->magic);
 	g_string_append_printf (str, "guid:         %s\n", priv->guid);
@@ -585,6 +586,7 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (blob != NULL, FALSE);
+	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 	g_return_val_if_fail (locker != NULL, FALSE);
 
 	/* no longer valid */
@@ -749,6 +751,10 @@ xb_silo_watch_file (XbSilo *self,
 	g_autofree gchar *fn = g_file_get_path (file);
 	g_autoptr(GFileMonitor) file_monitor = NULL;
 
+	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
+	g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), FALSE);
+	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
 	/* already exists */
 	item = g_hash_table_lookup (priv->file_monitors, fn);
 	if (item != NULL)
@@ -798,6 +804,8 @@ xb_silo_load_from_file (XbSilo *self,
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
+	g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), FALSE);
+	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
 	/* no longer valid */
 	g_hash_table_remove_all (priv->file_monitors);
@@ -851,6 +859,8 @@ xb_silo_save_to_file (XbSilo *self,
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
+	g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), FALSE);
+	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
 	/* invalid */
 	if (priv->data == NULL) {
@@ -900,6 +910,7 @@ xb_silo_new_from_xml (const gchar *xml, GError **error)
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
 	g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
 	g_return_val_if_fail (xml != NULL, NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 	if (!xb_builder_source_load_xml (source, xml, XB_BUILDER_SOURCE_FLAG_NONE, error))
 		return NULL;
 	xb_builder_import_source (builder, source);

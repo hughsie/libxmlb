@@ -696,6 +696,8 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	g_autoptr(XbBuilderCompileHelper) helper = NULL;
 
 	g_return_val_if_fail (XB_IS_BUILDER (self), NULL);
+	g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
 	/* this is inferred */
 	if (flags & XB_BUILDER_COMPILE_FLAG_SINGLE_LANG)
@@ -865,6 +867,8 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 
 	g_return_val_if_fail (XB_IS_BUILDER (self), NULL);
 	g_return_val_if_fail (G_IS_FILE (file), NULL);
+	g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
 	/* watch the blob, so propagate flags */
 	if (flags & XB_BUILDER_COMPILE_FLAG_WATCH_BLOB)

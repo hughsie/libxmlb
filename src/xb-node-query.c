@@ -37,6 +37,7 @@ xb_node_query (XbNode *self, const gchar *xpath, guint limit, GError **error)
 {
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (xpath != NULL, NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 	return xb_silo_query_with_root (xb_node_get_silo (self), self, xpath, limit, error);
 }
 
@@ -62,6 +63,7 @@ xb_node_query_full (XbNode *self, XbQuery *query, GError **error)
 {
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (XB_IS_QUERY (query), NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 	return xb_silo_query_full (xb_node_get_silo (self), self, query, error);
 }
 
@@ -86,6 +88,7 @@ xb_node_query_first (XbNode *self, const gchar *xpath, GError **error)
 
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (xpath != NULL, NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
 	/* nodes don't have to include themselves as part of the query */
 	results = xb_silo_query_with_root (xb_node_get_silo (self), self, xpath, 1, error);
@@ -119,6 +122,7 @@ xb_node_query_text (XbNode *self, const gchar *xpath, GError **error)
 
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (xpath != NULL, NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
 	n = xb_node_query_first (self, xpath, error);
 	if (n == NULL)
@@ -160,6 +164,7 @@ xb_node_query_attr (XbNode *self, const gchar *xpath, const gchar *name, GError 
 
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (xpath != NULL, NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
 	n = xb_node_query_first (self, xpath, error);
 	if (n == NULL)
@@ -200,6 +205,7 @@ xb_node_query_export (XbNode *self, const gchar *xpath, GError **error)
 
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (xpath != NULL, NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
 	n = xb_node_query_first (self, xpath, error);
 	if (n == NULL)
@@ -231,6 +237,7 @@ xb_node_query_text_as_uint (XbNode *self, const gchar *xpath, GError **error)
 
 	g_return_val_if_fail (XB_IS_NODE (self), G_MAXUINT64);
 	g_return_val_if_fail (xpath != NULL, G_MAXUINT64);
+	g_return_val_if_fail (error == NULL || *error == NULL, G_MAXUINT64);
 
 	n = xb_node_query_first (self, xpath, error);
 	if (n == NULL)
@@ -263,6 +270,7 @@ xb_node_query_attr_as_uint (XbNode *self, const gchar *xpath, const gchar *name,
 
 	g_return_val_if_fail (XB_IS_NODE (self), G_MAXUINT64);
 	g_return_val_if_fail (xpath != NULL, G_MAXUINT64);
+	g_return_val_if_fail (error == NULL || *error == NULL, G_MAXUINT64);
 
 	n = xb_node_query_first (self, xpath, error);
 	if (n == NULL)

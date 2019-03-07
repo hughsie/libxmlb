@@ -664,6 +664,7 @@ xb_machine_parse_full (XbMachine *self,
 
 	g_return_val_if_fail (XB_IS_MACHINE (self), NULL);
 	g_return_val_if_fail (text != NULL, NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
 	/* assume NUL terminated */
 	if (text_len < 0)
@@ -882,6 +883,7 @@ xb_machine_run (XbMachine *self,
 	g_return_val_if_fail (XB_IS_MACHINE (self), FALSE);
 	g_return_val_if_fail (opcodes != NULL, FALSE);
 	g_return_val_if_fail (result != NULL, FALSE);
+	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
 	/* process each opcode */
 	stack = xb_stack_new (priv->stack_size);

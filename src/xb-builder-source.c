@@ -100,6 +100,8 @@ xb_builder_source_load_file (XbBuilderSource *self,
 
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), FALSE);
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
+	g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), FALSE);
+	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
 	/* what kind of file is this */
 	fileinfo = g_file_query_info (file,
@@ -201,6 +203,7 @@ xb_builder_source_load_xml (XbBuilderSource *self,
 
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), FALSE);
 	g_return_val_if_fail (xml != NULL, FALSE);
+	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
 	/* add a GUID of the SHA1 hash of the entire string */
 	g_checksum_update (csum, (const guchar *) xml, -1);
@@ -241,6 +244,7 @@ xb_builder_source_load_bytes (XbBuilderSource *self,
 
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), FALSE);
 	g_return_val_if_fail (bytes != NULL, FALSE);
+	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
 	/* add a GUID of the SHA1 hash of the entire blob */
 	g_checksum_update (csum,

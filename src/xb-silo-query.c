@@ -215,6 +215,7 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 
 	g_return_val_if_fail (XB_IS_SILO (self), NULL);
 	g_return_val_if_fail (xpath != NULL, NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
 	/* empty silo */
 	if (xb_silo_is_empty (self)) {
@@ -321,6 +322,7 @@ xb_silo_query_full (XbSilo *self, XbNode *n, XbQuery *query, GError **error)
 
 	g_return_val_if_fail (XB_IS_SILO (self), NULL);
 	g_return_val_if_fail (XB_IS_QUERY (query), NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
 	/* empty silo */
 	if (xb_silo_is_empty (self)) {
@@ -385,6 +387,7 @@ xb_silo_query (XbSilo *self, const gchar *xpath, guint limit, GError **error)
 {
 	g_return_val_if_fail (XB_IS_SILO (self), NULL);
 	g_return_val_if_fail (xpath != NULL, NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 	return xb_silo_query_with_root (self, NULL, xpath, limit, error);
 }
 
@@ -439,6 +442,7 @@ xb_silo_query_build_index (XbSilo *self,
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (xpath != NULL, FALSE);
+	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
 	/* do the query */
 	array = xb_silo_query_with_root (self, NULL, xpath, 0, &error_local);

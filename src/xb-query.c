@@ -141,6 +141,7 @@ xb_query_bind_str (XbQuery *self, guint idx, const gchar *str, GError **error)
 	XbOpcode *op;
 
 	g_return_val_if_fail (XB_IS_QUERY (self), FALSE);
+	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
 	/* get the correct opcode */
 	op = xb_query_get_bound_opcode (self, idx);
@@ -174,6 +175,7 @@ xb_query_bind_val (XbQuery *self, guint idx, guint32 val, GError **error)
 	XbOpcode *op;
 
 	g_return_val_if_fail (XB_IS_QUERY (self), FALSE);
+	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
 	/* get the correct opcode */
 	op = xb_query_get_bound_opcode (self, idx);
@@ -403,6 +405,9 @@ xb_query_new_full (XbSilo *silo, const gchar *xpath, XbQueryFlags flags, GError 
 {
 	g_autoptr(XbQuery) self = g_object_new (XB_TYPE_QUERY, NULL);
 	XbQueryPrivate *priv = GET_PRIVATE (self);
+
+	g_return_val_if_fail (XB_IS_SILO (silo), NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
 	/* create */
 	priv->silo = g_object_ref (silo);

@@ -368,6 +368,7 @@ xb_node_export (XbNode *self, XbNodeExportFlags flags, GError **error)
 {
 	GString *xml;
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 	xml = xb_silo_export_with_root (xb_node_get_silo (self), self, flags, error);
 	if (xml == NULL)
 		return NULL;

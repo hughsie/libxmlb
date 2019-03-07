@@ -59,6 +59,8 @@ xb_builder_source_ctx_get_bytes (XbBuilderSourceCtx *self,
 {
 	XbBuilderSourceCtxPrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE_CTX (self), NULL);
+	g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 	return g_input_stream_read_bytes (priv->istream,
 					  128 * 1024 * 1024, /* 128Mb */
 					  cancellable, error);

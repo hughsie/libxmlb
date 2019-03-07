@@ -162,6 +162,7 @@ xb_silo_export (XbSilo *self, XbNodeExportFlags flags, GError **error)
 {
 	GString *xml;
 	g_return_val_if_fail (XB_IS_SILO (self), NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 	xml = xb_silo_export_with_root (self, NULL, flags, error);
 	if (xml == NULL)
 		return NULL;
@@ -193,6 +194,8 @@ xb_silo_export_file (XbSilo *self,
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
+	g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), FALSE);
+	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
 	xml = xb_silo_export_with_root (self, NULL, flags, error);
 	if (xml == NULL)

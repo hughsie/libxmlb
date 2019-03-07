@@ -926,6 +926,7 @@ xb_builder_node_export (XbBuilderNode *self, XbNodeExportFlags flags, GError **e
 		.xml		= xml,
 	};
 	g_return_val_if_fail (XB_IS_BUILDER_NODE (self), NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 	if ((flags & XB_NODE_EXPORT_FLAG_ADD_HEADER) > 0)
 		g_string_append (xml, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 	if (!xb_builder_node_export_helper (self, &helper, error))
