@@ -896,7 +896,8 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 		}
 
 		/* reload the cached silo with the new file data */
-		if (g_strcmp0 (xb_silo_get_guid (silo_tmp), guid) == 0) {
+		if (g_strcmp0 (xb_silo_get_guid (silo_tmp), guid) == 0 ||
+		    (flags & XB_BUILDER_COMPILE_FLAG_IGNORE_GUID) > 0) {
 			g_autoptr(GBytes) blob = xb_silo_get_bytes (silo_tmp);
 			g_debug ("loading silo with file contents");
 			if (!xb_silo_load_from_bytes (priv->silo, blob,
