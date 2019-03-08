@@ -1,3 +1,16 @@
+Version 0.1.7
+~~~~~~~~~~~~~
+Released: 2019-03-08
+
+New Features:
+ - Add XB_BUILDER_COMPILE_FLAG_IGNORE_GUID (Richard Hughes)
+ - Allow nesting XbBuilderSource content type handlers (Richard Hughes)
+
+Bugfixes:
+ - Correct return type for xb_builder_compile() (Mario Limonciello)
+ - Increase the amount of time for the inotify event to happen (Richard Hughes)
+ - Only run the speed tests when using '-m perf' (Richard Hughes)
+
 Version 0.1.6
 ~~~~~~~~~~~~~
 Released: 2018-12-30
