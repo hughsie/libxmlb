@@ -1,7 +1,7 @@
 project('libxmlb', 'c',
   version : '0.1.8',
   license : 'LGPL-2.1+',
-  meson_version : '>=0.47.0',
+  meson_version : '>=0.45.0',
   default_options : ['warning_level=2', 'c_std=c99'],
 )
 
@@ -90,8 +90,14 @@ test_link_args = [
   '-Wl,-z,now',
 ]
 foreach link_arg: test_link_args
-  if cc.has_link_argument(link_arg)
-    global_link_args += link_arg
+  if meson.version().version_compare('>=0.46.0')
+    if cc.has_link_argument(link_arg)
+      global_link_args += link_arg
+    endif
+  else
+    if cc.has_argument(link_arg)
+      global_link_args += link_arg
+    endif
   endif
 endforeach
 add_project_link_arguments(
@@ -131,8 +137,12 @@ configure_file(
   configuration : conf
 )
 
-python = import('python')
-python3 = python.find_installation('python3')
+if meson.version().version_compare('>=0.46.0')
+  python = import('python')
+  python3 = python.find_installation('python3')
+else
+  python3 = find_program('python3')
+endif
 
 subdir('src')
 if get_option('gtkdoc')

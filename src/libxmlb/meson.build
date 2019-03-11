@@ -2,9 +2,17 @@
 # in order for including the headers from parent projects to work
 # until https://github.com/mesonbuild/meson/issues/2546 is fixed
 foreach header : xb_headers
-  configure_file(
-    copy : true,
-    input : header,
-    output : '@PLAINNAME@',
-  )
+  if meson.version().version_compare('>=0.47.0')
+    configure_file(
+      copy : true,
+      input : header,
+      output : '@PLAINNAME@',
+    )
+  else
+    configure_file(
+      configuration : configuration_data(),
+      input : header,
+      output : '@PLAINNAME@',
+    )
+  endif
 endforeach
