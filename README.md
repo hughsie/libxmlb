@@ -101,3 +101,19 @@ value. Predicates are always embedded in square brackets.
 | `/bookstore/book[price>35.00]` | Returns the books with a price greater than 35 | ✖ |
 | `/bookstore/book[price>35.00]/title` | Returns the titles that have a price greater than 35 | ✖ |
 | `/bookstore/book/title[text()='Learning XML']` | Returns the book node with matching content | ✔ |
+
+Compilation
+----------
+
+libxmlb is a standard meson project.  It can be compiled using the following basic steps:
+
+```
+# meson build
+# ninja -C build
+# ninja -C build install
+# ldconfig
+```
+
+This will by default install the library into `/usr/local`. On some Linux distributions you may
+need to configure the linker path in `/etc/ld.so.conf` to be able to locate it.
+The call to `ldconfig` is needed to refresh the linker cache.
