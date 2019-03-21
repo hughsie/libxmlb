@@ -124,6 +124,7 @@ endif
 
 gnome = import('gnome')
 
+conf.set('libexecdir', libexecdir)
 conf.set_quoted('PACKAGE_NAME', meson.project_name())
 conf.set_quoted('VERSION', meson.project_version())
 configure_file(
@@ -134,6 +135,7 @@ configure_file(
 python = import('python')
 python3 = python.find_installation('python3')
 
+subdir('data')
 subdir('src')
 if get_option('gtkdoc')
   gtkdocscan = find_program('gtkdoc-scan', required : true)
