@@ -215,6 +215,8 @@ if get_option('tests')
       gio,
       libxmlb_dep,
     ],
+    install : true,
+    install_dir : libexecdir
   )
   test('xb-self-test', e)
 endif

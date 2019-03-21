@@ -44,6 +44,12 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 %description devel
 Files for development with %{name}.
 
+%package tests
+Summary: Files for installed tests
+
+%description tests
+Executable and data files for installed tests.
+
 %prep
 %setup -q
 
@@ -78,6 +84,11 @@ Files for development with %{name}.
 %{_includedir}/libxmlb-1
 %{_libdir}/libxmlb.so
 %{_libdir}/pkgconfig/xmlb.pc
+
+%files tests
+%{_libexecdir}/xb-self-test
+%{_datadir}/installed-tests/libxmlb/libxmlb.test
+%dir %{_datadir}/installed-tests/libxmlb
 
 %changelog
 * #LONGDATE# Richard Hughes <richard@hughsie.com> #VERSION#-0.#BUILD##ALPHATAG#
