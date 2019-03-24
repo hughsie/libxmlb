@@ -496,9 +496,9 @@ xb_builder_source_get_istream (XbBuilderSource *self,
 	/* run the content type handlers until we get application/xml */
 	basename = g_file_get_basename (priv->file);
 	do {
-		XbBuilderSourceCtx *ctx = xb_builder_source_ctx_new (priv->istream);
 		g_autofree gchar *content_type = NULL;
 		g_autoptr(GInputStream) istream_tmp = NULL;
+		g_autoptr(XbBuilderSourceCtx) ctx = xb_builder_source_ctx_new (priv->istream);
 
 		/* get the content type of the stream */
 		xb_builder_source_ctx_set_filename (ctx, basename);
