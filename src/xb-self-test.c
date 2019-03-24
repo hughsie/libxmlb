@@ -1699,7 +1699,7 @@ xb_builder_multiple_roots_func (void)
 	ret = xb_test_import_xml (builder, "<tag>value</tag>", &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
-	ret = xb_test_import_xml (builder, "<tag>value2</tag>", &error);
+	ret = xb_test_import_xml (builder, "<tag>value2</tag><tag>value3</tag>", &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
 	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
@@ -1715,13 +1715,13 @@ xb_builder_multiple_roots_func (void)
 	g_assert_no_error (error);
 	g_assert_nonnull (xml_new);
 	g_print ("%s", xml_new);
-	g_assert_cmpstr ("<tag>value</tag><tag>value2</tag>", ==, xml_new);
+	g_assert_cmpstr ("<tag>value</tag><tag>value2</tag><tag>value3</tag>", ==, xml_new);
 
 	/* query for multiple results */
 	results = xb_silo_query (silo, "tag", 5, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (results);
-	g_assert_cmpint (results->len, ==, 2);
+	g_assert_cmpint (results->len, ==, 3);
 }
 
 static void

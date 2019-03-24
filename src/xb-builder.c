@@ -210,6 +210,7 @@ xb_builder_compile_source (XbBuilderCompileHelper *helper,
 	gssize len;
 	g_autofree gchar *data = NULL;
 	g_autofree gchar *guid = xb_builder_source_get_guid (source);
+	g_autoptr(GPtrArray) children_copy = NULL;
 	g_autoptr(GInputStream) istream = NULL;
 	g_autoptr(GMarkupParseContext) ctx = NULL;
 	g_autoptr(GTimer) timer = g_timer_new ();
@@ -268,8 +269,13 @@ xb_builder_compile_source (XbBuilderCompileHelper *helper,
 
 	/* add the children to the main document */
 	children = xb_builder_node_get_children (root_tmp);
+	children_copy = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	for (guint i = 0; i < children->len; i++) {
-		g_autoptr(XbBuilderNode) bn = g_object_ref (g_ptr_array_index (children, i));
+		XbBuilderNode *bn = g_ptr_array_index (children, i);
+		g_ptr_array_add (children_copy, g_object_ref (bn));
+	}
+	for (guint i = 0; i < children_copy->len; i++) {
+		XbBuilderNode *bn = g_ptr_array_index (children_copy, i);
 		xb_builder_node_unlink (bn);
 		xb_builder_node_add_child (root, bn);
 	}
