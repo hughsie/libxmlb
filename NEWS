@@ -1,3 +1,13 @@
+Version 0.1.8
+~~~~~~~~~~~~~
+Released: 2019-03-26
+
+New Features:
+ - Add some installed tests (Richard Hughes)
+
+Bugfixes:
+ - Always add all children when importing parent-less XML data (Richard Hughes)
+
 Version 0.1.7
 ~~~~~~~~~~~~~
 Released: 2019-03-08
