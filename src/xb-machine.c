@@ -114,7 +114,7 @@ xb_machine_add_operator (XbMachine *self, const gchar *str, const gchar *name)
  * xb_machine_add_method:
  * @self: a #XbMachine
  * @name: function name, e.g. `contains`
- * @n_opcodes: minimum number of opcodes requried on the stack
+ * @n_opcodes: minimum number of opcodes required on the stack
  * @method_cb: function to call
  * @user_data: user pointer to pass to @method_cb, or %NULL
  * @user_data_free: a function which gets called to free @user_data, or %NULL
@@ -1088,7 +1088,7 @@ xb_machine_stack_push_text_steal (XbMachine *self, XbStack *stack, gchar *str)
  * xb_machine_stack_push_integer:
  * @self: a #XbMachine
  * @stack: a #XbStack
- * @val: interger literal
+ * @val: integer literal
  *
  * Adds an integer literal to the stack.
  *
@@ -1108,7 +1108,7 @@ xb_machine_stack_push_integer (XbMachine *self, XbStack *stack, guint32 val)
 /**
  * xb_machine_set_stack_size:
  * @self: a #XbMachine
- * @stack_size: interger
+ * @stack_size: integer
  *
  * Sets the maximum stack size used for the machine.
  *
@@ -1762,7 +1762,7 @@ xb_machine_init (XbMachine *self)
 	priv->opcode_fixup = g_hash_table_new_full (g_str_hash, g_str_equal,
 						     g_free, (GDestroyNotify) xb_machine_opcode_fixup_free);
 
-	/* build-in functions */
+	/* built-in functions */
 	xb_machine_add_method (self, "eq", 2, xb_machine_func_eq_cb, NULL, NULL);
 	xb_machine_add_method (self, "ne", 2, xb_machine_func_ne_cb, NULL, NULL);
 	xb_machine_add_method (self, "lt", 2, xb_machine_func_lt_cb, NULL, NULL);

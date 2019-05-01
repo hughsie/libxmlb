@@ -1262,7 +1262,7 @@ xb_xpath_func (void)
 	g_assert_cmpstr (xb_node_get_text (n), ==, "gimp.desktop");
 	g_clear_object (&n);
 
-	/* query with attrs that dont exists */
+	/* query with attrs that do not exist */
 	n = xb_silo_query_first (silo, "components/component[not(@dave)]/id", &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (n);

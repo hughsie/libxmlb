@@ -161,7 +161,7 @@ if get_option('introspection')
   #  2. The map file is required to build the lib that the GIR is built from
   #
   # To avoid the circular dep, and to ensure we don't change exported API
-  # accidentaly actually check in a version of the version script to git.
+  # accidentally actually check in a version of the version script to git.
   mapfile_target = custom_target('libxmlb-mapfile',
     input: gir[0],
     output: 'libxmlb.map',
