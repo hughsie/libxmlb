@@ -361,7 +361,6 @@ static gboolean
 xb_builder_xml_lang_prio_cb (XbBuilderNode *bn, gpointer user_data)
 {
 	GPtrArray *nodes_to_destroy = (GPtrArray *) user_data;
-	XbBuilderNode *bn_best = bn;
 	gint prio_best = 0;
 	g_autoptr(GPtrArray) nodes = g_ptr_array_new ();
 	GPtrArray *siblings;
@@ -391,16 +390,14 @@ xb_builder_xml_lang_prio_cb (XbBuilderNode *bn, gpointer user_data)
 	/* find the best locale */
 	for (guint i = 0; i < nodes->len; i++) {
 		XbBuilderNode *bn2 = g_ptr_array_index (nodes, i);
-		if (xb_builder_node_get_priority (bn2) > prio_best) {
+		if (xb_builder_node_get_priority (bn2) > prio_best)
 			prio_best = xb_builder_node_get_priority (bn2);
-			bn_best = bn2;
-		}
 	}
 
 	/* add any nodes not as good as the bext locale to the kill list */
 	for (guint i = 0; i < nodes->len; i++) {
 		XbBuilderNode *bn2 = g_ptr_array_index (nodes, i);
-		if (xb_builder_node_get_priority (bn2) < xb_builder_node_get_priority (bn_best))
+		if (xb_builder_node_get_priority (bn2) < prio_best)
 			g_ptr_array_add (nodes_to_destroy, bn2);
 
 		/* never visit this node again */

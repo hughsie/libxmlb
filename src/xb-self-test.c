@@ -1401,9 +1401,11 @@ xb_xpath_func (void)
 static void
 xb_builder_native_lang_func (void)
 {
+	XbNode *n;
 	gboolean ret;
 	g_autoptr(GError) error = NULL;
 	g_autofree gchar *str = NULL;
+	g_autofree gchar *tmp = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
 	g_autoptr(XbSilo) silo = NULL;
 	const gchar *xml =
@@ -1412,6 +1414,9 @@ xb_builder_native_lang_func (void)
 	"    <p xml:lang=\"de_DE\">Wilcommen</p>\n"
 	"    <p>Hello</p>\n"
 	"    <p xml:lang=\"fr\">Salut</p>\n"
+	"    <p>Goodbye</p>\n"
+	"    <p xml:lang=\"de_DE\">Auf Wiedersehen</p>\n"
+	"    <p xml:lang=\"fr\">Au revoir</p>\n"
 	"  </component>\n"
 	"</components>\n";
 
@@ -1436,6 +1441,16 @@ xb_builder_native_lang_func (void)
 	g_assert_null (g_strstr_len (str, -1, "Wilcommen"));
 	g_assert_null (g_strstr_len (str, -1, "Hello"));
 	g_assert_nonnull (g_strstr_len (str, -1, "Salut"));
+	g_assert_null (g_strstr_len (str, -1, "Goodbye"));
+	g_assert_null (g_strstr_len (str, -1, "Auf Wiedersehen"));
+	g_assert_nonnull (g_strstr_len (str, -1, "Au revoir"));
+
+	/* test we traversed the tree correctly */
+	n = xb_silo_query_first (silo, "components/component/*", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	tmp = xb_node_export (n, XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS, &error);
+	g_assert_cmpstr (tmp, ==, "<p xml:lang=\"fr\">Salut</p><p xml:lang=\"fr\">Au revoir</p>");
 }
 
 static void
