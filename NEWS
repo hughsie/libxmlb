@@ -1,3 +1,10 @@
+Version 0.1.9
+~~~~~~~~~~~~~
+Released: 2019-05-07
+
+Bugfixes:
+ - Correctly implement building a silo with _SINGLE_LANG set (Richard Hughes)
+
 Version 0.1.8
 ~~~~~~~~~~~~~
 Released: 2019-03-26
