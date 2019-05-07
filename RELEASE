@@ -2,10 +2,10 @@ libxmlb Release Notes
 
 1. Write NEWS entries for libxmlb in the same format as usual.
 
-git shortlog 0.1.8.. | grep -i -v trivial | grep -v Merge > NEWS.new
+git shortlog 0.1.9.. | grep -i -v trivial | grep -v Merge > NEWS.new
 
-Version 0.1.9
-~~~~~~~~~~~~~
+Version 0.1.10
+~~~~~~~~~~~~~~
 Released: 2019-xx-xx
 
 New Features:
