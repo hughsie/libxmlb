@@ -749,6 +749,7 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 				g_debug ("ignoring invalid file %s: %s",
 					 source_guid,
 					 error_local->message);
+				g_clear_error (&error_local);
 				continue;
 			}
 			g_propagate_prefixed_error (error,
