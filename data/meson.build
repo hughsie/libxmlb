@@ -5,3 +5,7 @@ configure_file(
   install: true,
   install_dir: join_paths('share', 'installed-tests', 'libxmlb'),
 )
+
+install_data(['test.xml.gz.gz.gz'],
+  install_dir: join_paths('share', 'installed-tests', 'libxmlb'),
+)

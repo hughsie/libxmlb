@@ -210,6 +210,7 @@ if get_option('tests')
     ],
     c_args : [
       '-DTESTDIR="@0@/../data"'.format(meson.current_source_dir()),
+      '-DINSTALLEDTESTDIR="' + join_paths('share', 'installed-tests', 'libxmlb') + '"',
     ],
     dependencies : [
       gio,

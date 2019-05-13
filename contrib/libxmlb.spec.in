@@ -88,6 +88,7 @@ Executable and data files for installed tests.
 %files tests
 %{_libexecdir}/xb-self-test
 %{_datadir}/installed-tests/libxmlb/libxmlb.test
+%{_datadir}/installed-tests/libxmlb/test.xml.gz.gz.gz
 %dir %{_datadir}/installed-tests/libxmlb
 
 %changelog
