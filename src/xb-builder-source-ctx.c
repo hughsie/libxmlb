@@ -101,18 +101,20 @@ xb_builder_source_ctx_get_content_type (XbBuilderSourceCtx *self,
 					GError **error)
 {
 	XbBuilderSourceCtxPrivate *priv = GET_PRIVATE (self);
-	gsize bufsz = 0;
-	guchar buf[4096] = { 0x00 };
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE_CTX (self), NULL);
 	if (G_IS_SEEKABLE (priv->istream)) {
+		gsize bufsz = 0;
+		guchar buf[4096] = { 0x00 };
 		if (!g_input_stream_read_all (priv->istream, buf, sizeof(buf),
 					      &bufsz, cancellable, error))
 			return NULL;
 		if (!g_seekable_seek (G_SEEKABLE (priv->istream), 0, G_SEEK_SET,
 				      cancellable, error))
 			return NULL;
+		if (bufsz > 0)
+			return g_content_type_guess (priv->filename, buf, bufsz, NULL);
 	}
-	return g_content_type_guess (priv->filename, buf, bufsz, NULL);
+	return g_content_type_guess (priv->filename, NULL, 0, NULL);
 }
 
 /* private */
