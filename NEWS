@@ -1,3 +1,11 @@
+Version 0.1.10
+~~~~~~~~~~~~~~
+Released: 2019-05-16
+
+Bugfixes:
+ - Do not mistake gzipped files as being application/x-zerosize content type (Richard Hughes)
+ - Fix running the installed tests with no checkout directory (Richard Hughes)
+
 Version 0.1.9
 ~~~~~~~~~~~~~
 Released: 2019-05-07

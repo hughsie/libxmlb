@@ -15,7 +15,7 @@ Bugfixes:
 Commit changes to git:
 
 # MAKE SURE THESE ARE CORRECT
-export release_ver="0.1.9"
+export release_ver="0.1.10"
 
 git commit -a -m "Release libxmlb ${release_ver}"
 git tag -s -f -m "Release libxmlb ${release_ver}" "${release_ver}"
