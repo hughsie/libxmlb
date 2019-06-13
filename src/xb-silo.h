@@ -38,7 +38,8 @@ struct _XbSiloClass {
 typedef enum {
 	XB_SILO_LOAD_FLAG_NONE		= 0,			/* Since: 0.1.0 */
 	XB_SILO_LOAD_FLAG_NO_MAGIC	= 1 << 0,		/* Since: 0.1.0 */
-	XB_SILO_LOAD_FLAG_WATCH_BLOB	= 1 << 1,		/* Since: 0.1.0 */
+	XB_SILO_LOAD_FLAG_NO_ABI	= 1 << 1,		/* Since: 0.1.0 */
+	XB_SILO_LOAD_FLAG_WATCH_BLOB	= 1 << 2,		/* Since: 0.1.0 */
 	/*< private >*/
 	XB_SILO_LOAD_FLAG_LAST
 } XbSiloLoadFlags;
