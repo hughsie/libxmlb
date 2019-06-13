@@ -12,5 +12,4 @@ RUN dnf -y install \
 	shared-mime-info \
 	redhat-rpm-config
 
-RUN mkdir /build
 WORKDIR /build
