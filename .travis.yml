@@ -12,3 +12,4 @@ before_script:
 script:
   - docker run -t -v `pwd`:/build libxmlb-fedora ./contrib/ci/build_and_test.sh
   - docker run -t -v `pwd`:/build libxmlb-debian ./contrib/ci/build_and_test.sh
+  - docker run -t -v `pwd`:/build libxmlb-fedora ./contrib/ci/check-abi.sh $(git describe --abbrev=0 --tags) $(git rev-parse HEAD)
