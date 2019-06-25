@@ -192,3 +192,9 @@ LIBXMLB_0.1.7 {
     xb_builder_source_ctx_get_type;
   local: *;
 } LIBXMLB_0.1.6;
+
+LIBXMLB_0.1.11 {
+  global:
+    xb_node_query_first_full;
+  local: *;
+} LIBXMLB_0.1.7;

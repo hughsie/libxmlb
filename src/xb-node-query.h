@@ -23,6 +23,9 @@ GPtrArray	*xb_node_query_full		(XbNode		*self,
 XbNode		*xb_node_query_first		(XbNode		*self,
 						 const gchar	*xpath,
 						 GError		**error);
+XbNode		*xb_node_query_first_full	(XbNode		*self,
+						 XbQuery	*query,
+						 GError		**error);
 const gchar	*xb_node_query_text		(XbNode		*self,
 						 const gchar	*xpath,
 						 GError		**error);

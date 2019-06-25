@@ -68,6 +68,39 @@ xb_node_query_full (XbNode *self, XbQuery *query, GError **error)
 }
 
 /**
+ * xb_node_query_first_full:
+ * @self: a #XbNode
+ * @query: an #XbQuery
+ * @error: the #GError, or %NULL
+ *
+ * Searches the silo using an prepared query, returning up to one result.
+ *
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbSilo.
+ *
+ * Please note: Only a subset of XPath is supported.
+ *
+ * Returns: (transfer full): a #XbNode, or %NULL if unfound
+ *
+ * Since: 0.1.11
+ **/
+XbNode *
+xb_node_query_first_full (XbNode *self, XbQuery *query, GError **error)
+{
+	g_autoptr(GPtrArray) results = NULL;
+
+	g_return_val_if_fail (XB_IS_NODE (self), NULL);
+	g_return_val_if_fail (XB_IS_QUERY (query), NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+
+	/* nodes don't have to include themselves as part of the query */
+	results = xb_silo_query_full (xb_node_get_silo (self), self, query, error);
+	if (results == NULL)
+		return NULL;
+	return g_object_ref (g_ptr_array_index (results, 0));
+}
+
+/**
  * xb_node_query_first:
  * @self: a #XbNode
  * @xpath: An XPath, e.g. `/components/component[@type=desktop]/id[abe.desktop]`
