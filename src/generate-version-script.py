@@ -31,7 +31,6 @@ class LdVersionScript:
         if 'version' not in node.attrib:
             print('No version for', identifier)
             sys.exit(1)
-            return
         version = node.attrib['version']
         if version not in self.releases:
             self.releases[version] = []
