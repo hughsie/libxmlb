@@ -37,6 +37,7 @@
     <xi:include href="xml/xb-stack.xml"/>
     <xi:include href="xml/xb-silo.xml"/>
     <xi:include href="xml/xb-silo-query.xml"/>
+    <xi:include href="xml/xb-string.xml"/>
   </reference>
 
   <index id="api-index-full">
