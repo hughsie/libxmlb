@@ -225,6 +225,8 @@ xb_predicate_func (void)
 		  "text(),'firefox',lower-case(),eq()" },
 		{ "$'a'=$'b'",
 		  "$'a',$'b',eq()" },
+		{ "('a'='b')&&('c'='d')",
+		  "'a','b',eq(),'c','d',eq(),and()" },
 		/* sentinel */
 		{ NULL, NULL }
 	};
@@ -255,6 +257,7 @@ xb_predicate_func (void)
 	for (guint i = 0; invalid[i] != NULL; i++) {
 		g_autoptr(GError) error = NULL;
 		g_autoptr(XbStack) opcodes = NULL;
+		g_debug ("testing %s", invalid[i]);
 		opcodes = xb_machine_parse_full (xb_silo_get_machine (silo),
 						 invalid[i], -1,
 						 XB_MACHINE_PARSE_FLAG_NONE,
@@ -1166,6 +1169,9 @@ xb_xpath_func (void)
 	"  <component type=\"desktop\">\n"
 	"    <id>gimp.desktop</id>\n"
 	"    <id>org.gnome.Gimp.desktop</id>\n"
+	"    <custom>\n"
+	"      <value key=\"KEY\">TRUE</value>\n"
+	"    </custom>\n"
 	"  </component>\n"
 	"  <component type=\"firmware\">\n"
 	"    <id>org.hughski.ColorHug2.firmware</id>\n"
@@ -1186,6 +1192,27 @@ xb_xpath_func (void)
 	g_assert_no_error (error);
 	g_assert_nonnull (str);
 	g_debug ("\n%s", str);
+
+	/* query with predicate logical and */
+	n = xb_silo_query_first (silo, "components/component/custom/value[(@key='KEY') and (text()='TRUE')]/../../id", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "gimp.desktop");
+	g_clear_object (&n);
+
+	/* query with predicate logical and; failure */
+	n = xb_silo_query_first (silo, "components/component/custom/value[(@key='KEY')&&(text()='FALSE')]/../../id", &error);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND);
+	g_assert_null (n);
+	g_clear_error (&error);
+	g_clear_object (&n);
+
+	/* query with predicate logical and, alternate form */
+	n = xb_silo_query_first (silo, "components/component/custom/value[and((@key='KEY'),(text()='TRUE'))]/../../id", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "gimp.desktop");
+	g_clear_object (&n);
 
 	/* query that doesn't find anything */
 	n = xb_silo_query_first (silo, "dave", &error);
