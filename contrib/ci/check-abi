@@ -86,7 +86,8 @@ def compare(old_tree, new_tree):
 
     subprocess.check_call([
         'abidiff', '--headers-dir1', old_headers, '--headers-dir2', new_headers,
-        '--drop-private-types', '--fail-no-debug-info', '--no-added-syms', old_lib, new_lib])
+        '--drop-private-types', '--suppressions', 'contrib/ci/abidiff.suppr',
+        '--fail-no-debug-info', '--no-added-syms', old_lib, new_lib])
 
 
 if __name__ == '__main__':
