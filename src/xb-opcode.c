@@ -47,6 +47,8 @@ xb_opcode_kind_to_string (XbOpcodeKind kind)
 		return "?INT";
 	if (kind == XB_OPCODE_KIND_INDEXED_TEXT)
 		return "TEXI";
+	if (kind == XB_OPCODE_KIND_BOOLEAN)
+		return "BOOL";
 	return NULL;
 }
 
@@ -77,6 +79,8 @@ xb_opcode_kind_from_string (const gchar *str)
 		return XB_OPCODE_KIND_BOUND_INTEGER;
 	if (g_strcmp0 (str, "TEXI") == 0)
 		return XB_OPCODE_KIND_INDEXED_TEXT;
+	if (g_strcmp0 (str, "BOOL") == 0)
+		return XB_OPCODE_KIND_BOOLEAN;
 	return XB_OPCODE_KIND_UNKNOWN;
 }
 
@@ -119,6 +123,8 @@ xb_opcode_to_string (XbOpcode *self)
 		return g_strdup_printf ("?'%s'", xb_opcode_get_str (self));
 	if (self->kind == XB_OPCODE_KIND_BOUND_INTEGER)
 		return g_strdup_printf ("?%u", xb_opcode_get_val (self));
+	if (self->kind == XB_OPCODE_KIND_BOOLEAN)
+		return g_strdup (xb_opcode_get_val (self) ? "True" : "False");
 	g_critical ("no to_string for kind %u", self->kind);
 	return NULL;
 }
@@ -153,6 +159,7 @@ inline gboolean
 xb_opcode_cmp_val (XbOpcode *self)
 {
 	return self->kind == XB_OPCODE_KIND_INTEGER ||
+		self->kind == XB_OPCODE_KIND_BOOLEAN ||
 		self->kind == XB_OPCODE_KIND_BOUND_INTEGER;
 }
 
@@ -439,6 +446,17 @@ xb_opcode_integer_new (guint32 val)
 	XbOpcode *self = g_slice_new0 (XbOpcode);
 	self->ref = 1;
 	self->kind = XB_OPCODE_KIND_INTEGER;
+	self->val = val;
+	return self;
+}
+
+/* private */
+XbOpcode *
+xb_opcode_bool_new (gboolean val)
+{
+	XbOpcode *self = g_slice_new0 (XbOpcode);
+	self->ref = 1;
+	self->kind = XB_OPCODE_KIND_BOOLEAN;
 	self->val = val;
 	return self;
 }

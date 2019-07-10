@@ -26,5 +26,6 @@ void		 xb_opcode_set_kind		(XbOpcode	*self,
 void		 xb_opcode_set_val		(XbOpcode	*self,
 						 guint32	 val);
 gchar		*xb_opcode_get_sig		(XbOpcode	*self);
+XbOpcode	*xb_opcode_bool_new		(gboolean	 val);
 
 G_END_DECLS

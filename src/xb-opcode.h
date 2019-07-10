@@ -33,6 +33,7 @@ typedef enum {
 	XB_OPCODE_FLAG_TEXT		= 1 << 1,	/* Since: 0.1.4 */
 	XB_OPCODE_FLAG_FUNCTION		= 1 << 2,	/* Since: 0.1.4 */
 	XB_OPCODE_FLAG_BOUND		= 1 << 3,	/* Since: 0.1.4 */
+	XB_OPCODE_FLAG_BOOLEAN		= 1 << 4,	/* Since: 0.1.11 */
 	/*< private >*/
 	XB_OPCODE_FLAG_LAST
 } XbOpcodeFlags;
@@ -56,6 +57,7 @@ typedef enum {
 	XB_OPCODE_KIND_BOUND_INTEGER	= XB_OPCODE_FLAG_BOUND | XB_OPCODE_FLAG_INTEGER,	/* Since: 0.1.4 */
 	XB_OPCODE_KIND_BOUND_TEXT	= XB_OPCODE_FLAG_BOUND | XB_OPCODE_FLAG_TEXT,		/* Since: 0.1.4 */
 	XB_OPCODE_KIND_INDEXED_TEXT	= XB_OPCODE_FLAG_INTEGER | XB_OPCODE_FLAG_TEXT,		/* Since: 0.1.4 */
+	XB_OPCODE_KIND_BOOLEAN		= XB_OPCODE_FLAG_INTEGER | XB_OPCODE_FLAG_BOOLEAN,	/* Since: 0.1.11 */
 	/*< private >*/
 	XB_OPCODE_KIND_LAST
 } XbOpcodeKind;
