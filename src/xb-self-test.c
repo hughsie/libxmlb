@@ -1405,12 +1405,12 @@ xb_xpath_func (void)
 static void
 xb_builder_native_lang_func (void)
 {
-	XbNode *n;
 	gboolean ret;
 	g_autoptr(GError) error = NULL;
 	g_autofree gchar *str = NULL;
 	g_autofree gchar *tmp = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbNode) n = NULL;
 	g_autoptr(XbSilo) silo = NULL;
 	const gchar *xml =
 	"<components>\n"
