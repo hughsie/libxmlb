@@ -10,6 +10,7 @@
 
 #include <gio/gio.h>
 
+#include "xb-opcode-private.h"
 #include "xb-stack-private.h"
 
 struct _XbStack {
@@ -106,6 +107,13 @@ xb_stack_peek (XbStack *self, guint idx)
 	if (idx >= self->pos)
 		return NULL;
 	return self->opcodes[idx];
+}
+
+/* private */
+gboolean
+xb_stack_push_bool (XbStack *self, gboolean val)
+{
+	return xb_stack_push_steal (self, xb_opcode_bool_new (val));
 }
 
 /* private */

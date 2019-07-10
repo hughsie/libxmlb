@@ -273,9 +273,9 @@ xb_predicate_optimize_func (void)
 		const gchar	*str;
 	} tests[] = {
 		{ "@a='b'",		"'a',attr(),'b',eq()" },
-		{ "'a'<'b'",		"" },		/* to nothing! */
-		{ "999>=123",		"" },		/* to nothing! */
-		{ "not(0)",		"" },		/* to nothing! */
+		{ "'a'<'b'",		"True" },	/* success! */
+		{ "999>=123",		"True" },	/* success! */
+		{ "not(0)",		"True" },	/* success! */
 		{ "lower-case('Fire')",	"'fire'" },
 		{ "upper-case(lower-case('Fire'))",
 					"'FIRE'" },	/* 2nd pass */

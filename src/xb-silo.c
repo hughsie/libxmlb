@@ -1071,7 +1071,7 @@ xb_silo_machine_func_first_cb (XbMachine *self,
 				     "cannot optimize: no silo to query");
 		return FALSE;
 	}
-	*result = query_data->position == 1;
+	xb_stack_push_bool (stack, query_data->position == 1);
 	return TRUE;
 }
 
@@ -1091,7 +1091,7 @@ xb_silo_machine_func_last_cb (XbMachine *self,
 				     "cannot optimize: no silo to query");
 		return FALSE;
 	}
-	*result = query_data->sn->next == 0;
+	xb_stack_push_bool (stack, query_data->sn->next == 0);
 	return TRUE;
 }
 
@@ -1128,8 +1128,8 @@ xb_silo_machine_func_search_cb (XbMachine *self,
 
 	/* TEXT:TEXT */
 	if (xb_opcode_cmp_str (op1) && xb_opcode_cmp_str (op2)) {
-		*result = xb_string_search (xb_opcode_get_str (op2),
-					    xb_opcode_get_str (op1));
+		xb_stack_push_bool (stack, xb_string_search (xb_opcode_get_str (op2),
+							     xb_opcode_get_str (op1)));
 		return TRUE;
 	}
 
