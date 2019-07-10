@@ -236,10 +236,8 @@ XbOpcode *
 xb_machine_opcode_func_new (XbMachine *self, const gchar *func_name)
 {
 	XbMachineMethodItem *item = xb_machine_find_func (self, func_name);
-	if (item == NULL) {
-		g_critical ("failed to find %s", func_name);
+	if (item == NULL)
 		return NULL;
-	}
 	return xb_opcode_new (XB_OPCODE_KIND_FUNCTION,
 			      g_strdup (func_name),
 			      item->idx, g_free);
@@ -251,25 +249,27 @@ xb_machine_parse_add_func (XbMachine *self,
 			   const gchar *func_name,
 			   GError **error)
 {
-	XbMachineMethodItem *item;
-	XbOpcode *op;
+	XbMachinePrivate *priv = GET_PRIVATE (self);
+	g_autoptr(XbOpcode) opcode = NULL;
 
-	/* find function by name */
-	item = xb_machine_find_func (self, func_name);
-	if (item == NULL) {
+	/* match opcode, which should always exist */
+	opcode = xb_machine_opcode_func_new (self, func_name);
+	if (opcode == NULL) {
 		g_set_error (error,
 			     G_IO_ERROR,
 			     G_IO_ERROR_NOT_SUPPORTED,
-			     "function %s() is not supported",
-			     func_name);
+			     "built-in function not found: %s", func_name);
+		return FALSE;
+	}
+	if (!xb_stack_push_steal (opcodes, g_steal_pointer (&opcode))) {
+		g_set_error (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_NOT_SUPPORTED,
+			     "stack size %u exhausted",
+			     priv->stack_size);
 		return FALSE;
 	}
 
-	/* create new opcode */
-	op = xb_opcode_new (XB_OPCODE_KIND_FUNCTION,
-			    g_strdup (func_name),
-			    item->idx, g_free);
-	xb_stack_push_steal (opcodes, op);
 	return TRUE;
 }
 
@@ -340,27 +340,28 @@ g_ascii_string_to_unsigned (const gchar *str,
 #endif
 
 static gboolean
-xb_machine_parse_add_text_raw (XbMachine *self,
-			       XbStack *opcodes,
-			       const gchar *str,
-			       GError **error)
+xb_machine_parse_add_text (XbMachine *self,
+			   XbStack *opcodes,
+			   const gchar *text,
+			   gssize text_len,
+			   GError **error)
 {
 	XbMachinePrivate *priv = GET_PRIVATE (self);
+	g_autofree gchar *str = NULL;
 	guint64 val;
-	gsize text_len;
 
 	/* NULL is perfectly valid */
-	if (str == NULL) {
+	if (text == NULL) {
 		xb_stack_push_steal (opcodes, xb_opcode_text_new_static (str));
 		return TRUE;
 	}
 
 	/* never add empty literals */
-	text_len = strlen (str);
 	if (text_len == 0)
 		return TRUE;
 
 	/* do any additional handlers */
+	str = g_strndup (text, text_len);
 	for (guint i = 0; i < priv->text_handlers->len; i++) {
 		XbMachineTextHandlerItem *item = g_ptr_array_index (priv->text_handlers, i);
 		gboolean handled = FALSE;
@@ -408,82 +409,114 @@ xb_machine_parse_add_text_raw (XbMachine *self,
 		     G_IO_ERROR_NOT_SUPPORTED,
 		     "cannot parse text or number `%s`", str);
 	return FALSE;
+
 }
 
 static gboolean
-xb_machine_parse_add_text (XbMachine *self,
-			   XbStack *opcodes,
-			   const gchar *str,
-			   GError **error)
-{
-	return xb_machine_parse_add_text_raw (self, opcodes, str, error);
-}
-
-static gssize
 xb_machine_parse_section (XbMachine *self,
 			  XbStack *opcodes,
 			  const gchar *text,
-			  gsize start,
 			  gssize text_len,
-			  guint level,
+			  gboolean is_method,
 			  GError **error)
 {
 	XbMachinePrivate *priv = GET_PRIVATE (self);
-	g_autoptr(GString) acc = g_string_new (NULL);
 
-	/* sanity check */
-	if (level > 20) {
-		g_autofree gchar *tmp = g_strndup (text, text_len);
-		g_set_error (error,
-			     G_IO_ERROR,
-			     G_IO_ERROR_INVALID_DATA,
-			     "nesting deeper than 20 levels supported: %s",
-			     tmp);
-		return G_MAXSSIZE;
-	}
+	/* fall back for simplicity */
+	if (text_len < 0)
+		text_len = strlen (text);
+	if (text_len == 0)
+		return TRUE;
 
-	/* build accumulator until hitting either bracket, then recurse */
-	for (gssize i = start; i < text_len; i++) {
-		if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_PARSING)
-			g_debug ("@%u, >%c", level, text[i]);
-		if (text[i] == ',')
-			continue;
-		if (text[i] == '(') {
-			i = xb_machine_parse_section (self, opcodes, text, i + 1, text_len, level + 1, error);
-			if (i == 0) {
-				g_set_error_literal (error,
-						     G_IO_ERROR,
-						     G_IO_ERROR_INVALID_DATA,
-						     "failed to find matching bracket");
-				return G_MAXSSIZE;
+//	g_debug ("xb_machine_parse_section{%s} method=%i", g_strndup (text, text_len), is_method);
+	for (gssize i = 0; i < text_len; i++) {
+		for (guint j = 0; j < priv->operators->len; j++) {
+			XbMachineOperator *op = g_ptr_array_index (priv->operators, j);
+			if (strncmp (text + i, op->str, op->strsz) == 0) {
+				if (is_method) {
+					/* after then before */
+					if (!xb_machine_parse_section (self, opcodes, text + i + op->strsz, -1, is_method, error))
+						return FALSE;
+					if (i > 0) {
+						if (!xb_machine_parse_section (self, opcodes, text, i, FALSE, error))
+							return FALSE;
+					}
+					if (!xb_machine_parse_add_func (self, opcodes, op->name, error))
+						return FALSE;
+				} else {
+					/* before then after */
+					if (i > 0) {
+						if (!xb_machine_parse_section (self, opcodes, text, i, FALSE, error))
+							return FALSE;
+					}
+					if (!xb_machine_parse_section (self, opcodes, text + i + op->strsz, -1, is_method, error))
+						return FALSE;
+					if (!xb_machine_parse_add_func (self, opcodes, op->name, error))
+						return FALSE;
+				}
+				return TRUE;
 			}
-			if (i == G_MAXSSIZE)
-				return G_MAXSSIZE;
-			if (!xb_machine_parse_add_func (self, opcodes, acc->str, error))
-				return G_MAXSSIZE;
-			g_string_truncate (acc, 0);
-			continue;
 		}
-		if (text[i] == ')') {
-			if (acc->len > 0) {
-				if (!xb_machine_parse_add_text (self, opcodes, acc->str, error))
-					return G_MAXSSIZE;
+	}
+
+	/* nothing matched */
+	if (is_method)
+		return xb_machine_parse_add_func (self, opcodes, text, error);
+	return xb_machine_parse_add_text (self, opcodes, text, text_len, error);
+}
+
+static gboolean
+xb_machine_parse_sections (XbMachine *self,
+			   XbStack *opcodes,
+			   const gchar *text,
+			   gsize text_len,
+			   gboolean is_method,
+			   GError **error)
+{
+	g_autofree gchar *tmp = NULL;
+	if (text_len == 0)
+		return TRUE;
+
+	/* leading comma */
+	if (text[0] == ',') {
+		tmp = g_strndup (text + 1, text_len - 1);
+	} else {
+		tmp = g_strndup (text, text_len);
+	}
+
+//	g_debug ("xb_machine_parse_sections{%s} method=%i", tmp, is_method);
+	for (gint i = text_len - 1; i >= 0; i--) {
+//		g_debug ("%u\t\t%c", i, tmp[i]);
+		if (tmp[i] == ',') {
+			tmp[i] = '\0';
+			if (is_method) {
+				if (!xb_machine_parse_add_func (self,
+								opcodes,
+								tmp + i + 1,
+								error))
+					return FALSE;
+				is_method = FALSE;
+			} else {
+				if (!xb_machine_parse_section (self,
+							       opcodes,
+							       tmp + i + 1,
+							       -1,
+							       TRUE,
+							       error))
+					return FALSE;
 			}
-			g_string_truncate (acc, 0);
-			return i;
 		}
-
-		g_string_append_c (acc, text[i]);
 	}
-
-	/* any left over */
-	if (acc->len > 0) {
-		if (!xb_machine_parse_add_text (self, opcodes, acc->str, error))
-			return G_MAXSSIZE;
-		g_string_truncate (acc, 0);
+	if (tmp[0] != '\0') {
+		if (!xb_machine_parse_section (self,
+					       opcodes,
+					       tmp,
+					       -1,
+					       is_method,
+					       error))
+			return FALSE;
 	}
-
-	return 0;
+	return TRUE;
 }
 
 static gchar *
@@ -498,22 +531,6 @@ xb_machine_get_opcodes_sig (XbMachine *self, XbStack *opcodes)
 	if (str->len > 0)
 		g_string_truncate (str, str->len - 1);
 	return g_string_free (str, FALSE);
-}
-
-static gboolean
-xb_machine_parse_part (XbMachine *self,
-		       XbStack *opcodes,
-		       const gchar *text,
-		       gsize start,
-		       gssize text_len,
-		       GError **error)
-{
-	gsize rc = xb_machine_parse_section (self, opcodes, text, start, text_len, 0, error);
-	if (rc == G_MAXSSIZE) {
-		g_prefix_error (error, "failed to parse part: ");
-		return FALSE;
-	}
-	return TRUE;
 }
 
 static gboolean
@@ -641,6 +658,82 @@ xb_machine_opcodes_optimize (XbMachine *self, XbStack *opcodes, GError **error)
 	return TRUE;
 }
 
+static gsize
+xb_machine_parse_text (XbMachine *self,
+		       XbStack *opcodes,
+		       const gchar *text,
+		       gsize text_len,
+		       guint level,
+		       GError **error)
+{
+	XbMachinePrivate *priv = GET_PRIVATE (self);
+	guint tail = 0;
+
+	/* sanity check */
+	if (level > 20) {
+		g_autofree gchar *tmp = g_strndup (text, text_len);
+		g_set_error (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_INVALID_DATA,
+			     "nesting deeper than 20 levels supported: %s", tmp);
+		return G_MAXSIZE;
+	}
+
+	//g_debug ("%u xb_machine_parse_text{%s}", level, g_strndup (text, text_len));
+	for (guint i = 0; i < text_len; i++) {
+		if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_PARSING)
+			g_debug ("LVL %u\t%u:\t\t%c", level, i, text[i]);
+		if (text[i] == '(') {
+			gsize j = 0;
+			j = xb_machine_parse_text (self,
+						   opcodes,
+						   text + i + 1,
+						   text_len - i,
+						   level + 1,
+						   error);
+			if (j == G_MAXSIZE)
+				return G_MAXSIZE;
+			if (!xb_machine_parse_sections (self,
+							opcodes,
+							text + tail,
+							i - tail,
+							TRUE,
+							error))
+				return G_MAXSIZE;
+			i += j;
+			tail = i + 1;
+			continue;
+		}
+		if (text[i] == ')') {
+			if (!xb_machine_parse_sections (self,
+							opcodes,
+							text + tail,
+							i - tail,
+							FALSE,
+							error))
+				return G_MAXSIZE;
+			return i + 1;
+		}
+	}
+	if (tail != text_len && level > 0) {
+		g_autofree gchar *tmp = g_strndup (text, text_len);
+		g_set_error (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_INVALID_DATA,
+			     "brackets did not match: %s", tmp);
+		return G_MAXSIZE;
+	}
+	if (!xb_machine_parse_sections (self,
+					opcodes,
+					text + tail,
+					text_len - tail,
+					FALSE,
+					error))
+		return G_MAXSIZE;
+	return 0;
+}
+
+
 /**
  * xb_machine_parse_full:
  * @self: a #XbMachine
@@ -666,6 +759,7 @@ xb_machine_parse_full (XbMachine *self,
 {
 	XbMachineOpcodeFixupItem *item;
 	XbMachinePrivate *priv = GET_PRIVATE (self);
+	guint level = 0;
 	g_autoptr(XbStack) opcodes = NULL;
 	g_autofree gchar *opcodes_sig = NULL;
 
@@ -684,52 +778,10 @@ xb_machine_parse_full (XbMachine *self,
 		return NULL;
 	}
 
-	/* look for foo=bar */
+	/* parse into opcodes */
 	opcodes = xb_stack_new (priv->stack_size);
-	for (gssize i = 0; i < text_len && xb_stack_get_size (opcodes) == 0; i++) {
-		for (guint j = 0; j < priv->operators->len; j++) {
-			XbMachineOperator *op = g_ptr_array_index (priv->operators, j);
-			if (strncmp (text + i, op->str, op->strsz) == 0) {
-				g_autoptr(XbOpcode) opcode = NULL;
-
-				/* match opcode, which should always exist */
-				opcode = xb_machine_opcode_func_new (self, op->name);
-				if (opcode == NULL) {
-					g_set_error (error,
-						     G_IO_ERROR,
-						     G_IO_ERROR_NOT_SUPPORTED,
-						     "built-in function not found: %s",
-						     op->name);
-					return NULL;
-				}
-				if (!xb_machine_parse_part (self, opcodes, text,
-							    0, /* start */
-							    i, /* end */
-							    error))
-					return NULL;
-				if (!xb_machine_parse_part (self, opcodes, text,
-							    i + op->strsz,
-							    text_len,
-							    error))
-					return NULL;
-				if (!xb_stack_push_steal (opcodes, g_steal_pointer (&opcode))) {
-					g_set_error (error,
-						     G_IO_ERROR,
-						     G_IO_ERROR_NOT_SUPPORTED,
-						     "stack size %u exhausted",
-						     priv->stack_size);
-					return NULL;
-				}
-				break;
-			}
-		}
-	}
-
-	/* remainder */
-	if (xb_stack_get_size (opcodes) == 0) {
-		if (!xb_machine_parse_part (self, opcodes, text, 0, text_len, error))
-			return NULL;
-	}
+	if (xb_machine_parse_text (self, opcodes, text, text_len, level, error) == G_MAXSIZE)
+		return FALSE;
 
 	/* do any fixups */
 	opcodes_sig = xb_machine_get_opcodes_sig (self, opcodes);
@@ -1158,6 +1210,60 @@ xb_machine_get_stack_size (XbMachine *self)
 	XbMachinePrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_MACHINE (self), 0);
 	return priv->stack_size;
+}
+
+static gboolean
+xb_machine_func_and_cb (XbMachine *self,
+			XbStack *stack,
+			gboolean *result,
+			gpointer user_data,
+			gpointer exec_data,
+			GError **error)
+{
+	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
+	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
+
+	/* INTE:INTE */
+	if (xb_opcode_cmp_val (op1) && xb_opcode_cmp_val (op2)) {
+		xb_stack_push_bool (stack, xb_opcode_get_val (op1) && xb_opcode_get_val (op2));
+		return TRUE;
+	}
+
+	/* fail */
+	g_set_error (error,
+		     G_IO_ERROR,
+		     G_IO_ERROR_NOT_SUPPORTED,
+		     "%s:%s types not supported",
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op1)),
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op2)));
+	return FALSE;
+}
+
+static gboolean
+xb_machine_func_or_cb (XbMachine *self,
+		       XbStack *stack,
+		       gboolean *result,
+		       gpointer user_data,
+		       gpointer exec_data,
+		       GError **error)
+{
+	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
+	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
+
+	/* INTE:INTE */
+	if (xb_opcode_cmp_val (op1) && xb_opcode_cmp_val (op2)) {
+		xb_stack_push_bool (stack, xb_opcode_get_val (op1) || xb_opcode_get_val (op2));
+		return TRUE;
+	}
+
+	/* fail */
+	g_set_error (error,
+		     G_IO_ERROR,
+		     G_IO_ERROR_NOT_SUPPORTED,
+		     "%s:%s types not supported",
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op1)),
+		     xb_opcode_kind_to_string (xb_opcode_get_kind (op2)));
+	return FALSE;
 }
 
 static gboolean
@@ -1779,6 +1885,8 @@ xb_machine_init (XbMachine *self)
 						     g_free, (GDestroyNotify) xb_machine_opcode_fixup_free);
 
 	/* built-in functions */
+	xb_machine_add_method (self, "and", 2, xb_machine_func_and_cb, NULL, NULL);
+	xb_machine_add_method (self, "or", 2, xb_machine_func_or_cb, NULL, NULL);
 	xb_machine_add_method (self, "eq", 2, xb_machine_func_eq_cb, NULL, NULL);
 	xb_machine_add_method (self, "ne", 2, xb_machine_func_ne_cb, NULL, NULL);
 	xb_machine_add_method (self, "lt", 2, xb_machine_func_lt_cb, NULL, NULL);
@@ -1796,6 +1904,10 @@ xb_machine_init (XbMachine *self)
 	xb_machine_add_method (self, "string-length", 1, xb_machine_func_strlen_cb, NULL, NULL);
 
 	/* built-in operators */
+	xb_machine_add_operator (self, " and ", "and");
+	xb_machine_add_operator (self, " or ", "or");
+	xb_machine_add_operator (self, "&&", "and");
+	xb_machine_add_operator (self, "||", "or");
 	xb_machine_add_operator (self, "!=", "ne");
 	xb_machine_add_operator (self, "<=", "le");
 	xb_machine_add_operator (self, ">=", "ge");
