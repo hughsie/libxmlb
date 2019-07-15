@@ -1,3 +1,17 @@
+Version 0.1.11
+~~~~~~~~~~~~~~
+Released: 2019-07-15
+
+New Features:
+ - Add xb_node_query_first_full() convenience helper (Richard Hughes)
+ - Rebuild the XbMachine parser to support 'and' and 'or' predicates (Richard Hughes)
+ - Verify we never break the ABI (Mathieu Bridon)
+
+Bugfixes:
+ - Conditionalize installation of test data (Mathieu Bridon)
+ - Generate a GUID of zero for no silo data (Richard Hughes)
+ - Run CI jobs in parallel (Mathieu Bridon)
+
 Version 0.1.10
 ~~~~~~~~~~~~~~
 Released: 2019-05-16
