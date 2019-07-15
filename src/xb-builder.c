@@ -573,12 +573,16 @@ static gchar *
 xb_builder_generate_guid (XbBuilder *self)
 {
 	XbBuilderPrivate *priv = GET_PRIVATE (self);
-	uuid_t ns;
 	uuid_t guid;
 	gchar guid_tmp[UUID_STR_LEN] = { '\0' };
 
-	uuid_clear (ns);
-	_uuid_generate_sha1 (guid, ns, priv->guid->str, priv->guid->len);
+	if (priv->guid->len == 0) {
+		uuid_clear (guid);
+	} else {
+		uuid_t ns;
+		uuid_clear (ns);
+		_uuid_generate_sha1 (guid, ns, priv->guid->str, priv->guid->len);
+	}
 	uuid_unparse (guid, guid_tmp);
 	return g_strdup (guid_tmp);
 }
