@@ -357,6 +357,8 @@ xb_machine_parse_add_text (XbMachine *self,
 	}
 
 	/* never add empty literals */
+	if (text_len < 0)
+		text_len = strlen (text);
 	if (text_len == 0)
 		return TRUE;
 
