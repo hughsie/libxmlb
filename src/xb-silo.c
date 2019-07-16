@@ -722,6 +722,9 @@ xb_silo_watch_file_cb (GFileMonitor *monitor,
 {
 	XbSilo *silo = XB_SILO (user_data);
 	g_autofree gchar *fn = g_file_get_path (file);
+	g_autofree gchar *basename = g_file_get_basename (file);
+	if (g_str_has_prefix (basename, ".goutputstream"))
+		return;
 	g_debug ("%s changed, invalidating", fn);
 	xb_silo_invalidate (silo);
 }
