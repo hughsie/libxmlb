@@ -36,6 +36,7 @@
     <xi:include href="xml/xb-query.xml"/>
     <xi:include href="xml/xb-stack.xml"/>
     <xi:include href="xml/xb-silo.xml"/>
+    <xi:include href="xml/xb-silo-export.xml"/>
     <xi:include href="xml/xb-silo-query.xml"/>
     <xi:include href="xml/xb-string.xml"/>
   </reference>
