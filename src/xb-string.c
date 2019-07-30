@@ -206,6 +206,5 @@ xb_string_xml_escape (const gchar *str)
 	xb_string_replace (tmp, "<", "&lt;");
 	xb_string_replace (tmp, ">", "&gt;");
 	xb_string_replace (tmp, "\"", "&quot;");
-	xb_string_replace (tmp, "'", "&apos;");
 	return g_string_free (tmp, FALSE);
 }
