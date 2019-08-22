@@ -102,6 +102,9 @@ add_project_link_arguments(
 prefix = get_option('prefix')
 
 libexecdir = join_paths(prefix, get_option('libexecdir'))
+datadir = join_paths(prefix, get_option('datadir'))
+installed_test_bindir = join_paths(libexecdir, 'installed-tests', meson.project_name())
+installed_test_datadir = join_paths(datadir, 'installed-tests', meson.project_name())
 
 gio = dependency('gio-2.0', version : '>= 2.45.8')
 uuid = dependency('uuid')
@@ -124,7 +127,7 @@ endif
 
 gnome = import('gnome')
 
-conf.set('libexecdir', libexecdir)
+conf.set('installed_test_bindir', installed_test_bindir)
 conf.set_quoted('PACKAGE_NAME', meson.project_name())
 conf.set_quoted('VERSION', meson.project_version())
 configure_file(
