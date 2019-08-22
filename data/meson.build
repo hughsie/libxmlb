@@ -4,10 +4,10 @@ if get_option('tests')
     output : 'libxmlb.test',
     configuration : conf,
     install: true,
-    install_dir: join_paths('share', 'installed-tests', 'libxmlb'),
+    install_dir: installed_test_datadir,
   )
 
   install_data(['test.xml.gz.gz.gz'],
-    install_dir: join_paths('share', 'installed-tests', 'libxmlb'),
+    install_dir: installed_test_datadir,
   )
 endif
