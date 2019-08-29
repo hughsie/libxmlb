@@ -473,6 +473,46 @@ xb_builder_node_get_children (XbBuilderNode *self)
 }
 
 /**
+ * xb_builder_node_get_first_child:
+ * @self: a #XbBuilderNode
+ *
+ * Gets the first child of the builder node.
+ *
+ * Returns: (transfer none): a #XbBuilderNode, or %NULL
+ *
+ * Since: 0.1.12
+ **/
+XbBuilderNode *
+xb_builder_node_get_first_child (XbBuilderNode *self)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+	g_return_val_if_fail (XB_IS_BUILDER_NODE (self), NULL);
+	if (priv->children->len == 0)
+		return NULL;
+	return g_ptr_array_index (priv->children, 0);
+}
+
+/**
+ * xb_builder_node_get_last_child:
+ * @self: a #XbBuilderNode
+ *
+ * Gets the last child of the builder node.
+ *
+ * Returns: (transfer none): a #XbBuilderNode, or %NULL
+ *
+ * Since: 0.1.12
+ **/
+XbBuilderNode *
+xb_builder_node_get_last_child (XbBuilderNode *self)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+	g_return_val_if_fail (XB_IS_BUILDER_NODE (self), NULL);
+	if (priv->children->len == 0)
+		return NULL;
+	return g_ptr_array_index (priv->children, priv->children->len - 1);
+}
+
+/**
  * xb_builder_node_get_child:
  * @self: a #XbBuilderNode
  * @element: An element name, e.g. "url"

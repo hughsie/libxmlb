@@ -84,6 +84,8 @@ void		 xb_builder_node_add_child	(XbBuilderNode		*self,
 void		 xb_builder_node_remove_child	(XbBuilderNode		*self,
 						 XbBuilderNode		*child);
 GPtrArray	*xb_builder_node_get_children	(XbBuilderNode		*self);
+XbBuilderNode	*xb_builder_node_get_first_child(XbBuilderNode		*self);
+XbBuilderNode	*xb_builder_node_get_last_child	(XbBuilderNode		*self);
 XbBuilderNode	*xb_builder_node_get_child	(XbBuilderNode		*self,
 						 const gchar		*element,
 						 const gchar		*text);
