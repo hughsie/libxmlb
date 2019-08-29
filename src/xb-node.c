@@ -151,7 +151,7 @@ xb_node_get_parent (XbNode *self)
  *
  * Gets the next sibling node for the current node.
  *
- * Returns: (transfer none): a #XbNode, or %NULL
+ * Returns: (transfer full): a #XbNode, or %NULL
  *
  * Since: 0.1.0
  **/
@@ -175,7 +175,7 @@ xb_node_get_next (XbNode *self)
  *
  * Gets the first child node for the current node.
  *
- * Returns: (transfer none): a #XbNode, or %NULL
+ * Returns: (transfer full): a #XbNode, or %NULL
  *
  * Since: 0.1.0
  **/
