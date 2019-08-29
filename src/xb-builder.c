@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "xb-silo-private.h"
+#include "xb-string-private.h"
 #include "xb-builder.h"
 #include "xb-builder-fixup-private.h"
 #include "xb-builder-source-private.h"
@@ -149,7 +150,6 @@ xb_builder_compile_text_cb (GMarkupParseContext *context,
 {
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *) user_data;
 	XbBuilderNode *bn = helper->current;
-	guint i;
 
 	/* no data */
 	if (text_len == 0)
@@ -160,11 +160,7 @@ xb_builder_compile_text_cb (GMarkupParseContext *context,
 		return;
 
 	/* all whitespace? */
-	for (i = 0; i < text_len; i++) {
-		if (!g_ascii_isspace (text[i]))
-			break;
-	}
-	if (i >= text_len)
+	if (xb_string_isspace (text, text_len))
 		return;
 
 	/* repair text unless we know it's valid */
