@@ -198,3 +198,10 @@ LIBXMLB_0.1.11 {
     xb_node_query_first_full;
   local: *;
 } LIBXMLB_0.1.7;
+
+LIBXMLB_0.1.12 {
+  global:
+    xb_builder_node_get_first_child;
+    xb_builder_node_get_last_child;
+  local: *;
+} LIBXMLB_0.1.11;
