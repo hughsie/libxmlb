@@ -2059,14 +2059,73 @@ xb_threading_func (void)
 	g_thread_pool_free (pool, FALSE, TRUE);
 }
 
+typedef struct {
+	guint		 cnt;
+	GString		*str;
+} XbMarkupHelper;
+
+static gboolean
+xb_markup_head_cb (XbNode *n, gpointer user_data)
+{
+	XbMarkupHelper *helper = (XbMarkupHelper *) user_data;
+	helper->cnt++;
+
+	if (xb_node_get_text (n) == NULL)
+		return FALSE;
+
+	/* start */
+	if (g_strcmp0 (xb_node_get_element (n), "em") == 0) {
+		g_string_append (helper->str, "*");
+	} else if (g_strcmp0 (xb_node_get_element (n), "strong") == 0) {
+		g_string_append (helper->str, "**");
+	} else if (g_strcmp0 (xb_node_get_element (n), "code") == 0) {
+		g_string_append (helper->str, "`");
+	}
+
+	/* text */
+	if (xb_node_get_text (n) != NULL)
+		g_string_append (helper->str, xb_node_get_text (n));
+
+	return FALSE;
+}
+
+static gboolean
+xb_markup_tail_cb (XbNode *n, gpointer user_data)
+{
+	XbMarkupHelper *helper = (XbMarkupHelper *) user_data;
+	helper->cnt++;
+
+	/* end */
+	if (g_strcmp0 (xb_node_get_element (n), "em") == 0) {
+		g_string_append (helper->str, "*");
+	} else if (g_strcmp0 (xb_node_get_element (n), "strong") == 0) {
+		g_string_append (helper->str, "**");
+	} else if (g_strcmp0 (xb_node_get_element (n), "code") == 0) {
+		g_string_append (helper->str, "`");
+	} else if (g_strcmp0 (xb_node_get_element (n), "p") == 0) {
+		g_string_append (helper->str, "\n\n");
+	}
+
+	/* tail */
+	if (xb_node_get_tail (n) != NULL)
+		g_string_append (helper->str, xb_node_get_tail (n));
+
+	return FALSE;
+}
+
 static void
 xb_markup_func (void)
 {
+	gboolean ret;
 	g_autofree gchar *new = NULL;
 	g_autofree gchar *tmp = NULL;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(XbNode) n = NULL;
 	g_autoptr(XbSilo) silo = NULL;
+	XbMarkupHelper helper = {
+		.cnt = 0,
+		.str = g_string_new (NULL),
+	};
 	const gchar *xml = "<description>"
 			   "<p><code>Title</code>:</p>"
 			   "<p>There is a <em>slight</em> risk of <strong>death</strong> here<a>!</a></p>"
@@ -2088,6 +2147,14 @@ xb_markup_func (void)
 	g_assert_no_error (error);
 	g_assert_nonnull (new);
 	g_assert_cmpstr (xml, ==, new);
+
+	/* ensure we can convert this to another format */
+	ret = xb_node_transmogrify (n, xb_markup_head_cb, xb_markup_tail_cb, &helper);
+	g_assert_true (ret);
+	g_assert_cmpstr (helper.str->str, ==,
+			 "`Title`:\n\nThere is a *slight* risk of **death** here!\n\n");
+	g_assert_cmpint (helper.cnt, ==, 14);
+	g_string_free (helper.str, TRUE);
 }
 
 static void
