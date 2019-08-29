@@ -208,3 +208,18 @@ xb_string_xml_escape (const gchar *str)
 	xb_string_replace (tmp, "\"", "&quot;");
 	return g_string_free (tmp, FALSE);
 }
+
+/* private */
+gboolean
+xb_string_isspace (const gchar *str, gssize strsz)
+{
+	gsize strsz_safe;
+	if (str == NULL)
+		return TRUE;
+	strsz_safe = strsz >= 0 ? (gsize) strsz : strlen (str);
+	for (gsize i = 0; i < strsz_safe; i++) {
+		if (!g_ascii_isspace (str[i]))
+			return FALSE;
+	}
+	return TRUE;
+}
