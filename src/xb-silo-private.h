@@ -30,7 +30,7 @@ typedef struct __attribute__ ((packed)) {
 } XbSiloHeader;
 
 #define XB_SILO_MAGIC_BYTES		0x624c4d58
-#define XB_SILO_VERSION			0x00000006
+#define XB_SILO_VERSION			0x00000007
 #define XB_SILO_UNSET			0xffffffff
 
 typedef struct __attribute__ ((packed)) {
@@ -40,6 +40,7 @@ typedef struct __attribute__ ((packed)) {
 	guint32		parent;		/* ONLY when is_node: from 0 */
 	guint32		next;		/* ONLY when is_node: from 0 */
 	guint32		text;		/* ONLY when is_node: from strtab */
+	guint32		tail;		/* ONLY when is_node: from strtab */
 } XbSiloNode;
 
 typedef struct __attribute__ ((packed)) {
@@ -81,6 +82,8 @@ XbSiloNode	*xb_silo_node_get_child		(XbSilo		*self,
 const gchar	*xb_silo_node_get_element	(XbSilo		*self,
 						 XbSiloNode	*n);
 const gchar	*xb_silo_node_get_text		(XbSilo		*self,
+						 XbSiloNode	*n);
+const gchar	*xb_silo_node_get_tail		(XbSilo		*self,
 						 XbSiloNode	*n);
 XbSiloAttr	*xb_silo_node_get_attr_by_str	(XbSilo		*self,
 						 XbSiloNode	*n,

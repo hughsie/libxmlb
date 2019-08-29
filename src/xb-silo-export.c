@@ -86,6 +86,13 @@ xb_silo_export_node (XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, G
 	}
 	g_string_append_printf (helper->xml, "</%s>",
 				xb_silo_from_strtab (self, sn->element_name));
+
+	/* add any optional tail */
+	if (sn->tail != XB_SILO_UNSET) {
+		g_autofree gchar *tail = xb_string_xml_escape (xb_silo_from_strtab (self, sn->tail));
+		g_string_append (helper->xml, tail);
+	}
+
 	if (helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE)
 		g_string_append (helper->xml, "\n");
 

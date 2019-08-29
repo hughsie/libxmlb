@@ -373,7 +373,7 @@ xb_builder_func (void)
 
 	/* check size */
 	bytes = xb_silo_get_bytes (silo);
-	g_assert_cmpint (g_bytes_get_size (bytes), ==, 553);
+	g_assert_cmpint (g_bytes_get_size (bytes), ==, 605);
 }
 
 static void
@@ -2060,6 +2060,37 @@ xb_threading_func (void)
 }
 
 static void
+xb_markup_func (void)
+{
+	g_autofree gchar *new = NULL;
+	g_autofree gchar *tmp = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbNode) n = NULL;
+	g_autoptr(XbSilo) silo = NULL;
+	const gchar *xml = "<description>"
+			   "<p><code>Title</code>:</p>"
+			   "<p>There is a <em>slight</em> risk of <strong>death</strong> here<a>!</a></p>"
+			   "</description>";
+
+	/* import from XML */
+	silo = xb_silo_new_from_xml (xml, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* ensure we can round-trip */
+	tmp = xb_silo_to_string (silo, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+	g_debug ("\n%s", tmp);
+	n = xb_silo_get_root (silo);
+	g_assert_nonnull (n);
+	new = xb_node_export (n, XB_NODE_EXPORT_FLAG_NONE, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (new);
+	g_assert_cmpstr (xml, ==, new);
+}
+
+static void
 xb_speed_func (void)
 {
 	XbNode *n;
@@ -2249,6 +2280,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/builder-node{info}", xb_builder_node_info_func);
 	g_test_add_func ("/libxmlb/builder-node{literal-text}", xb_builder_node_literal_text_func);
 	g_test_add_func ("/libxmlb/builder-node{source-text}", xb_builder_node_source_text_func);
+	g_test_add_func ("/libxmlb/markup", xb_markup_func);
 	g_test_add_func ("/libxmlb/xpath", xb_xpath_func);
 	g_test_add_func ("/libxmlb/xpath-query", xb_xpath_query_func);
 	g_test_add_func ("/libxmlb/xpath{helpers}", xb_xpath_helpers_func);

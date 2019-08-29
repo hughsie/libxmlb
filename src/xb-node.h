@@ -64,6 +64,7 @@ GPtrArray	*xb_node_get_children		(XbNode		*self);
 const gchar	*xb_node_get_element		(XbNode		*self);
 const gchar	*xb_node_get_text		(XbNode		*self);
 guint64		 xb_node_get_text_as_uint	(XbNode		*self);
+const gchar	*xb_node_get_tail		(XbNode		*self);
 const gchar	*xb_node_get_attr		(XbNode		*self,
 						 const gchar	*name);
 guint64		 xb_node_get_attr_as_uint	(XbNode		*self,

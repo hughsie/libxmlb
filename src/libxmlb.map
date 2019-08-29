@@ -203,5 +203,8 @@ LIBXMLB_0.1.12 {
   global:
     xb_builder_node_get_first_child;
     xb_builder_node_get_last_child;
+    xb_builder_node_get_tail;
+    xb_builder_node_set_tail;
+    xb_node_get_tail;
   local: *;
 } LIBXMLB_0.1.11;

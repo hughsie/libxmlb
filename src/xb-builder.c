@@ -150,23 +150,35 @@ xb_builder_compile_text_cb (GMarkupParseContext *context,
 {
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *) user_data;
 	XbBuilderNode *bn = helper->current;
-
-	/* no data */
-	if (text_len == 0)
-		return;
+	XbBuilderNode *bc = xb_builder_node_get_last_child (bn);
 
 	/* unimportant */
 	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE))
 		return;
 
-	/* all whitespace? */
-	if (xb_string_isspace (text, text_len))
-		return;
-
 	/* repair text unless we know it's valid */
 	if (helper->source_flags & XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT)
 		xb_builder_node_add_flag (bn, XB_BUILDER_NODE_FLAG_LITERAL_TEXT);
-	xb_builder_node_set_text (bn, text, text_len);
+
+	/* text or tail */
+	if (!xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_HAS_TEXT)) {
+		xb_builder_node_set_text (bn, text, text_len);
+		return;
+	}
+
+	/* does this node have a child */
+	if (bc != NULL) {
+		xb_builder_node_set_tail (bc, text, text_len);
+		return;
+	}
+	if (!xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_HAS_TAIL)) {
+		xb_builder_node_set_tail (bn, text, text_len);
+		return;
+	}
+	g_set_error (error,
+		     G_IO_ERROR,
+		     G_IO_ERROR_INVALID_DATA,
+		     "Mismatched XML; cannot store %s", text);
 }
 
 /**
@@ -346,10 +358,14 @@ xb_builder_strtab_text_cb (XbBuilderNode *bn, gpointer user_data)
 		return FALSE;
 	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE))
 		return FALSE;
-	if (xb_builder_node_get_text (bn) == NULL)
-		return FALSE;
-	tmp = xb_builder_node_get_text (bn);
-	xb_builder_node_set_text_idx (bn, xb_builder_compile_add_to_strtab (helper, tmp));
+	if (xb_builder_node_get_text (bn) != NULL) {
+		tmp = xb_builder_node_get_text (bn);
+		xb_builder_node_set_text_idx (bn, xb_builder_compile_add_to_strtab (helper, tmp));
+	}
+	if (xb_builder_node_get_tail (bn) != NULL) {
+		tmp = xb_builder_node_get_tail (bn);
+		xb_builder_node_set_tail_idx (bn, xb_builder_compile_add_to_strtab (helper, tmp));
+	}
 	return FALSE;
 }
 
@@ -443,7 +459,17 @@ xb_builder_nodetab_write_node (XbBuilderNodetabHelper *helper, XbBuilderNode *bn
 		.next		= 0x0,
 		.parent		= 0x0,
 		.text		= xb_builder_node_get_text_idx (bn),
+		.tail		= xb_builder_node_get_tail_idx (bn),
 	};
+
+	/* if the node had no children and the text is just whitespace then
+	 * remove it even in literal mode */
+	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_LITERAL_TEXT)) {
+		if (xb_string_isspace (xb_builder_node_get_text (bn), -1))
+			sn.text = XB_SILO_UNSET;
+		if (xb_string_isspace (xb_builder_node_get_tail (bn), -1))
+			sn.tail = XB_SILO_UNSET;
+	}
 
 	/* save this so we can set up the ->next pointers correctly */
 	xb_builder_node_set_offset (bn, helper->buf->len);

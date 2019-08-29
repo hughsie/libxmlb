@@ -331,6 +331,10 @@ xb_silo_to_string (XbSilo *self, GError **error)
 				g_string_append_printf (str, "text:         %s\n",
 							xb_silo_from_strtab (self, n->text));
 			}
+			if (n->tail != XB_SILO_UNSET) {
+				g_string_append_printf (str, "tail:         %s\n",
+							xb_silo_from_strtab (self, n->tail));
+			}
 			for (guint8 i = 0; i < n->nr_attrs; i++) {
 				XbSiloAttr *a = xb_silo_get_attr (self, off, i);
 				g_string_append_printf (str, "attr_name:    %s [%03u]\n",
@@ -367,6 +371,15 @@ xb_silo_node_get_text (XbSilo *self, XbSiloNode *n)
 	if (n->text == XB_SILO_UNSET)
 		return NULL;
 	return xb_silo_from_strtab (self, n->text);
+}
+
+/* private */
+const gchar *
+xb_silo_node_get_tail (XbSilo *self, XbSiloNode *n)
+{
+	if (n->tail == XB_SILO_UNSET)
+		return NULL;
+	return xb_silo_from_strtab (self, n->tail);
 }
 
 /* private */

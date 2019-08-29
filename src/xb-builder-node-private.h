@@ -34,5 +34,8 @@ void		 xb_builder_node_set_element_idx(XbBuilderNode		*self,
 guint32		 xb_builder_node_get_text_idx	(XbBuilderNode		*self);
 void		 xb_builder_node_set_text_idx	(XbBuilderNode		*self,
 						 guint32		 text_idx);
+guint32		 xb_builder_node_get_tail_idx	(XbBuilderNode		*self);
+void		 xb_builder_node_set_tail_idx	(XbBuilderNode		*self,
+						 guint32		 tail_idx);
 
 G_END_DECLS
