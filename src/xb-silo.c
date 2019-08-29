@@ -1072,6 +1072,31 @@ xb_silo_machine_func_text_cb (XbMachine *self,
 }
 
 static gboolean
+xb_silo_machine_func_tail_cb (XbMachine *self,
+			      XbStack *stack,
+			      gboolean *result,
+			      gpointer user_data,
+			      gpointer exec_data,
+			      GError **error)
+{
+	XbSilo *silo = XB_SILO (user_data);
+	XbSiloQueryData *query_data = (XbSiloQueryData *) exec_data;
+
+	/* optimize pass */
+	if (query_data == NULL) {
+		g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_FAILED_HANDLED,
+				     "cannot optimize: no silo to query");
+		return FALSE;
+	}
+	xb_machine_stack_push_steal (self, stack,
+				     xb_opcode_new (XB_OPCODE_KIND_INDEXED_TEXT,
+						    xb_silo_node_get_tail (silo, query_data->sn),
+						    query_data->sn->tail,
+						    NULL));
+	return TRUE;
+}
+
+static gboolean
 xb_silo_machine_func_first_cb (XbMachine *self,
 			       XbStack *stack,
 			       gboolean *result,
@@ -1255,6 +1280,8 @@ xb_silo_init (XbSilo *self)
 			       xb_silo_machine_func_stem_cb, self, NULL);
 	xb_machine_add_method (priv->machine, "text", 0,
 			       xb_silo_machine_func_text_cb, self, NULL);
+	xb_machine_add_method (priv->machine, "tail", 0,
+			       xb_silo_machine_func_tail_cb, self, NULL);
 	xb_machine_add_method (priv->machine, "first", 0,
 			       xb_silo_machine_func_first_cb, self, NULL);
 	xb_machine_add_method (priv->machine, "last", 0,
