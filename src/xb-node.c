@@ -263,6 +263,24 @@ xb_node_get_text_as_uint (XbNode *self)
 }
 
 /**
+ * xb_node_get_tail:
+ * @self: a #XbNode
+ *
+ * Gets the tail data for a specific node.
+ *
+ * Returns: a string, or %NULL for unset
+ *
+ * Since: 0.1.12
+ **/
+const gchar *
+xb_node_get_tail (XbNode *self)
+{
+	XbNodePrivate *priv = GET_PRIVATE (self);
+	g_return_val_if_fail (XB_IS_NODE (self), NULL);
+	return xb_silo_node_get_tail (priv->silo, priv->sn);
+}
+
+/**
  * xb_node_get_element:
  * @self: a #XbNode
  *

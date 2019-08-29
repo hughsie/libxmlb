@@ -32,6 +32,8 @@ struct _XbBuilderNodeClass {
  * @XB_BUILDER_NODE_FLAG_NONE:			No extra flags to use
  * @XB_BUILDER_NODE_FLAG_IGNORE:		Do not include this node in the silo
  * @XB_BUILDER_NODE_FLAG_LITERAL_TEXT:		Assume the node CDATA is already valid
+ * @XB_BUILDER_NODE_FLAG_HAS_TEXT:		If the node has leading text
+ * @XB_BUILDER_NODE_FLAG_HAS_TAIL:		If the node has trailing text
  *
  * The flags used when building a node.
  **/
@@ -39,6 +41,8 @@ typedef enum {
 	XB_BUILDER_NODE_FLAG_NONE		= 0,		/* Since: 0.1.0 */
 	XB_BUILDER_NODE_FLAG_IGNORE		= 1 << 0,	/* Since: 0.1.0 */
 	XB_BUILDER_NODE_FLAG_LITERAL_TEXT	= 1 << 1,	/* Since: 0.1.0 */
+	XB_BUILDER_NODE_FLAG_HAS_TEXT		= 1 << 2,	/* Since: 0.1.12 */
+	XB_BUILDER_NODE_FLAG_HAS_TAIL		= 1 << 3,	/* Since: 0.1.12 */
 	/*< private >*/
 	XB_BUILDER_NODE_FLAG_LAST
 } XbBuilderNodeFlags;
@@ -70,6 +74,10 @@ guint64		 xb_builder_node_get_text_as_uint(XbBuilderNode		*self);
 void		 xb_builder_node_set_text	(XbBuilderNode		*self,
 						 const gchar		*text,
 						 gssize			 text_len);
+const gchar	*xb_builder_node_get_tail	(XbBuilderNode		*self);
+void		 xb_builder_node_set_tail	(XbBuilderNode		*self,
+						 const gchar		*tail,
+						 gssize			 tail_len);
 const gchar	*xb_builder_node_get_attr	(XbBuilderNode		*self,
 						 const gchar		*name);
 guint64		 xb_builder_node_get_attr_as_uint(XbBuilderNode		*self,

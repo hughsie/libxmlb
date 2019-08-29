@@ -24,6 +24,8 @@ typedef struct {
 	guint32			 element_idx;
 	gchar			*text;
 	guint32			 text_idx;
+	gchar			*tail;
+	guint32			 tail_idx;
 	XbBuilderNode		*parent;	/* noref */
 	GPtrArray		*children;	/* of XbBuilderNode */
 	GPtrArray		*attrs;		/* of XbBuilderNodeAttr */
@@ -194,6 +196,24 @@ xb_builder_node_get_text_as_uint (XbBuilderNode *self)
 	return g_ascii_strtoll (tmp, NULL, 10);
 }
 
+/**
+ * xb_builder_node_get_tail:
+ * @self: a #XbBuilderNode
+ *
+ * Gets the tail from the builder node.
+ *
+ * Returns: string, or %NULL if unset
+ *
+ * Since: 0.1.12
+ **/
+const gchar *
+xb_builder_node_get_tail (XbBuilderNode *self)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+	g_return_val_if_fail (XB_IS_BUILDER_NODE (self), NULL);
+	return priv->tail;
+}
+
 /* private */
 GPtrArray *
 xb_builder_node_get_attrs (XbBuilderNode *self)
@@ -203,45 +223,26 @@ xb_builder_node_get_attrs (XbBuilderNode *self)
 	return priv->attrs;
 }
 
-/**
- * xb_builder_node_set_text:
- * @self: a #XbBuilderNode
- * @text: a string
- * @text_len: length of @text, or -1 if @text is NUL terminated
- *
- * Sets the text on the builder node.
- *
- * Since: 0.1.0
- **/
-void
-xb_builder_node_set_text (XbBuilderNode *self, const gchar *text, gssize text_len)
+static gchar *
+xb_builder_node_parse_literal_text (XbBuilderNode *self, const gchar *text, gssize text_len)
 {
 	GString *tmp;
-	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 	guint newline_count = 0;
 	g_auto(GStrv) split = NULL;
 	gsize text_len_safe;
 
-	g_return_if_fail (XB_IS_BUILDER_NODE (self));
-	g_return_if_fail (text != NULL);
-
-	/* old data */
-	g_free (priv->text);
-
 	/* we know this has been pre-fixed */
 	text_len_safe = text_len >= 0 ? (gsize) text_len : strlen (text);
-	if (xb_builder_node_has_flag (self, XB_BUILDER_NODE_FLAG_LITERAL_TEXT)) {
-		priv->text = g_strndup (text, text_len_safe);
-		return;
-	}
+	if (xb_builder_node_has_flag (self, XB_BUILDER_NODE_FLAG_LITERAL_TEXT))
+		return g_strndup (text, text_len_safe);
+
+	/* all whitespace? */
+	if (xb_string_isspace (text, text_len_safe))
+		return NULL;
 
 	/* all on one line, no trailing or leading whitespace */
-	if (g_strstr_len (text, text_len, "\n") == NULL &&
-	    !g_str_has_prefix (text, " ") &&
-	    !g_str_has_suffix (text, " ")) {
-		priv->text = g_strndup (text, text_len_safe);
-		return;
-	}
+	if (g_strstr_len (text, text_len, "\n") == NULL)
+		return g_strndup (text, text_len_safe);
 
 	/* split the text into lines */
 	tmp = g_string_sized_new ((gsize) text_len_safe + 1);
@@ -277,7 +278,55 @@ xb_builder_node_set_text (XbBuilderNode *self, const gchar *text, gssize text_le
 	}
 
 	/* success */
-	priv->text = g_string_free (tmp, FALSE);
+	return g_string_free (tmp, FALSE);
+}
+
+/**
+ * xb_builder_node_set_text:
+ * @self: a #XbBuilderNode
+ * @text: a string
+ * @text_len: length of @text, or -1 if @text is NUL terminated
+ *
+ * Sets the text on the builder node.
+ *
+ * Since: 0.1.0
+ **/
+void
+xb_builder_node_set_text (XbBuilderNode *self, const gchar *text, gssize text_len)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+
+	g_return_if_fail (XB_IS_BUILDER_NODE (self));
+	g_return_if_fail (text != NULL);
+
+	/* old data */
+	g_free (priv->text);
+	priv->text = xb_builder_node_parse_literal_text (self, text, text_len);
+	priv->flags |= XB_BUILDER_NODE_FLAG_HAS_TEXT;
+}
+
+/**
+ * xb_builder_node_set_tail:
+ * @self: a #XbBuilderNode
+ * @tail: a string
+ * @tail_len: length of @tail, or -1 if @tail is NUL terminated
+ *
+ * Sets the tail on the builder node.
+ *
+ * Since: 0.1.12
+ **/
+void
+xb_builder_node_set_tail (XbBuilderNode *self, const gchar *tail, gssize tail_len)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+
+	g_return_if_fail (XB_IS_BUILDER_NODE (self));
+	g_return_if_fail (tail != NULL);
+
+	/* old data */
+	g_free (priv->tail);
+	priv->tail = xb_builder_node_parse_literal_text (self, tail, tail_len);
+	priv->flags |= XB_BUILDER_NODE_FLAG_HAS_TAIL;
 }
 
 /**
@@ -738,6 +787,24 @@ xb_builder_node_set_text_idx (XbBuilderNode *self, guint32 text_idx)
 
 /* private */
 guint32
+xb_builder_node_get_tail_idx (XbBuilderNode *self)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+	g_return_val_if_fail (XB_IS_BUILDER_NODE (self), 0);
+	return priv->tail_idx;
+}
+
+/* private */
+void
+xb_builder_node_set_tail_idx (XbBuilderNode *self, guint32 tail_idx)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+	g_return_if_fail (XB_IS_BUILDER_NODE (self));
+	priv->tail_idx = tail_idx;
+}
+
+/* private */
+guint32
 xb_builder_node_size (XbBuilderNode *self)
 {
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
@@ -759,6 +826,7 @@ xb_builder_node_init (XbBuilderNode *self)
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 	priv->element_idx = XB_SILO_UNSET;
 	priv->text_idx = XB_SILO_UNSET;
+	priv->tail_idx = XB_SILO_UNSET;
 	priv->attrs = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_builder_node_attr_free);
 	priv->children = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 }
@@ -770,6 +838,7 @@ xb_builder_node_finalize (GObject *obj)
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 	g_free (priv->element);
 	g_free (priv->text);
+	g_free (priv->tail);
 	g_ptr_array_unref (priv->attrs);
 	g_ptr_array_unref (priv->children);
 	G_OBJECT_CLASS (xb_builder_node_parent_class)->finalize (obj);
@@ -930,6 +999,12 @@ xb_builder_node_export_helper (XbBuilderNode *self,
 		if (!xb_builder_node_export_helper (child, helper, error))
 			return FALSE;
 		helper->level--;
+	}
+
+	/* add any tail if it exists */
+	if (priv->tail != NULL) {
+		g_autofree gchar *tail = xb_string_xml_escape (priv->tail);
+		g_string_append (helper->xml, tail);
 	}
 
 	/* add closing tag */
