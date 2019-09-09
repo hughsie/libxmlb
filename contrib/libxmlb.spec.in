@@ -86,7 +86,7 @@ Executable and data files for installed tests.
 %{_libdir}/pkgconfig/xmlb.pc
 
 %files tests
-%{_libexecdir}/xb-self-test
+%{_libexecdir}/installed-tests/libxmlb/xb-self-test
 %{_datadir}/installed-tests/libxmlb/libxmlb.test
 %{_datadir}/installed-tests/libxmlb/test.xml.gz.gz.gz
 %dir %{_datadir}/installed-tests/libxmlb
