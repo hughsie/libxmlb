@@ -1,3 +1,17 @@
+Version 0.1.12
+~~~~~~~~~~~~~~
+Released: 2019-09-27
+
+New Features:
+ - Add helper functions to get the first and last child XbBuilerNode (Richard Hughes)
+ - Add xb_node_transmogrify to allow changing XML format (Richard Hughes)
+ - Support 'tail' XML data in the stored silo (Richard Hughes)
+
+Bugfixes:
+ - Do not escape a single quote with &apos; (Richard Hughes)
+ - Don't invalidate the silo for a GIO temp file (Richard Hughes)
+ - Fix up two memory leaks if using libxmlb from an introspected binding (Richard Hughes)
+
 Version 0.1.11
 ~~~~~~~~~~~~~~
 Released: 2019-07-15
