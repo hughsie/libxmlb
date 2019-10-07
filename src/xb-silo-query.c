@@ -184,7 +184,7 @@ xb_silo_query_part (XbSilo *self,
 /**
  * xb_silo_query_with_root: (skip)
  * @self: a #XbSilo
- * @n: a #XbNode
+ * @n: (allow-none): a #XbNode
  * @xpath: an XPath, e.g. `/components/component[@type=desktop]/id[abe.desktop]`
  * @limit: maximum number of results to return, or 0 for "all"
  * @error: the #GError, or %NULL
@@ -292,9 +292,8 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 /**
  * xb_silo_query_full: (skip)
  * @self: a #XbSilo
- * @n: a #XbNode
+ * @n: (allow-none): a #XbNode
  * @query: an #XbQuery
- * @limit: maximum number of results to return, or 0 for "all"
  * @error: the #GError, or %NULL
  *
  * Searches the silo using an XPath query, returning up to @limit results.
