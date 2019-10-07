@@ -23,8 +23,6 @@ typedef struct {
 	gchar		*element;
 	guint32		 element_idx;
 	GPtrArray	*predicates;	/* of XbStack */
-	gboolean	 is_wildcard;
-	gboolean	 is_parent;
 	XbSiloQueryKind	 kind;
 } XbQuerySection;
 
