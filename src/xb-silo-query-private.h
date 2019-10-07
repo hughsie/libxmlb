@@ -18,7 +18,7 @@ GPtrArray	*xb_silo_query_with_root	(XbSilo		*self,
 						 const gchar	*xpath,
 						 guint		 limit,
 						 GError		**error);
-GPtrArray	*xb_silo_query_full		(XbSilo		*self,
+GPtrArray	*xb_silo_query_with_root_full	(XbSilo		*self,
 						 XbNode		*n,
 						 XbQuery	*query,
 						 GError		**error);
