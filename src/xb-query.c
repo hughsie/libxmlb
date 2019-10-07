@@ -63,6 +63,53 @@ xb_query_get_xpath (XbQuery *self)
 	return priv->xpath;
 }
 
+static gchar *
+xb_query_section_to_string (XbQuerySection *sect)
+{
+	GString *str = g_string_new (NULL);
+	if (sect->kind == XB_SILO_QUERY_KIND_PARENT)
+		g_string_append (str, "..");
+	else if (sect->kind == XB_SILO_QUERY_KIND_WILDCARD)
+		g_string_append (str, "*");
+	else
+		g_string_append (str, sect->element);
+	if (sect->predicates != NULL && sect->predicates->len > 0) {
+		g_string_append (str, "[");
+		for (guint j = 0; j < sect->predicates->len; j++) {
+			XbStack *stack = g_ptr_array_index (sect->predicates, j);
+			g_autofree gchar *tmp = xb_stack_to_string (stack);
+			g_string_append (str, tmp);
+		}
+		g_string_append (str, "]");
+	}
+	return g_string_free (str, FALSE);
+}
+
+/**
+ * xb_query_to_string:
+ * @self: a #XbQuery
+ *
+ * Gets the XPath that was used for the query.
+ *
+ * Returns: string
+ *
+ * Since: 0.1.13
+ **/
+gchar *
+xb_query_to_string (XbQuery *self)
+{
+	XbQueryPrivate *priv = GET_PRIVATE (self);
+	GString *str = g_string_new (NULL);
+	for (guint i = 0; i < priv->sections->len; i++) {
+		XbQuerySection *sect = g_ptr_array_index (priv->sections, i);
+		g_autofree gchar *tmp = xb_query_section_to_string (sect);
+		g_string_append (str, tmp);
+		if (i != priv->sections->len - 1)
+			g_string_append (str, "/");
+	}
+	return g_string_free (str, FALSE);
+}
+
 /**
  * xb_query_get_limit:
  * @self: a #XbQuery

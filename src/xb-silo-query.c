@@ -344,21 +344,23 @@ xb_silo_query_full (XbSilo *self, XbNode *n, XbQuery *query, GError **error)
 
 	/* profile */
 	if (xb_silo_get_profile_flags (self) & XB_SILO_PROFILE_FLAG_XPATH) {
+		g_autofree gchar *tmp = xb_query_to_string (query);
 		xb_silo_add_profile (self, timer,
 				     "query on %s with `%s` limit=%u -> %u results",
 				     n != NULL ? xb_node_get_element (n) : "/",
-				     xb_query_get_xpath (query),
+				     tmp,
 				     xb_query_get_limit (query),
 				     results->len);
 	}
 
 	/* nothing found */
 	if (results->len == 0) {
+		g_autofree gchar *tmp = xb_query_to_string (query);
 		g_set_error (error,
 			     G_IO_ERROR,
 			     G_IO_ERROR_NOT_FOUND,
 			     "no results for XPath query '%s'",
-			     xb_query_get_xpath (query));
+			     tmp);
 		return NULL;
 	}
 	return g_steal_pointer (&results);
