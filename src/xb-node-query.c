@@ -64,7 +64,7 @@ xb_node_query_full (XbNode *self, XbQuery *query, GError **error)
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (XB_IS_QUERY (query), NULL);
 	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
-	return xb_silo_query_full (xb_node_get_silo (self), self, query, error);
+	return xb_silo_query_with_root_full (xb_node_get_silo (self), self, query, error);
 }
 
 /**
@@ -94,7 +94,7 @@ xb_node_query_first_full (XbNode *self, XbQuery *query, GError **error)
 	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
 	/* nodes don't have to include themselves as part of the query */
-	results = xb_silo_query_full (xb_node_get_silo (self), self, query, error);
+	results = xb_silo_query_with_root_full (xb_node_get_silo (self), self, query, error);
 	if (results == NULL)
 		return NULL;
 	return g_object_ref (g_ptr_array_index (results, 0));

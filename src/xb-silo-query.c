@@ -290,7 +290,7 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 }
 
 /**
- * xb_silo_query_full: (skip)
+ * xb_silo_query_with_root_full: (skip)
  * @self: a #XbSilo
  * @n: (allow-none): a #XbNode
  * @query: an #XbQuery
@@ -308,7 +308,7 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
  * Since: 0.1.4
  **/
 GPtrArray *
-xb_silo_query_full (XbSilo *self, XbNode *n, XbQuery *query, GError **error)
+xb_silo_query_with_root_full (XbSilo *self, XbNode *n, XbQuery *query, GError **error)
 {
 	XbSiloNode *sn = NULL;
 	g_autoptr(GHashTable) results_hash = g_hash_table_new (g_direct_hash, g_direct_equal);
@@ -318,10 +318,6 @@ xb_silo_query_full (XbSilo *self, XbNode *n, XbQuery *query, GError **error)
 		.sn = NULL,
 		.position = 0,
 	};
-
-	g_return_val_if_fail (XB_IS_SILO (self), NULL);
-	g_return_val_if_fail (XB_IS_QUERY (query), NULL);
-	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
 	/* empty silo */
 	if (xb_silo_is_empty (self)) {
@@ -363,6 +359,59 @@ xb_silo_query_full (XbSilo *self, XbNode *n, XbQuery *query, GError **error)
 		return NULL;
 	}
 	return g_steal_pointer (&results);
+}
+
+/**
+ * xb_silo_query_full:
+ * @self: a #XbSilo
+ * @query: an #XbQuery
+ * @error: the #GError, or %NULL
+ *
+ * Searches the silo using an XPath query.
+ *
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbSilo.
+ *
+ * Please note: Only a subset of XPath is supported.
+ *
+ * Returns: (transfer container) (element-type XbNode): results, or %NULL if unfound
+ *
+ * Since: 0.1.13
+ **/
+GPtrArray *
+xb_silo_query_full (XbSilo *self, XbQuery *query, GError **error)
+{
+	g_return_val_if_fail (XB_IS_SILO (self), NULL);
+	g_return_val_if_fail (XB_IS_QUERY (query), NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+	return xb_silo_query_with_root_full (self, NULL, query, error);
+}
+
+/**
+ * xb_silo_query_first_full:
+ * @self: a #XbSilo
+ * @query: an #XbQuery
+ * @error: the #GError, or %NULL
+ *
+ * Searches the silo using an XPath query, returning up to one result.
+ *
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbSilo.
+ *
+ * Please note: Only a tiny subset of XPath 1.0 is supported.
+ *
+ * Returns: (transfer none): a #XbNode, or %NULL if unfound
+ *
+ * Since: 0.1.13
+ **/
+XbNode *
+xb_silo_query_first_full (XbSilo *self, XbQuery *query, GError **error)
+{
+	g_autoptr(GPtrArray) results = NULL;
+	results = xb_silo_query_full (self, query, error);
+	if (results == NULL)
+		return NULL;
+	return g_object_ref (g_ptr_array_index (results, 0));
 }
 
 /**
