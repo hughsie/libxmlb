@@ -1,3 +1,13 @@
+Version 0.1.13
+~~~~~~~~~~~~~~
+Released: 2019-10-17
+
+New Features:
+ - Export xb_silo_query_full() (Richard Hughes)
+
+Bugfixes:
+ - Show the XPath that was used in the query in the error message (Richard Hughes)
+
 Version 0.1.12
 ~~~~~~~~~~~~~~
 Released: 2019-09-27
