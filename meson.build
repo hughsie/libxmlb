@@ -107,14 +107,9 @@ installed_test_bindir = join_paths(libexecdir, 'installed-tests', meson.project_
 installed_test_datadir = join_paths(datadir, 'installed-tests', meson.project_name())
 
 gio = dependency('gio-2.0', version : '>= 2.45.8')
-uuid = dependency('uuid')
-if cc.has_function('uuid_generate_sha1', args : '-luuid')
-  conf.set('HAVE_UUID_GENERATE_SHA1', '1')
-endif
 
 libxmlb_deps = [
   gio,
-  uuid,
 ]
 
 # support stemming of search tokens

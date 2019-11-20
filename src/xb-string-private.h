@@ -21,5 +21,22 @@ gboolean	 xb_string_search			(const gchar	*text,
 gchar		*xb_string_xml_escape			(const gchar	*str);
 gboolean	 xb_string_isspace			(const gchar	*str,
 							 gssize		 strsz);
+typedef struct {
+	guint32	tlo;
+	guint16	tmi;
+	guint16	thi;
+	guint16	clo;
+	guint8	nde[6];
+} XbGuid;
+
+/* private namespace */
+#define XB_GUID_NS_DEFAULT		{ 0x59cea2b6, 0xf127, 0x3cd8, 0xb5f4, \
+					  { 0x5c, 0x02, 0x95, 0xa4, 0x15, 0x4a } }
+
+gchar		*xb_guid_to_string			(XbGuid		*guid);
+void		 xb_guid_compute_for_data		(XbGuid		*out,
+							 const XbGuid	*ns,
+							 const guint8	*buf,
+							 gsize		 bufsz);
 
 G_END_DECLS

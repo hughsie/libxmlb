@@ -13,7 +13,6 @@ Source0:   http://people.freedesktop.org/~hughsient/releases/%{name}-%{version}.
 BuildRequires: glib2-devel >= %{glib2_version}
 BuildRequires: gtk-doc
 BuildRequires: libstemmer-devel
-BuildRequires: libuuid-devel
 BuildRequires: meson
 BuildRequires: gobject-introspection-devel
 %if 0%{?rhel} == 7
