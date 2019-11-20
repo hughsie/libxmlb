@@ -576,37 +576,18 @@ xb_builder_compile_helper_free (XbBuilderCompileHelper *helper)
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(XbBuilderCompileHelper, xb_builder_compile_helper_free)
 
-static void
-_uuid_generate_sha1 (uuid_t out, const uuid_t ns, const char *name, size_t len)
-{
-#ifdef HAVE_UUID_GENERATE_SHA1
-	uuid_generate_sha1 (out, ns, name, len);
-#else
-	guint8 buf[20];
-	gsize bufsz = sizeof(buf);
-	g_autoptr(GChecksum) csum = g_checksum_new (G_CHECKSUM_SHA1);
-	g_checksum_update (csum, (const guchar *) name, (gssize) len);
-	g_checksum_get_digest (csum, buf, &bufsz);
-	memcpy (out, buf, sizeof(uuid_t));
-#endif
-}
-
 static gchar *
 xb_builder_generate_guid (XbBuilder *self)
 {
 	XbBuilderPrivate *priv = GET_PRIVATE (self);
-	uuid_t guid;
-	gchar guid_tmp[UUID_STR_LEN] = { '\0' };
-
-	if (priv->guid->len == 0) {
-		uuid_clear (guid);
-	} else {
-		uuid_t ns;
-		uuid_clear (ns);
-		_uuid_generate_sha1 (guid, ns, priv->guid->str, priv->guid->len);
+	XbGuid guid = { 0x0 };
+	if (priv->guid->len > 0) {
+		XbGuid ns = XB_GUID_NS_DEFAULT;
+		xb_guid_compute_for_data (&guid, &ns,
+					  (const guint8 *) priv->guid->str,
+					  priv->guid->len);
 	}
-	uuid_unparse (guid, guid_tmp);
-	return g_strdup (guid_tmp);
+	return xb_guid_to_string (&guid);
 }
 
 /**
@@ -837,9 +818,12 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	/* add the initial header */
 	hdr.strtab = nodetabsz;
 	if (priv->guid->len > 0) {
-		uuid_t ns;
-		uuid_clear (ns);
-		_uuid_generate_sha1 (hdr.guid, ns, priv->guid->str, priv->guid->len);
+		XbGuid ns = XB_GUID_NS_DEFAULT;
+		XbGuid guid_tmp;
+		xb_guid_compute_for_data (&guid_tmp, &ns,
+					  (const guint8 *) priv->guid->str,
+					  priv->guid->len);
+		memcpy (&hdr.guid, &guid_tmp, sizeof(guid_tmp));
 	}
 	XB_SILO_APPENDBUF (buf, &hdr, sizeof(XbSiloHeader));
 

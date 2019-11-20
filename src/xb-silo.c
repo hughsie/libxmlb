@@ -589,10 +589,10 @@ xb_silo_get_machine (XbSilo *self)
 gboolean
 xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GError **error)
 {
+	XbGuid guid_tmp;
 	XbSiloHeader *hdr;
 	XbSiloPrivate *priv = GET_PRIVATE (self);
 	gsize sz = 0;
-	gchar guid[UUID_STR_LEN] = { '\0' };
 	guint32 off = 0;
 	g_autoptr(GMutexLocker) locker = g_mutex_locker_new (&priv->nodes_mutex);
 	g_autoptr(GTimer) timer = g_timer_new ();
@@ -645,8 +645,8 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 	}
 
 	/* get GUID */
-	uuid_unparse (hdr->guid, guid);
-	priv->guid = g_strdup (guid);
+	memcpy (&guid_tmp, &hdr->guid, sizeof(guid_tmp));
+	priv->guid = xb_guid_to_string (&guid_tmp);
 
 	/* check strtab */
 	priv->strtab = hdr->strtab;
