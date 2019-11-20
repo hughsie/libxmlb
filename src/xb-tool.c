@@ -8,7 +8,9 @@
 
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_GIO_UNIX
 #include <glib-unix.h>
+#endif
 #include <gio/gio.h>
 
 #include "xb-builder.h"
@@ -424,6 +426,7 @@ xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 	return TRUE;
 }
 
+#ifdef HAVE_GIO_UNIX
 static gboolean
 xb_tool_sigint_cb (gpointer user_data)
 {
@@ -432,6 +435,7 @@ xb_tool_sigint_cb (gpointer user_data)
 	g_cancellable_cancel (priv->cancellable);
 	return FALSE;
 }
+#endif
 
 int
 main (int argc, char *argv[])
@@ -495,9 +499,11 @@ main (int argc, char *argv[])
 	priv->cancellable = g_cancellable_new ();
 	g_signal_connect (priv->cancellable, "cancelled",
 			  G_CALLBACK (xb_tool_cancelled_cb), priv);
+#ifdef HAVE_GIO_UNIX
 	g_unix_signal_add_full (G_PRIORITY_DEFAULT,
 				SIGINT, xb_tool_sigint_cb,
 				priv, NULL);
+#endif
 
 	/* sort by command name */
 	g_ptr_array_sort (priv->cmd_array,

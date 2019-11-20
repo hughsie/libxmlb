@@ -107,6 +107,10 @@ installed_test_bindir = join_paths(libexecdir, 'installed-tests', meson.project_
 installed_test_datadir = join_paths(datadir, 'installed-tests', meson.project_name())
 
 gio = dependency('gio-2.0', version : '>= 2.45.8')
+giounix = dependency('gio-unix-2.0', version : '>= 2.45.8', required: false)
+if giounix.found()
+  conf.set('HAVE_GIO_UNIX', '1')
+endif
 
 libxmlb_deps = [
   gio,
