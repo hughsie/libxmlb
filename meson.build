@@ -27,7 +27,6 @@ configinc = include_directories('.')
 
 # get suported warning flags
 warning_flags = [
-  '-fstack-protector-strong',
   '-Waggregate-return',
   '-Wunused',
   '-Warray-bounds',
@@ -81,6 +80,10 @@ warning_flags = [
 ]
 cc = meson.get_compiler('c')
 add_project_arguments(cc.get_supported_arguments(warning_flags), language : 'c')
+
+if not meson.is_cross_build()
+  add_project_arguments('-fstack-protector-strong', language : 'c')
+endif
 
 # enable full RELRO where possible
 # FIXME: until https://github.com/mesonbuild/meson/issues/1140 is fixed
