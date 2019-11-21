@@ -101,7 +101,10 @@ xb_builder_source_ctx_get_content_type (XbBuilderSourceCtx *self,
 					GError **error)
 {
 	XbBuilderSourceCtxPrivate *priv = GET_PRIVATE (self);
+	g_autofree gchar *content_type = NULL;
+
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE_CTX (self), NULL);
+
 	if (G_IS_SEEKABLE (priv->istream)) {
 		gsize bufsz = 0;
 		guchar buf[4096] = { 0x00 };
@@ -112,9 +115,25 @@ xb_builder_source_ctx_get_content_type (XbBuilderSourceCtx *self,
 				      cancellable, error))
 			return NULL;
 		if (bufsz > 0)
-			return g_content_type_guess (priv->filename, buf, bufsz, NULL);
+			content_type = g_content_type_guess (priv->filename, buf, bufsz, NULL);
 	}
-	return g_content_type_guess (priv->filename, NULL, 0, NULL);
+
+	/* either unseekable, or empty */
+	if (content_type == NULL)
+		content_type = g_content_type_guess (priv->filename, NULL, 0, NULL);
+
+#ifdef _WIN32
+	/* map Windows "mime-type" to a content type */
+	if (g_strcmp0 (content_type, ".gz") == 0)
+		return g_strdup ("application/gzip");
+	if (g_strcmp0 (content_type, ".txt") == 0 ||
+	    g_strcmp0 (content_type, ".xml") == 0)
+		return g_strdup ("application/xml");
+	if (g_strcmp0 (content_type, ".desktop") == 0)
+		return g_strdup ("application/x-desktop");
+#endif
+
+	return g_steal_pointer (&content_type);
 }
 
 /* private */
