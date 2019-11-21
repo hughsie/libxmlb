@@ -8,6 +8,7 @@ services:
 env:
   - OS=debian
   - OS=fedora
+  - OS=fedora-w64
 
 before_script:
   - docker build -t libxmlb-${OS} -f contrib/ci/Dockerfile-${OS} .
