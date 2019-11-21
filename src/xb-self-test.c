@@ -497,6 +497,12 @@ xb_builder_ensure_watch_source_func (void)
 	g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
 	g_autoptr(XbSilo) silo = NULL;
 
+#ifdef _WIN32
+	/* no inotify */
+	g_test_skip ("inotify does not work on mingw");
+	return;
+#endif
+
 	/* import a source file */
 	ret = g_file_set_contents ("/tmp/temp.xml",
 				   "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
@@ -566,6 +572,12 @@ xb_builder_ensure_func (void)
 		"    </requires>\n"
 		"  </component>\n"
 		"</components>\n";
+
+#ifdef _WIN32
+	/* no inotify */
+	g_test_skip ("inotify does not work on mingw");
+	return;
+#endif
 
 	/* import some XML */
 	xb_builder_set_profile_flags (builder, XB_SILO_PROFILE_FLAG_DEBUG);
