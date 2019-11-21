@@ -96,6 +96,14 @@ xb_opcode_get_sig (XbOpcode *self)
 	return g_string_free (str, FALSE);
 }
 
+static const gchar *
+xb_opcode_get_str_for_display (XbOpcode *self)
+{
+	if (self->ptr == NULL)
+		return "(null)";
+	return self->ptr;
+}
+
 /**
  * xb_opcode_to_string:
  * @self: a #XbOpcode
@@ -110,17 +118,17 @@ gchar *
 xb_opcode_to_string (XbOpcode *self)
 {
 	if (self->kind == XB_OPCODE_KIND_FUNCTION)
-		return g_strdup_printf ("%s()", xb_opcode_get_str (self));
+		return g_strdup_printf ("%s()", xb_opcode_get_str_for_display (self));
 	if (self->kind == XB_OPCODE_KIND_TEXT)
-		return g_strdup_printf ("'%s'", xb_opcode_get_str (self));
+		return g_strdup_printf ("'%s'", xb_opcode_get_str_for_display (self));
 	if (self->kind == XB_OPCODE_KIND_INDEXED_TEXT)
-		return g_strdup_printf ("$'%s'", xb_opcode_get_str (self));
+		return g_strdup_printf ("$'%s'", xb_opcode_get_str_for_display (self));
 	if (self->kind == XB_OPCODE_KIND_INTEGER)
 		return g_strdup_printf ("%u", xb_opcode_get_val (self));
 	if (self->kind == XB_OPCODE_KIND_BOUND_INTEGER)
 		return g_strdup ("?");
 	if (self->kind == XB_OPCODE_KIND_BOUND_TEXT)
-		return g_strdup_printf ("?'%s'", xb_opcode_get_str (self));
+		return g_strdup_printf ("?'%s'", xb_opcode_get_str_for_display (self));
 	if (self->kind == XB_OPCODE_KIND_BOUND_INTEGER)
 		return g_strdup_printf ("?%u", xb_opcode_get_val (self));
 	if (self->kind == XB_OPCODE_KIND_BOOLEAN)
