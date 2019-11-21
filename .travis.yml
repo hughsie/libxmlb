@@ -13,7 +13,7 @@ before_script:
   - docker build -t libxmlb-${OS} -f contrib/ci/Dockerfile-${OS} .
 
 script:
-  - docker run -t -v `pwd`:/build libxmlb-${OS} ./contrib/ci/build_and_test.sh
+  - docker run -t -v `pwd`:/build libxmlb-${OS} ./contrib/ci/build-${OS}.sh
 
 jobs:
   include:
