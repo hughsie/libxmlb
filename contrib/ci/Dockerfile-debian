@@ -14,6 +14,7 @@ RUN apt-get install -yq --no-install-recommends \
 	python3-setuptools \
 	python3-wheel \
 	shared-mime-info \
+	uuid-dev \
 	pkg-config
 
 # Meson is too old in unstable, and that won't change until Buster is released
