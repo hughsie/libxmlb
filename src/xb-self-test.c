@@ -403,6 +403,8 @@ xb_builder_custom_mime_func (void)
 {
 	gboolean ret;
 	g_autofree gchar *xml = NULL;
+	g_autofree gchar *tmp_desktop = g_build_filename (g_get_tmp_dir (), "temp.desktop", NULL);
+	g_autofree gchar *tmp_xmlb = g_build_filename (g_get_tmp_dir (), "temp.xmlb", NULL);
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GFile) file_desktop = NULL;
 	g_autoptr(GFile) file = NULL;
@@ -415,17 +417,17 @@ xb_builder_custom_mime_func (void)
 				       xb_builder_custom_mime_cb, NULL, NULL);
 
 	/* import a source file */
-	ret = g_file_set_contents ("/tmp/temp.desktop", "[Desktop Entry]", -1, &error);
+	ret = g_file_set_contents (tmp_desktop, "[Desktop Entry]", -1, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
-	file_desktop = g_file_new_for_path ("/tmp/temp.desktop");
+	file_desktop = g_file_new_for_path (tmp_desktop);
 	ret = xb_builder_source_load_file (source, file_desktop,
 					   XB_BUILDER_SOURCE_FLAG_WATCH_FILE,
 					   NULL, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
 	xb_builder_import_source (builder, source);
-	file = g_file_new_for_path ("/tmp/temp.xmlb");
+	file = g_file_new_for_path (tmp_xmlb);
 	silo = xb_builder_ensure (builder, file,
 				  XB_BUILDER_COMPILE_FLAG_WATCH_BLOB,
 				  NULL, &error);
@@ -449,6 +451,7 @@ xb_builder_chained_adapters_func (void)
 	gboolean ret;
 	g_autofree gchar *xml = NULL;
 	g_autofree gchar *path = NULL;
+	g_autofree gchar *tmp_xmlb = g_build_filename (g_get_tmp_dir (), "temp.xmlb", NULL);
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GFile) file_src = NULL;
 	g_autoptr(GFile) file = NULL;
@@ -469,7 +472,7 @@ xb_builder_chained_adapters_func (void)
 	g_assert_no_error (error);
 	g_assert_true (ret);
 	xb_builder_import_source (builder, source);
-	file = g_file_new_for_path ("/tmp/temp.xmlb");
+	file = g_file_new_for_path (tmp_xmlb);
 	silo = xb_builder_ensure (builder, file,
 				  XB_BUILDER_COMPILE_FLAG_NONE,
 				  NULL, &error);
@@ -496,6 +499,8 @@ xb_builder_ensure_watch_source_func (void)
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
 	g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
 	g_autoptr(XbSilo) silo = NULL;
+	g_autofree gchar *tmp_xml = g_build_filename (g_get_tmp_dir (), "temp.xml", NULL);
+	g_autofree gchar *tmp_xmlb = g_build_filename (g_get_tmp_dir (), "temp.xmlb", NULL);
 
 #ifdef _WIN32
 	/* no inotify */
@@ -504,19 +509,19 @@ xb_builder_ensure_watch_source_func (void)
 #endif
 
 	/* import a source file */
-	ret = g_file_set_contents ("/tmp/temp.xml",
+	ret = g_file_set_contents (tmp_xml,
 				   "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 				   "<id>gimp</id>", -1, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
-	file_xml = g_file_new_for_path ("/tmp/temp.xml");
+	file_xml = g_file_new_for_path (tmp_xml);
 	ret = xb_builder_source_load_file (source, file_xml,
 					   XB_BUILDER_SOURCE_FLAG_WATCH_FILE,
 					   NULL, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
 	xb_builder_import_source (builder, source);
-	file = g_file_new_for_path ("/tmp/temp.xmlb");
+	file = g_file_new_for_path (tmp_xmlb);
 	g_file_delete (file, NULL, NULL);
 	silo = xb_builder_ensure (builder, file,
 				  XB_BUILDER_COMPILE_FLAG_WATCH_BLOB,
@@ -529,7 +534,7 @@ xb_builder_ensure_watch_source_func (void)
 			  &invalidate_cnt);
 
 	/* change source file */
-	ret = g_file_set_contents ("/tmp/temp.xml",
+	ret = g_file_set_contents (tmp_xml,
 				   "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 				   "<id>inkscape</id>", -1, &error);
 	g_assert_no_error (error);
@@ -545,6 +550,7 @@ xb_builder_ensure_func (void)
 {
 	gboolean ret;
 	guint invalidate_cnt = 0;
+	g_autofree gchar *tmp_xmlb = g_build_filename (g_get_tmp_dir (), "temp.xmlb", NULL);
 	g_autoptr(GBytes) bytes1 = NULL;
 	g_autoptr(GBytes) bytes2 = NULL;
 	g_autoptr(GBytes) bytes3 = NULL;
@@ -586,7 +592,7 @@ xb_builder_ensure_func (void)
 	g_assert_true (ret);
 
 	/* create file if it does not exist */
-	file = g_file_new_for_path ("/tmp/temp.xmlb");
+	file = g_file_new_for_path (tmp_xmlb);
 	g_file_delete (file, NULL, NULL);
 	silo = xb_builder_ensure (builder, file,
 				  XB_BUILDER_COMPILE_FLAG_WATCH_BLOB,
@@ -1936,9 +1942,9 @@ xb_builder_node_source_text_func (void)
 static void
 xb_builder_node_info_func (void)
 {
-	const gchar *fn = "/tmp/xb-self-test.xml";
 	gboolean ret;
 	g_autofree gchar *xml = NULL;
+	g_autofree gchar *tmp_xml = g_build_filename (g_get_tmp_dir (), "temp.xml", NULL);
 	g_autoptr(GError) error = NULL;
 	g_autoptr(XbBuilderSource) import1 = xb_builder_source_new ();
 	g_autoptr(XbBuilderSource) import2 = xb_builder_source_new ();
@@ -1950,7 +1956,7 @@ xb_builder_node_info_func (void)
 	g_autoptr(GFile) file = NULL;
 
 	/* create a simple document with some info */
-	ret = g_file_set_contents (fn,
+	ret = g_file_set_contents (tmp_xml,
 				   "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 				   "<component><id type=\"desktop\">dave</id></component>",
 				   -1, &error);
@@ -1962,7 +1968,7 @@ xb_builder_node_info_func (void)
 	xb_builder_node_insert_text (info2, "scope", "system", NULL);
 
 	/* import the doc */
-	file = g_file_new_for_path (fn);
+	file = g_file_new_for_path (tmp_xml);
 	ret = xb_builder_source_load_file (import1, file, XB_BUILDER_SOURCE_FLAG_NONE, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
@@ -2173,9 +2179,9 @@ static void
 xb_speed_func (void)
 {
 	XbNode *n;
-	const gchar *fn = "/tmp/test.xmlb";
 	gboolean ret;
 	guint n_components = 5000;
+	g_autofree gchar *tmp_xmlb = g_build_filename (g_get_tmp_dir (), "test.xmlb", NULL);
 	g_autofree gchar *xpath1 = NULL;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GFile) file = NULL;
@@ -2223,7 +2229,7 @@ xb_speed_func (void)
 	silo = xb_silo_new_from_xml (xml->str, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);
-	file = g_file_new_for_path (fn);
+	file = g_file_new_for_path (tmp_xmlb);
 	ret = xb_silo_save_to_file (silo, file, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_true (ret);
