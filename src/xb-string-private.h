@@ -30,13 +30,8 @@ typedef struct __attribute__ ((packed)) {
 	guint8	nde[6];
 } XbGuid;
 
-/* private namespace */
-#define XB_GUID_NS_DEFAULT		{ 0x59cea2b6, 0xf127, 0x3cd8, 0xb5f4, \
-					  { 0x5c, 0x02, 0x95, 0xa4, 0x15, 0x4a } }
-
 gchar		*xb_guid_to_string			(XbGuid		*guid);
 void		 xb_guid_compute_for_data		(XbGuid		*out,
-							 const XbGuid	*ns,
 							 const guint8	*buf,
 							 gsize		 bufsz);
 

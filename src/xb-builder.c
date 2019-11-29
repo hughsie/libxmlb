@@ -582,8 +582,7 @@ xb_builder_generate_guid (XbBuilder *self)
 	XbBuilderPrivate *priv = GET_PRIVATE (self);
 	XbGuid guid = { 0x0 };
 	if (priv->guid->len > 0) {
-		XbGuid ns = XB_GUID_NS_DEFAULT;
-		xb_guid_compute_for_data (&guid, &ns,
+		xb_guid_compute_for_data (&guid,
 					  (const guint8 *) priv->guid->str,
 					  priv->guid->len);
 	}
@@ -818,9 +817,8 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	/* add the initial header */
 	hdr.strtab = nodetabsz;
 	if (priv->guid->len > 0) {
-		XbGuid ns = XB_GUID_NS_DEFAULT;
 		XbGuid guid_tmp;
-		xb_guid_compute_for_data (&guid_tmp, &ns,
+		xb_guid_compute_for_data (&guid_tmp,
 					  (const guint8 *) priv->guid->str,
 					  priv->guid->len);
 		memcpy (&hdr.guid, &guid_tmp, sizeof(guid_tmp));
