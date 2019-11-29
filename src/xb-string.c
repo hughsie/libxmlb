@@ -225,18 +225,14 @@ xb_string_isspace (const gchar *str, gssize strsz)
 }
 
 void
-xb_guid_compute_for_data (XbGuid *out, const XbGuid *ns, const guint8 *buf, gsize bufsz)
+xb_guid_compute_for_data (XbGuid *out, const guint8 *buf, gsize bufsz)
 {
-	guint8 buf_tmp[20];
+	guint8 buf_tmp[20] = { 0x0 };
 	gsize buf_tmpsz = sizeof(buf_tmp);
-	g_autoptr(GHmac) hmac = NULL;
-
-	g_return_if_fail (out != NULL);
-
-	hmac = g_hmac_new (G_CHECKSUM_SHA1, (const guchar *) &ns, sizeof(ns));
+	g_autoptr(GChecksum) checksum = g_checksum_new (G_CHECKSUM_SHA1);
 	if (buf != NULL && bufsz != 0)
-		g_hmac_update (hmac, (const guchar *) buf, bufsz);
-	g_hmac_get_digest (hmac, buf_tmp, &buf_tmpsz);
+		g_checksum_update (checksum, (const guchar *) buf, bufsz);
+	g_checksum_get_digest (checksum, buf_tmp, &buf_tmpsz);
 	memcpy (out, buf_tmp, sizeof(XbGuid));
 }
 
