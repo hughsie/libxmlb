@@ -783,7 +783,7 @@ xb_machine_parse_full (XbMachine *self,
 	/* parse into opcodes */
 	opcodes = xb_stack_new (priv->stack_size);
 	if (xb_machine_parse_text (self, opcodes, text, text_len, level, error) == G_MAXSIZE)
-		return FALSE;
+		return NULL;
 
 	/* do any fixups */
 	opcodes_sig = xb_machine_get_opcodes_sig (self, opcodes);
