@@ -1,4 +1,4 @@
-if get_option('tests')
+if get_option('tests') and host_machine.system() != 'windows'
   configure_file(
     input : 'libxmlb.test.in',
     output : 'libxmlb.test',
