@@ -21,7 +21,8 @@ gboolean	 xb_string_search			(const gchar	*text,
 gchar		*xb_string_xml_escape			(const gchar	*str);
 gboolean	 xb_string_isspace			(const gchar	*str,
 							 gssize		 strsz);
-typedef struct {
+
+typedef struct __attribute__ ((packed)) {
 	guint32	tlo;
 	guint16	tmi;
 	guint16	thi;
