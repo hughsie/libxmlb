@@ -33,26 +33,10 @@ G_DEFINE_TYPE_WITH_PRIVATE (XbBuilderSource, xb_builder_source, G_TYPE_OBJECT)
 
 typedef struct {
 	gchar				*content_type;
-	XbBuilderSourceConverterFunc	 func_file;	/* deprecated */
 	XbBuilderSourceAdapterFunc	 func_adapter;
 	gpointer			 user_data;
 	GDestroyNotify			 user_data_free;
 } XbBuilderSourceAdapter;
-
-static XbBuilderSourceAdapter *
-xb_builder_source_get_converter_by_mime (XbBuilderSource *self,
-					 const gchar *content_type)
-{
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
-	for (guint i = 0; i < priv->adapters->len; i++) {
-		XbBuilderSourceAdapter *item = g_ptr_array_index (priv->adapters, i);
-		if (item->func_file == NULL)
-			continue;
-		if (g_strcmp0 (item->content_type, content_type) == 0)
-			return item;
-	}
-	return NULL;
-}
 
 static XbBuilderSourceAdapter *
 xb_builder_source_get_adapter_by_mime (XbBuilderSource *self,
@@ -315,12 +299,9 @@ xb_builder_source_add_node_func (XbBuilderSource *self,
  * @user_data: user pointer to pass to @func, or %NULL
  * @user_data_free: a function which gets called to free @user_data, or %NULL
  *
- * Adds a function that can be used to convert files loaded with
- * xb_builder_source_load_xml().
+ * This function is now deprecated, and does nothing.
  *
- * This function is now deprecated, and xb_builder_source_add_adapter() can be
- * used instead. The latter allows chaining streams rather than just one #GFile
- * to #GInputStream conversion.
+ * See also: xb_builder_source_add_adapter()
  *
  * Since: 0.1.1
  **/
@@ -331,23 +312,7 @@ xb_builder_source_add_converter (XbBuilderSource *self,
 				 gpointer user_data,
 				 GDestroyNotify user_data_free)
 {
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
-	g_auto(GStrv) split = NULL;
-
-	g_return_if_fail (XB_IS_BUILDER_SOURCE (self));
-	g_return_if_fail (content_types != NULL);
-
-	/* add each */
-	split = g_strsplit (content_types, ",", -1);
-	for (guint i = 0; split[i] != NULL; i++) {
-		XbBuilderSourceAdapter *item;
-		item = g_slice_new0 (XbBuilderSourceAdapter);
-		item->content_type = g_strdup (split[i]);
-		item->func_file = func;
-		item->user_data = user_data;
-		item->user_data_free = user_data_free;
-		g_ptr_array_add (priv->adapters, item);
-	}
+	g_warning ("%s() does nothing", G_STRFUNC);
 }
 
 /**
@@ -472,7 +437,6 @@ xb_builder_source_get_istream (XbBuilderSource *self,
 			       GError **error)
 {
 	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
-	XbBuilderSourceAdapter *item;
 	g_autofree gchar *basename = NULL;
 
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), NULL);
@@ -480,13 +444,6 @@ xb_builder_source_get_istream (XbBuilderSource *self,
 	/* nothing required */
 	if (priv->istream != NULL)
 		return g_object_ref (priv->istream);
-
-	/* decompress if required using the deprecated vfunc */
-	item = xb_builder_source_get_converter_by_mime (self, priv->content_type);
-	if (item != NULL && item->func_file != NULL) {
-		return item->func_file (self, priv->file, item->user_data,
-					cancellable, error);
-	}
 
 	/* convert the file to a GFileInputStream */
 	priv->istream = G_INPUT_STREAM (g_file_read (priv->file, cancellable, error));
@@ -496,6 +453,7 @@ xb_builder_source_get_istream (XbBuilderSource *self,
 	/* run the content type handlers until we get application/xml */
 	basename = g_file_get_basename (priv->file);
 	do {
+		XbBuilderSourceAdapter *item;
 		g_autofree gchar *content_type = NULL;
 		g_autoptr(GInputStream) istream_tmp = NULL;
 		g_autoptr(XbBuilderSourceCtx) ctx = xb_builder_source_ctx_new (priv->istream);
