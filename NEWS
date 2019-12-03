@@ -1,3 +1,16 @@
+Version 0.1.14
+~~~~~~~~~~~~~~
+Released: 2019-12-03
+
+New Features:
+ - Add MinGW Windows 64 builds to CI (Richard Hughes)
+
+Bugfixes:
+ - Allow compiling without gio-unix (Richard Hughes)
+ - Do not use libuuid (Richard Hughes)
+ - Do not unconditionally use -fstack-protector-strong (Richard Hughes)
+ - Ignore adaptors added with xb_builder_source_add_converter() (Richard Hughes)
+
 Version 0.1.13
 ~~~~~~~~~~~~~~
 Released: 2019-10-17
