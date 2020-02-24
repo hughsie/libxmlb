@@ -110,8 +110,6 @@ LIBXMLB_0.1.1 {
     xb_opcode_get_val;
     xb_opcode_integer_new;
     xb_opcode_kind_from_string;
-    xb_opcode_kind_from_string;
-    xb_opcode_kind_to_string;
     xb_opcode_kind_to_string;
     xb_opcode_ref;
     xb_opcode_text_new;
