@@ -1716,6 +1716,43 @@ xb_xpath_prepared_func (void)
 }
 
 static void
+xb_xpath_query_reverse_func (void)
+{
+	XbNode *n;
+	gboolean ret;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbSilo) silo = NULL;
+	g_autoptr(XbQuery) query = NULL;
+	g_autoptr(GPtrArray) names = NULL;
+	const gchar *xml =
+	"<names>\n"
+	"  <name>foo</name>\n"
+	"  <name>bar</name>\n"
+	"  <name>baz</name>\n"
+	"</names>\n";
+
+	/* import from XML */
+	ret = xb_test_import_xml (builder, xml, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* get first when reversed */
+	query = xb_query_new_full (silo, "names/name", XB_QUERY_FLAG_REVERSE, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (query);
+	names = xb_silo_query_full (silo, query, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (names);
+	g_assert_cmpint (names->len, ==, 3);
+	n = g_ptr_array_index (names, 0);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "baz");
+}
+
+static void
 xb_xpath_glob_func (void)
 {
 	g_autofree gchar *xml2 = NULL;
@@ -2368,6 +2405,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/markup", xb_markup_func);
 	g_test_add_func ("/libxmlb/xpath", xb_xpath_func);
 	g_test_add_func ("/libxmlb/xpath-query", xb_xpath_query_func);
+	g_test_add_func ("/libxmlb/xpath-query{reverse}", xb_xpath_query_reverse_func);
 	g_test_add_func ("/libxmlb/xpath{helpers}", xb_xpath_helpers_func);
 	g_test_add_func ("/libxmlb/xpath{prepared}", xb_xpath_prepared_func);
 	g_test_add_func ("/libxmlb/xpath{incomplete}", xb_xpath_incomplete_func);
