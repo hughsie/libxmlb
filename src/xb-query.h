@@ -32,6 +32,7 @@ struct _XbQueryClass {
  * @XB_QUERY_FLAG_NONE:			No extra flags to use
  * @XB_QUERY_FLAG_OPTIMIZE:		Optimize the query when possible
  * @XB_QUERY_FLAG_USE_INDEXES:		Use the indexed parameters
+ * @XB_QUERY_FLAG_REVERSE:		Reverse the results order
  *
  * The flags used fo query.
  **/
@@ -39,6 +40,7 @@ typedef enum {
 	XB_QUERY_FLAG_NONE		= 0,			/* Since: 0.1.6 */
 	XB_QUERY_FLAG_OPTIMIZE		= 1 << 0,		/* Since: 0.1.6 */
 	XB_QUERY_FLAG_USE_INDEXES	= 1 << 1,		/* Since: 0.1.6 */
+	XB_QUERY_FLAG_REVERSE		= 1 << 2,		/* Since: 0.1.15 */
 	/*< private >*/
 	XB_QUERY_FLAG_LAST
 } XbQueryFlags;
@@ -54,6 +56,9 @@ const gchar	*xb_query_get_xpath		(XbQuery	*self);
 guint		 xb_query_get_limit		(XbQuery	*self);
 void		 xb_query_set_limit		(XbQuery	*self,
 						 guint		 limit);
+XbQueryFlags	 xb_query_get_flags		(XbQuery	*self);
+void		 xb_query_set_flags		(XbQuery	*self,
+						 XbQueryFlags	 flags);
 gboolean	 xb_query_bind_str		(XbQuery	*self,
 						 guint		 idx,
 						 const gchar	*str,

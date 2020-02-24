@@ -289,6 +289,17 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 	return g_steal_pointer (&results);
 }
 
+static void
+_g_ptr_array_reverse (GPtrArray *array)
+{
+	guint last_idx = array->len - 1;
+	for (guint i = 0; i < array->len / 2; i++) {
+		gpointer tmp = array->pdata[i];
+		array->pdata[i] = array->pdata[last_idx - i];
+		array->pdata[last_idx - i] = tmp;
+	}
+}
+
 /**
  * xb_silo_query_with_root_full: (skip)
  * @self: a #XbSilo
@@ -358,6 +369,11 @@ xb_silo_query_with_root_full (XbSilo *self, XbNode *n, XbQuery *query, GError **
 			     tmp);
 		return NULL;
 	}
+
+	/* reverse order */
+	if (xb_query_get_flags (query) & XB_QUERY_FLAG_REVERSE)
+		_g_ptr_array_reverse (results);
+
 	return g_steal_pointer (&results);
 }
 

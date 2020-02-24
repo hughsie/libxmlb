@@ -20,6 +20,7 @@ typedef struct {
 	GObject			 parent_instance;
 	GPtrArray		*sections;		/* of XbQuerySection */
 	XbSilo			*silo;
+	XbQueryFlags		 flags;
 	gchar			*xpath;
 	guint			 limit;
 } XbQueryPrivate;
@@ -143,6 +144,41 @@ xb_query_set_limit (XbQuery *self, guint limit)
 	XbQueryPrivate *priv = GET_PRIVATE (self);
 	g_return_if_fail (XB_IS_QUERY (self));
 	priv->limit = limit;
+}
+
+/**
+ * xb_query_get_flags:
+ * @self: a #XbQuery
+ *
+ * Gets the flags used for this query.
+ *
+ * Returns: #XbQueryFlags, default %XB_QUERY_FLAG_NONE
+ *
+ * Since: 0.1.15
+ **/
+XbQueryFlags
+xb_query_get_flags (XbQuery *self)
+{
+	XbQueryPrivate *priv = GET_PRIVATE (self);
+	g_return_val_if_fail (XB_IS_QUERY (self), 0);
+	return priv->flags;
+}
+
+/**
+ * xb_query_set_flags:
+ * @self: a #XbQuery
+ * @flags: a #XbQueryFlags, e.g. %XB_QUERY_FLAG_USE_INDEXES
+ *
+ * Sets the flags to use for this query.
+ *
+ * Since: 0.1.15
+ **/
+void
+xb_query_set_flags (XbQuery *self, XbQueryFlags flags)
+{
+	XbQueryPrivate *priv = GET_PRIVATE (self);
+	g_return_if_fail (XB_IS_QUERY (self));
+	priv->flags = flags;
 }
 
 static XbOpcode *
@@ -273,7 +309,6 @@ xb_query_parse_predicate (XbQuery *self,
 			  XbQuerySection *section,
 			  const gchar *text,
 			  gssize text_len,
-			  XbQueryFlags flags,
 			  GError **error)
 {
 	XbQueryPrivate *priv = GET_PRIVATE (self);
@@ -281,7 +316,7 @@ xb_query_parse_predicate (XbQuery *self,
 	g_autoptr(XbStack) opcodes = NULL;
 
 	/* set flags */
-	if (flags & XB_QUERY_FLAG_OPTIMIZE)
+	if (priv->flags & XB_QUERY_FLAG_OPTIMIZE)
 		machine_flags |= XB_MACHINE_PARSE_FLAG_OPTIMIZE;
 
 	/* parse */
@@ -293,7 +328,7 @@ xb_query_parse_predicate (XbQuery *self,
 		return FALSE;
 
 	/* repair or convert the indexed strings */
-	if (flags & XB_QUERY_FLAG_USE_INDEXES) {
+	if (priv->flags & XB_QUERY_FLAG_USE_INDEXES) {
 		for (guint i = 0; i < xb_stack_get_size (opcodes); i++) {
 			XbOpcode *op = xb_stack_peek (opcodes, i);
 			if (xb_opcode_get_kind (op) != XB_OPCODE_KIND_INDEXED_TEXT)
@@ -317,10 +352,7 @@ xb_query_parse_predicate (XbQuery *self,
 }
 
 static XbQuerySection *
-xb_query_parse_section (XbQuery *self,
-			const gchar *xpath,
-			XbQueryFlags flags,
-			GError **error)
+xb_query_parse_section (XbQuery *self, const gchar *xpath, GError **error)
 {
 	XbQueryPrivate *priv = GET_PRIVATE (self);
 	g_autoptr(XbQuerySection) section = g_slice_new0 (XbQuerySection);
@@ -346,7 +378,6 @@ xb_query_parse_section (XbQuery *self,
 						       section,
 						       xpath + start + 1,
 						       i - start - 1,
-						       flags,
 						       error)) {
 				return NULL;
 			}
@@ -385,7 +416,7 @@ xb_query_parse_section (XbQuery *self,
 }
 
 static gboolean
-xb_query_parse (XbQuery *self, const gchar *xpath, XbQueryFlags flags, GError **error)
+xb_query_parse (XbQuery *self, const gchar *xpath, GError **error)
 {
 	XbQueryPrivate *priv = GET_PRIVATE (self);
 	XbQuerySection *section;
@@ -414,8 +445,7 @@ xb_query_parse (XbQuery *self, const gchar *xpath, XbQueryFlags flags, GError **
 						     "xpath section empty");
 				return FALSE;
 			}
-			section = xb_query_parse_section (self, acc->str,
-							  flags, error);
+			section = xb_query_parse_section (self, acc->str, error);
 			if (section == NULL)
 				return FALSE;
 			g_ptr_array_add (priv->sections, section);
@@ -426,7 +456,7 @@ xb_query_parse (XbQuery *self, const gchar *xpath, XbQueryFlags flags, GError **
 	}
 
 	/* add any remaining section */
-	section = xb_query_parse_section (self, acc->str, flags, error);
+	section = xb_query_parse_section (self, acc->str, error);
 	if (section == NULL)
 		return FALSE;
 	g_ptr_array_add (priv->sections, section);
@@ -459,10 +489,11 @@ xb_query_new_full (XbSilo *silo, const gchar *xpath, XbQueryFlags flags, GError 
 	/* create */
 	priv->silo = g_object_ref (silo);
 	priv->xpath = g_strdup (xpath);
+	priv->flags = flags;
 	priv->sections = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_query_section_free);
 
 	/* add each section */
-	if (!xb_query_parse (self, xpath, flags, error))
+	if (!xb_query_parse (self, xpath, error))
 		return NULL;
 
 	/* nothing here! */
