@@ -98,5 +98,10 @@ void		 xb_builder_source_add_adapter	(XbBuilderSource	*self,
 						 XbBuilderSourceAdapterFunc func,
 						 gpointer		 user_data,
 						 GDestroyNotify		 user_data_free);
+void		 xb_builder_source_add_simple_adapter (XbBuilderSource	*self,
+						 const gchar		*content_types,
+						 XbBuilderSourceAdapterFunc func,
+						 gpointer		 user_data,
+						 GDestroyNotify		 user_data_free);
 
 G_END_DECLS
