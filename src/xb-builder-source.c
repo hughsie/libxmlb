@@ -36,6 +36,7 @@ typedef struct {
 	XbBuilderSourceAdapterFunc	 func_adapter;
 	gpointer			 user_data;
 	GDestroyNotify			 user_data_free;
+	gboolean			 is_simple;
 } XbBuilderSourceAdapter;
 
 static XbBuilderSourceAdapter *
@@ -315,6 +316,35 @@ xb_builder_source_add_converter (XbBuilderSource *self,
 	g_warning ("%s() does nothing", G_STRFUNC);
 }
 
+static void
+xb_builder_source_init_adapter (XbBuilderSource *self,
+			        const gchar *content_types,
+			        XbBuilderSourceAdapterFunc func,
+			        gpointer user_data,
+			        GDestroyNotify user_data_free,
+				gboolean is_simple)
+{
+	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
+	g_auto(GStrv) split = NULL;
+
+	g_return_if_fail (XB_IS_BUILDER_SOURCE (self));
+	g_return_if_fail (content_types != NULL);
+	g_return_if_fail (func != NULL);
+
+	/* add each */
+	split = g_strsplit (content_types, ",", -1);
+	for (guint i = 0; split[i] != NULL; i++) {
+		XbBuilderSourceAdapter *item;
+		item = g_slice_new0 (XbBuilderSourceAdapter);
+		item->content_type = g_strdup (split[i]);
+		item->func_adapter = func;
+		item->user_data = user_data;
+		item->user_data_free = user_data_free;
+		item->is_simple = is_simple;
+		g_ptr_array_add (priv->adapters, item);
+	}
+}
+
 /**
  * xb_builder_source_add_adapter:
  * @self: a #XbBuilderSource
@@ -335,24 +365,32 @@ xb_builder_source_add_adapter (XbBuilderSource *self,
 			       gpointer user_data,
 			       GDestroyNotify user_data_free)
 {
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
-	g_auto(GStrv) split = NULL;
+	xb_builder_source_init_adapter (self, content_types, func,
+					user_data, user_data_free, FALSE);
+}
 
-	g_return_if_fail (XB_IS_BUILDER_SOURCE (self));
-	g_return_if_fail (content_types != NULL);
-	g_return_if_fail (func != NULL);
-
-	/* add each */
-	split = g_strsplit (content_types, ",", -1);
-	for (guint i = 0; split[i] != NULL; i++) {
-		XbBuilderSourceAdapter *item;
-		item = g_slice_new0 (XbBuilderSourceAdapter);
-		item->content_type = g_strdup (split[i]);
-		item->func_adapter = func;
-		item->user_data = user_data;
-		item->user_data_free = user_data_free;
-		g_ptr_array_add (priv->adapters, item);
-	}
+/**
+ * xb_builder_source_add_simple_adapter:
+ * @self: a #XbBuilderSource
+ * @content_types: mimetypes, e.g. `application/x-desktop,application/gzip`
+ * @func: a callback, or %NULL
+ * @user_data: user pointer to pass to @func, or %NULL
+ * @user_data_free: a function which gets called to free @user_data, or %NULL
+ *
+ * Adds a function that can be used to convert streams loaded with
+ * xb_builder_source_load_xml().
+ *
+ * Since: 0.1.15
+ **/
+void
+xb_builder_source_add_simple_adapter (XbBuilderSource *self,
+				      const gchar *content_types,
+				      XbBuilderSourceAdapterFunc func,
+				      gpointer user_data,
+				      GDestroyNotify user_data_free)
+{
+	xb_builder_source_init_adapter (self, content_types, func,
+					user_data, user_data_free, TRUE);
 }
 
 gboolean
@@ -484,6 +522,9 @@ xb_builder_source_get_istream (XbBuilderSource *self,
 			return NULL;
 		xb_builder_source_remove_last_extension (basename);
 		g_set_object (&priv->istream, istream_tmp);
+
+		if (item->is_simple)
+			break;
 	} while (TRUE);
 	return g_object_ref (priv->istream);
 }
