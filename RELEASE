@@ -6,7 +6,7 @@ git shortlog 0.1.14.. | grep -i -v trivial | grep -v Merge > NEWS.new
 
 Version 0.1.15
 ~~~~~~~~~~~~~~
-Released: 2019-xx-xx
+Released: 2020-xx-xx
 
 New Features:
 Bugfixes:
