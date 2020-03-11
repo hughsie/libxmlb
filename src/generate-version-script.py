@@ -8,7 +8,7 @@
 import sys
 import xml.etree.ElementTree as ET
 
-from pkg_resources import parse_version
+from distutils.version import StrictVersion
 
 XMLNS = '{http://www.gtk.org/introspection/core/1.0}'
 XMLNS_C = '{http://www.gtk.org/introspection/c/1.0}'
@@ -58,14 +58,14 @@ class LdVersionScript:
         for node in cls.findall(XMLNS + 'method'):
             version_tmp = self._add_node(node)
             if version_tmp:
-                if not version_lowest or parse_version(version_tmp) < parse_version(version_lowest):
+                if not version_lowest or StrictVersion(version_tmp) < StrictVersion(version_lowest):
                     version_lowest = version_tmp
 
         # add the constructor
         for node in cls.findall(XMLNS + 'constructor'):
             version_tmp = self._add_node(node)
             if version_tmp:
-                if not version_lowest or parse_version(version_tmp) < parse_version(version_lowest):
+                if not version_lowest or StrictVersion(version_tmp) < StrictVersion(version_lowest):
                     version_lowest = version_tmp
 
         # finally add the get_type symbol
@@ -93,7 +93,7 @@ class LdVersionScript:
         # output the version data to a file
         verout = '# generated automatically, do not edit!\n'
         oldversion = None
-        for version in sorted(versions, key=parse_version):
+        for version in sorted(versions, key=StrictVersion):
             symbols = sorted(self.releases[version])
             verout += '\n%s_%s {\n' % (self.library_name, version)
             verout += '  global:\n'
