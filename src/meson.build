@@ -184,6 +184,8 @@ if get_option('introspection')
 endif
 
 if get_option('tests')
+  testdir = environment({'TESTDIR' : join_paths(meson.current_source_dir(), '..', 'data')})
+
   e = executable(
     'xb-self-test',
     sources : [
@@ -209,7 +211,6 @@ if get_option('tests')
       configinc,
     ],
     c_args : [
-      '-DTESTDIR="@0@/../data"'.format(meson.current_source_dir()),
       '-DINSTALLEDTESTDIR="' + installed_test_datadir + '"',
     ],
     dependencies : [
@@ -219,5 +220,5 @@ if get_option('tests')
     install : true,
     install_dir : installed_test_bindir
   )
-  test('xb-self-test', e)
+  test('xb-self-test', e, env : testdir)
 endif

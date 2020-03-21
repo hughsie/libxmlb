@@ -449,6 +449,7 @@ static void
 xb_builder_chained_adapters_func (void)
 {
 	gboolean ret;
+	const gchar *testdir;
 	g_autofree gchar *xml = NULL;
 	g_autofree gchar *path = NULL;
 	g_autofree gchar *tmp_xmlb = g_build_filename (g_get_tmp_dir (), "temp.xmlb", NULL);
@@ -460,9 +461,10 @@ xb_builder_chained_adapters_func (void)
 	g_autoptr(XbSilo) silo = NULL;
 
 	/* import a source file */
-	path = g_build_filename (TESTDIR, "test.xml.gz.gz.gz", NULL);
-	if (!g_file_test (path, G_FILE_TEST_EXISTS)) {
-		g_free (path);
+	testdir = g_getenv ("TESTDIR");
+	if (testdir != NULL) {
+		path = g_build_filename (testdir, "test.xml.gz.gz.gz", NULL);
+	} else {
 		path = g_build_filename (INSTALLEDTESTDIR, "test.xml.gz.gz.gz", NULL);
 	}
 	file_src = g_file_new_for_path (path);
