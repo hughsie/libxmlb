@@ -636,10 +636,10 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 			return FALSE;
 		}
 		if (hdr->version != XB_SILO_VERSION) {
-			g_set_error_literal (error,
-					     G_IO_ERROR,
-					     G_IO_ERROR_INVALID_DATA,
-					     "version incorrect");
+			g_set_error (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_INVALID_DATA,
+				     "version incorrect, got %u, expected %d", hdr->version, XB_SILO_VERSION);
 			return FALSE;
 		}
 	}
