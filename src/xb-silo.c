@@ -954,6 +954,19 @@ xb_silo_node_create (XbSilo *self, XbSiloNode *sn)
 	return n;
 }
 
+/* Push two opcodes onto the stack with appropriate rollback on failure. */
+static gboolean
+_xb_stack_push_two (XbStack *opcodes, XbOpcode **op1, XbOpcode **op2)
+{
+	if (!xb_stack_push (opcodes, op1))
+		return FALSE;
+	if (!xb_stack_push (opcodes, op2)) {
+		xb_stack_pop (opcodes, NULL);
+		return FALSE;
+	}
+	return TRUE;
+}
+
 /* convert [2] to position()=2 */
 static gboolean
 xb_silo_machine_fixup_position_cb (XbMachine *self,
@@ -961,8 +974,15 @@ xb_silo_machine_fixup_position_cb (XbMachine *self,
 				   gpointer user_data,
 				   GError **error)
 {
-	xb_stack_push_steal (opcodes, xb_machine_opcode_func_new (self, "position"));
-	xb_stack_push_steal (opcodes, xb_machine_opcode_func_new (self, "eq"));
+	XbOpcode *op1;
+	XbOpcode *op2;
+
+	if (!_xb_stack_push_two (opcodes, &op1, &op2))
+		return FALSE;
+
+	xb_machine_opcode_func_init (self, op1, "position");
+	xb_machine_opcode_func_init (self, op2, "eq");
+
 	return TRUE;
 }
 
@@ -973,8 +993,15 @@ xb_silo_machine_fixup_attr_exists_cb (XbMachine *self,
 				      gpointer user_data,
 				      GError **error)
 {
-	xb_stack_push_steal (opcodes, xb_opcode_text_new_static (NULL));
-	xb_stack_push_steal (opcodes, xb_machine_opcode_func_new (self, "ne"));
+	XbOpcode *op1;
+	XbOpcode *op2;
+
+	if (!_xb_stack_push_two (opcodes, &op1, &op2))
+		return FALSE;
+
+	xb_opcode_text_init_static (op1, NULL);
+	xb_machine_opcode_func_init (self, op2, "ne");
+
 	return TRUE;
 }
 
@@ -990,7 +1017,7 @@ xb_silo_machine_func_attr_cb (XbMachine *self,
 	XbSiloAttr *a;
 	XbSilo *silo = XB_SILO (user_data);
 	XbSiloQueryData *query_data = (XbSiloQueryData *) exec_data;
-	g_autoptr(XbOpcode) op = xb_machine_stack_pop (self, stack);
+	g_auto(XbOpcode) op = XB_OPCODE_INIT ();
 
 	/* optimize pass */
 	if (query_data == NULL) {
@@ -999,23 +1026,25 @@ xb_silo_machine_func_attr_cb (XbMachine *self,
 		return FALSE;
 	}
 
+	xb_machine_stack_pop (self, stack, &op);
+
 	/* indexed string */
-	if (xb_opcode_get_kind (op) == XB_OPCODE_KIND_INDEXED_TEXT) {
-		guint32 val = xb_opcode_get_val (op);
+	if (xb_opcode_get_kind (&op) == XB_OPCODE_KIND_INDEXED_TEXT) {
+		guint32 val = xb_opcode_get_val (&op);
 		a = xb_silo_node_get_attr_by_val (silo, query_data->sn, val);
 	} else {
-		const gchar *str = xb_opcode_get_str (op);
+		const gchar *str = xb_opcode_get_str (&op);
 		a = xb_silo_node_get_attr_by_str (silo, query_data->sn, str);
 	}
 	if (a == NULL) {
-		xb_machine_stack_push_text_static (self, stack, NULL);
-		return TRUE;
+		return xb_machine_stack_push_text_static (self, stack, NULL, error);
 	}
-	op2 = xb_opcode_new (XB_OPCODE_KIND_INDEXED_TEXT,
-			     xb_silo_from_strtab (silo, a->attr_value),
-			     a->attr_value,
-			     NULL);
-	xb_machine_stack_push_steal (self, stack, op2);
+	if (!xb_machine_stack_push (self, stack, &op2, error))
+		return FALSE;
+	xb_opcode_init (op2, XB_OPCODE_KIND_INDEXED_TEXT,
+			xb_silo_from_strtab (silo, a->attr_value),
+			a->attr_value,
+			NULL);
 	return TRUE;
 }
 
@@ -1028,22 +1057,25 @@ xb_silo_machine_func_stem_cb (XbMachine *self,
 			      GError **error)
 {
 	XbSilo *silo = XB_SILO (user_data);
-	g_autoptr(XbOpcode) op = xb_machine_stack_pop (self, stack);
+	XbOpcode *head;
+	const gchar *str;
+	g_auto(XbOpcode) op = XB_OPCODE_INIT ();
 
-	/* TEXT */
-	if (xb_opcode_cmp_str (op)) {
-		const gchar *str = xb_opcode_get_str (op);
-		xb_machine_stack_push_text_steal (self, stack, xb_silo_stem (silo, str));
-		return TRUE;
+	head = xb_stack_peek_head (stack);
+	if (head == NULL || !xb_opcode_cmp_str (head)) {
+		g_set_error (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_NOT_SUPPORTED,
+			     "%s type not supported",
+			     (head != NULL) ? xb_opcode_kind_to_string (xb_opcode_get_kind (head)) : "(null)");
+		return FALSE;
 	}
 
-	/* fail */
-	g_set_error (error,
-		     G_IO_ERROR,
-		     G_IO_ERROR_NOT_SUPPORTED,
-		     "%s type not supported",
-		     xb_opcode_kind_to_string (xb_opcode_get_kind (op)));
-	return FALSE;
+	xb_machine_stack_pop (self, stack, &op);
+
+	/* TEXT */
+	str = xb_opcode_get_str (&op);
+	return xb_machine_stack_push_text_steal (self, stack, xb_silo_stem (silo, str), error);
 }
 
 static gboolean
@@ -1056,6 +1088,7 @@ xb_silo_machine_func_text_cb (XbMachine *self,
 {
 	XbSilo *silo = XB_SILO (user_data);
 	XbSiloQueryData *query_data = (XbSiloQueryData *) exec_data;
+	XbOpcode *op;
 
 	/* optimize pass */
 	if (query_data == NULL) {
@@ -1063,11 +1096,13 @@ xb_silo_machine_func_text_cb (XbMachine *self,
 				     "cannot optimize: no silo to query");
 		return FALSE;
 	}
-	xb_machine_stack_push_steal (self, stack,
-				     xb_opcode_new (XB_OPCODE_KIND_INDEXED_TEXT,
-						    xb_silo_node_get_text (silo, query_data->sn),
-						    query_data->sn->text,
-						    NULL));
+
+	if (!xb_machine_stack_push (self, stack, &op, error))
+		return FALSE;
+	xb_opcode_init (op, XB_OPCODE_KIND_INDEXED_TEXT,
+			xb_silo_node_get_text (silo, query_data->sn),
+			query_data->sn->text,
+			NULL);
 	return TRUE;
 }
 
@@ -1081,6 +1116,7 @@ xb_silo_machine_func_tail_cb (XbMachine *self,
 {
 	XbSilo *silo = XB_SILO (user_data);
 	XbSiloQueryData *query_data = (XbSiloQueryData *) exec_data;
+	XbOpcode *op;
 
 	/* optimize pass */
 	if (query_data == NULL) {
@@ -1088,11 +1124,13 @@ xb_silo_machine_func_tail_cb (XbMachine *self,
 				     "cannot optimize: no silo to query");
 		return FALSE;
 	}
-	xb_machine_stack_push_steal (self, stack,
-				     xb_opcode_new (XB_OPCODE_KIND_INDEXED_TEXT,
-						    xb_silo_node_get_tail (silo, query_data->sn),
-						    query_data->sn->tail,
-						    NULL));
+
+	if (!xb_machine_stack_push (self, stack, &op, error))
+		return FALSE;
+	xb_opcode_init (op, XB_OPCODE_KIND_INDEXED_TEXT,
+			xb_silo_node_get_tail (silo, query_data->sn),
+			query_data->sn->tail,
+			NULL);
 	return TRUE;
 }
 
@@ -1152,8 +1190,7 @@ xb_silo_machine_func_position_cb (XbMachine *self,
 				     "cannot optimize: no silo to query");
 		return FALSE;
 	}
-	xb_machine_stack_push_integer (self, stack, query_data->position);
-	return TRUE;
+	return xb_machine_stack_push_integer (self, stack, query_data->position, error);
 }
 
 static gboolean
@@ -1164,24 +1201,33 @@ xb_silo_machine_func_search_cb (XbMachine *self,
 				gpointer exec_data,
 				GError **error)
 {
-	g_autoptr(XbOpcode) op1 = xb_machine_stack_pop (self, stack);
-	g_autoptr(XbOpcode) op2 = xb_machine_stack_pop (self, stack);
+	XbOpcode *head1 = NULL;
+	XbOpcode *head2 = NULL;
+	g_auto(XbOpcode) op1 = XB_OPCODE_INIT ();
+	g_auto(XbOpcode) op2 = XB_OPCODE_INIT ();
 
-	/* TEXT:TEXT */
-	if (xb_opcode_cmp_str (op1) && xb_opcode_cmp_str (op2)) {
-		xb_stack_push_bool (stack, xb_string_search (xb_opcode_get_str (op2),
-							     xb_opcode_get_str (op1)));
-		return TRUE;
+	if (xb_stack_get_size (stack) >= 2) {
+		head1 = xb_stack_peek (stack, xb_stack_get_size (stack) - 1);
+		head2 = xb_stack_peek (stack, xb_stack_get_size (stack) - 2);
+	}
+	if (head1 == NULL || !xb_opcode_cmp_str (head1) ||
+	    head2 == NULL || !xb_opcode_cmp_str (head2)) {
+		g_set_error (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_NOT_SUPPORTED,
+			     "%s:%s types not supported",
+			     (head1 != NULL) ? xb_opcode_kind_to_string (xb_opcode_get_kind (head1)) : "(null)",
+			     (head2 != NULL) ? xb_opcode_kind_to_string (xb_opcode_get_kind (head2)) : "(null)");
+		return FALSE;
 	}
 
-	/* fail */
-	g_set_error (error,
-		     G_IO_ERROR,
-		     G_IO_ERROR_NOT_SUPPORTED,
-		     "%s:%s types not supported",
-		     xb_opcode_kind_to_string (xb_opcode_get_kind (op1)),
-		     xb_opcode_kind_to_string (xb_opcode_get_kind (op2)));
-	return FALSE;
+	xb_machine_stack_pop (self, stack, &op1);
+	xb_machine_stack_pop (self, stack, &op2);
+
+	/* TEXT:TEXT */
+	xb_stack_push_bool (stack, xb_string_search (xb_opcode_get_str (&op2),
+						     xb_opcode_get_str (&op1)));
+	return TRUE;
 }
 
 static gboolean
@@ -1194,17 +1240,23 @@ xb_silo_machine_fixup_attr_text_cb (XbMachine *self,
 {
 	/* @foo -> attr(foo) */
 	if (g_str_has_prefix (text, "@")) {
-		XbOpcode *opcode;
-		opcode = xb_machine_opcode_func_new (self, "attr");
-		if (opcode == NULL) {
+		XbOpcode *op1;
+		XbOpcode *op2;
+
+		if (!_xb_stack_push_two (opcodes, &op1, &op2))
+			return FALSE;
+
+		xb_opcode_text_init (op1, text + 1);
+		if (!xb_machine_opcode_func_init (self, op2, "attr")) {
 			g_set_error_literal (error,
 					     G_IO_ERROR,
 					     G_IO_ERROR_NOT_SUPPORTED,
 					     "no attr opcode");
+			xb_stack_pop (opcodes, NULL);
+			xb_stack_pop (opcodes, NULL);
 			return FALSE;
 		}
-		xb_stack_push_steal (opcodes, xb_opcode_text_new (text + 1));
-		xb_stack_push_steal (opcodes, opcode);
+
 		*handled = TRUE;
 		return TRUE;
 	}

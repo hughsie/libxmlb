@@ -15,9 +15,9 @@
 
 struct _XbStack {
 	gint		 ref;
-	guint		 pos;
+	guint		 pos;	/* index of the next unused entry in .opcodes */
 	guint		 max_size;
-	XbOpcode	*opcodes[];	/* allocated as part of XbStack */
+	XbOpcode	 opcodes[];	/* allocated as part of XbStack */
 };
 
 /**
@@ -36,7 +36,7 @@ xb_stack_unref (XbStack *self)
 	if (--self->ref > 0)
 		return;
 	for (guint i = 0; i < self->pos; i++)
-		xb_opcode_unref (self->opcodes[i]);
+		xb_opcode_clear (&self->opcodes[i]);
 	g_free (self);
 }
 
@@ -61,33 +61,23 @@ xb_stack_ref (XbStack *self)
 /**
  * xb_stack_pop:
  * @self: a #XbStack
+ * @opcode_out: (out caller-allocates) (optional): return location for the popped #XbOpcode
  *
  * Pops an opcode off the stack.
  *
- * Returns: (transfer full): a #XbOpcode
+ * Returns: %TRUE if popping succeeded, %FALSE if the stack was empty already
  *
- * Since: 0.1.3
+ * Since: 0.2.0
  **/
-XbOpcode *
-xb_stack_pop (XbStack *self)
+gboolean
+xb_stack_pop (XbStack *self, XbOpcode *opcode_out)
 {
 	if (self->pos == 0)
-		return NULL;
-	return self->opcodes[--self->pos];
-}
-
-/* private */
-GPtrArray *
-xb_stack_steal_all (XbStack *self)
-{
-	GPtrArray *array;
-
-	/* array takes ownership of the opcodes */
-	array = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_opcode_unref);
-	for (guint i = 0; i < self->pos; i++)
-		g_ptr_array_add (array, self->opcodes[i]);
-	self->pos = 0;
-	return array;
+		return FALSE;
+	self->pos--;
+	if (opcode_out != NULL)
+		*opcode_out = self->opcodes[self->pos];
+	return TRUE;
 }
 
 /**
@@ -106,14 +96,18 @@ xb_stack_peek (XbStack *self, guint idx)
 {
 	if (idx >= self->pos)
 		return NULL;
-	return self->opcodes[idx];
+	return &self->opcodes[idx];
 }
 
 /* private */
 gboolean
 xb_stack_push_bool (XbStack *self, gboolean val)
 {
-	return xb_stack_push_steal (self, xb_opcode_bool_new (val));
+	XbOpcode *op;
+	if (!xb_stack_push (self, &op))
+		return FALSE;
+	xb_opcode_bool_init (op, val);
+	return TRUE;
 }
 
 /* private */
@@ -122,7 +116,7 @@ xb_stack_peek_head (XbStack *self)
 {
 	if (self->pos == 0)
 		return NULL;
-	return self->opcodes[0];
+	return &self->opcodes[0];
 }
 
 /* private */
@@ -131,46 +125,33 @@ xb_stack_peek_tail (XbStack *self)
 {
 	if (self->pos == 0)
 		return NULL;
-	return self->opcodes[self->pos - 1];
+	return &self->opcodes[self->pos - 1];
 }
 
 /**
  * xb_stack_push:
  * @self: a #XbStack
- * @opcode: a #XbOpcode
+ * @opcode_out: (out) (nullable): return location for the new #XbOpcode
  *
- * Pushes a new opcode onto the end of the stack
+ * Pushes a new empty opcode onto the end of the stack. A pointer to the opcode
+ * is returned in @opcode_out so that the caller can initialise it. This must be
+ * done before the stack is next used as, for performance reasons, the newly
+ * pushed opcode is not zero-initialised.
  *
- * Returns: %TRUE if the opcode was stored on the stack
- *
- * Since: 0.1.3
+ * Returns: %TRUE if a new empty opcode was returned, or %FALSE if the stack has
+ *    reached its maximum size
+ * Since: 0.2.0
  **/
 gboolean
-xb_stack_push (XbStack *self, XbOpcode *opcode)
+xb_stack_push (XbStack *self,
+	       XbOpcode **opcode_out)
 {
-	if (self->pos >= self->max_size)
+	if (self->pos >= self->max_size) {
+		*opcode_out = NULL;
 		return FALSE;
-	self->opcodes[self->pos++] = xb_opcode_ref (opcode);
-	return TRUE;
-}
+	}
 
-/**
- * xb_stack_push_steal:
- * @self: a #XbStack
- * @opcode: a #XbOpcode, which is consumed
- *
- * Pushes a new opcode onto the end of the stack
- *
- * Returns: %TRUE if the opcode was stored on the stack
- *
- * Since: 0.1.3
- **/
-gboolean
-xb_stack_push_steal (XbStack *self, XbOpcode *opcode)
-{
-	if (self->pos >= self->max_size)
-		return FALSE;
-	self->opcodes[self->pos++] = opcode;
+	*opcode_out = &self->opcodes[self->pos++];
 	return TRUE;
 }
 
@@ -221,7 +202,7 @@ xb_stack_to_string (XbStack *self)
 {
 	GString *str = g_string_new (NULL);
 	for (guint i = 0; i < self->pos; i++) {
-		g_autofree gchar *tmp = xb_opcode_to_string (self->opcodes[i]);
+		g_autofree gchar *tmp = xb_opcode_to_string (&self->opcodes[i]);
 		g_string_append_printf (str, "%s,", tmp);
 	}
 	if (str->len > 0)
@@ -243,7 +224,7 @@ xb_stack_to_string (XbStack *self)
 XbStack *
 xb_stack_new (guint max_size)
 {
-	XbStack *self = g_malloc0 (sizeof(XbStack) + max_size * sizeof(XbOpcode*));
+	XbStack *self = g_malloc0 (sizeof(XbStack) + max_size * sizeof(XbOpcode));
 	self->ref = 1;
 	self->max_size = max_size;
 	return self;

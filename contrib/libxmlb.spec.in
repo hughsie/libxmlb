@@ -24,10 +24,6 @@ BuildRequires: python-setuptools
 # needed for the self tests
 BuildRequires: shared-mime-info
 
-%if 0%{?rhel} < 8
-BuildRequires: python34
-%endif
-
 Requires: glib2%{?_isa} >= %{glib2_version}
 Requires: shared-mime-info
 
@@ -77,7 +73,7 @@ Executable and data files for installed tests.
 %{_libexecdir}/xb-tool
 %dir %{_libdir}/girepository-1.0
 %{_libdir}/girepository-1.0/*.typelib
-%{_libdir}/libxmlb.so.1*
+%{_libdir}/libxmlb.so.2*
 
 %files devel
 %dir %{_datadir}/gir-1.0

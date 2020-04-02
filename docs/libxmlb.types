@@ -1,7 +1,6 @@
 xb_silo_get_type
 xb_machine_get_type
 xb_node_get_type
-xb_opcode_get_type
 xb_stack_get_type
 xb_builder_get_type
 xb_builder_fixup_get_type
