@@ -13,6 +13,7 @@
 #include "xb-machine.h"
 #include "xb-node-query.h"
 #include "xb-opcode.h"
+#include "xb-opcode-private.h"
 #include "xb-silo-export.h"
 #include "xb-silo-private.h"
 #include "xb-silo-query-private.h"
@@ -76,31 +77,38 @@ xb_test_import_xml (XbBuilder *self, const gchar *xml, GError **error)
 static void
 xb_stack_func (void)
 {
-	XbOpcode *op;
-	g_autoptr(XbOpcode) op1 = xb_opcode_func_new (0);
-	g_autoptr(XbOpcode) op2 = xb_opcode_integer_new (1);
-	g_autoptr(XbOpcode) op3 = xb_opcode_text_new ("dave");
+	XbOpcode *op1, *op2, *op3, *op4;
+	g_auto(XbOpcode) op1_popped = XB_OPCODE_INIT ();
+	g_auto(XbOpcode) op2_popped = XB_OPCODE_INIT ();
+	g_auto(XbOpcode) op3_popped = XB_OPCODE_INIT ();
 	g_autoptr(XbStack) stack = xb_stack_new (3);
 
 	/* push three opcodes */
-	g_assert_true (xb_stack_push (stack, op3));
-	g_assert_true (xb_stack_push (stack, op2));
-	g_assert_true (xb_stack_push (stack, op1));
-	g_assert_false (xb_stack_push (stack, op3));
+	g_assert_true (xb_stack_push (stack, &op3));
+	xb_opcode_text_init (op3, "dave");
+	g_assert_true (xb_stack_push (stack, &op2));
+	xb_opcode_integer_init (op2, 1);
+	g_assert_true (xb_stack_push (stack, &op1));
+	xb_opcode_func_init (op1, 0);
+	g_assert_false (xb_stack_push (stack, &op4));
+	g_assert_null (op4);
 
 	/* pop the same opcodes */
-	op = xb_stack_pop (stack);
-	g_assert (op == op1);
-	xb_opcode_unref (op);
-	op = xb_stack_pop (stack);
-	g_assert (op == op2);
-	xb_opcode_unref (op);
-	op = xb_stack_pop (stack);
-	g_assert (op == op3);
-	xb_opcode_unref (op);
+	g_assert_true (xb_stack_pop (stack, &op1_popped));
+	g_assert_cmpint (xb_opcode_get_kind (&op1_popped), ==, XB_OPCODE_KIND_FUNCTION);
+
+	g_assert_true (xb_stack_pop (stack, &op2_popped));
+	g_assert_cmpint (xb_opcode_get_kind (&op2_popped), ==, XB_OPCODE_KIND_INTEGER);
+	g_assert_cmpuint (xb_opcode_get_val (&op2_popped), ==, 1);
+
+	g_assert_true (xb_stack_pop (stack, &op3_popped));
+	g_assert_cmpint (xb_opcode_get_kind (&op3_popped), ==, XB_OPCODE_KIND_TEXT);
+	g_assert_cmpstr (xb_opcode_get_str (&op3_popped), ==, "dave");
 
 	/* re-add one opcode */
-	g_assert_true (xb_stack_push (stack, op3));
+	g_assert_true (xb_stack_push (stack, &op4));
+	xb_opcode_text_init (op4, "dave again");
+	g_assert_nonnull (op4);
 
 	/* finish, cleaning up the stack properly... */
 }
@@ -108,22 +116,23 @@ xb_stack_func (void)
 static void
 xb_stack_peek_func (void)
 {
-	g_autoptr(XbOpcode) op1 = xb_opcode_func_new (0);
-	g_autoptr(XbOpcode) op2 = xb_opcode_integer_new (1);
-	g_autoptr(XbOpcode) op3 = xb_opcode_text_new ("dave");
+	XbOpcode *op1, *op2, *op3;
 	g_autoptr(XbStack) stack = xb_stack_new (3);
 
 	/* push three opcodes */
-	g_assert_true (xb_stack_push (stack, op1));
-	g_assert_true (xb_stack_push (stack, op2));
-	g_assert_true (xb_stack_push (stack, op3));
+	g_assert_true (xb_stack_push (stack, &op1));
+	xb_opcode_func_init (op1, 0);
+	g_assert_true (xb_stack_push (stack, &op2));
+	xb_opcode_integer_init (op2, 1);
+	g_assert_true (xb_stack_push (stack, &op3));
+	xb_opcode_text_init (op3, "dave");
 
-	/* pop the same opcodes */
-	g_assert (xb_stack_peek_head (stack) == op1);
-	g_assert (xb_stack_peek_tail (stack) == op3);
-	g_assert (xb_stack_peek (stack, 0) == op1);
-	g_assert (xb_stack_peek (stack, 1) == op2);
-	g_assert (xb_stack_peek (stack, 2) == op3);
+	/* peek the same opcodes */
+	g_assert_true (xb_stack_peek_head (stack) == op1);
+	g_assert_true (xb_stack_peek_tail (stack) == op3);
+	g_assert_true (xb_stack_peek (stack, 0) == op1);
+	g_assert_true (xb_stack_peek (stack, 1) == op2);
+	g_assert_true (xb_stack_peek (stack, 2) == op3);
 }
 
 static void
@@ -151,14 +160,18 @@ xb_common_func (void)
 static void
 xb_opcodes_kind_func (void)
 {
-	g_autoptr(XbOpcode) op1 = xb_opcode_func_new (0);
-	g_autoptr(XbOpcode) op2 = xb_opcode_integer_new (1);
-	g_autoptr(XbOpcode) op3 = xb_opcode_text_new ("dave");
+	g_auto(XbOpcode) op1 = XB_OPCODE_INIT ();
+	g_auto(XbOpcode) op2 = XB_OPCODE_INIT ();
+	g_auto(XbOpcode) op3 = XB_OPCODE_INIT ();
+
+	xb_opcode_func_init (&op1, 0);
+	xb_opcode_integer_init (&op2, 1);
+	xb_opcode_text_init (&op3, "dave");
 
 	/* check kind */
-	g_assert_cmpint (xb_opcode_get_kind (op1), ==, XB_OPCODE_KIND_FUNCTION);
-	g_assert_cmpint (xb_opcode_get_kind (op2), ==, XB_OPCODE_KIND_INTEGER);
-	g_assert_cmpint (xb_opcode_get_kind (op3), ==, XB_OPCODE_KIND_TEXT);
+	g_assert_cmpint (xb_opcode_get_kind (&op1), ==, XB_OPCODE_KIND_FUNCTION);
+	g_assert_cmpint (xb_opcode_get_kind (&op2), ==, XB_OPCODE_KIND_INTEGER);
+	g_assert_cmpint (xb_opcode_get_kind (&op3), ==, XB_OPCODE_KIND_TEXT);
 
 	/* to and from string */
 	g_assert_cmpint (xb_opcode_kind_from_string ("TEXT"), ==, XB_OPCODE_KIND_TEXT);
@@ -171,14 +184,14 @@ xb_opcodes_kind_func (void)
 	g_assert_cmpstr (xb_opcode_kind_to_string (XB_OPCODE_KIND_UNKNOWN), ==, NULL);
 
 	/* integer compare */
-	g_assert_false (xb_opcode_cmp_val (op1));
-	g_assert_true (xb_opcode_cmp_val (op2));
-	g_assert_false (xb_opcode_cmp_val (op3));
+	g_assert_false (xb_opcode_cmp_val (&op1));
+	g_assert_true (xb_opcode_cmp_val (&op2));
+	g_assert_false (xb_opcode_cmp_val (&op3));
 
 	/* string compare */
-	g_assert_false (xb_opcode_cmp_str (op1));
-	g_assert_false (xb_opcode_cmp_str (op2));
-	g_assert_true (xb_opcode_cmp_str (op3));
+	g_assert_false (xb_opcode_cmp_str (&op1));
+	g_assert_false (xb_opcode_cmp_str (&op2));
+	g_assert_true (xb_opcode_cmp_str (&op3));
 }
 
 static void

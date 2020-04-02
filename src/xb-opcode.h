@@ -67,24 +67,23 @@ typedef struct _XbOpcode XbOpcode;
 gboolean	 xb_opcode_cmp_val		(XbOpcode	*self);
 gboolean	 xb_opcode_cmp_str		(XbOpcode	*self);
 
-GType		 xb_opcode_get_type		(void);
 gchar		*xb_opcode_to_string		(XbOpcode	*self);
 const gchar	*xb_opcode_kind_to_string	(XbOpcodeKind	 kind);
 XbOpcodeKind	 xb_opcode_kind_from_string	(const gchar	*str);
-
-void		 xb_opcode_unref		(XbOpcode	*self);
-XbOpcode	*xb_opcode_ref			(XbOpcode	*self);
 
 XbOpcodeKind	 xb_opcode_get_kind		(XbOpcode	*self);
 const gchar	*xb_opcode_get_str		(XbOpcode	*self);
 guint32		 xb_opcode_get_val		(XbOpcode	*self);
 
-XbOpcode	*xb_opcode_func_new		(guint32	 func);
-XbOpcode	*xb_opcode_integer_new		(guint32	 val);
-XbOpcode	*xb_opcode_text_new		(const gchar	*str);
-XbOpcode	*xb_opcode_text_new_static	(const gchar	*str);
-XbOpcode	*xb_opcode_text_new_steal	(gchar		*str);
-
-G_DEFINE_AUTOPTR_CLEANUP_FUNC(XbOpcode, xb_opcode_unref)
+void		 xb_opcode_func_init		(XbOpcode	*opcode,
+						 guint32	 func);
+void		 xb_opcode_integer_init		(XbOpcode	*opcode,
+						 guint32	 val);
+void		 xb_opcode_text_init		(XbOpcode	*opcode,
+						 const gchar	*str);
+void		 xb_opcode_text_init_static	(XbOpcode	*opcode,
+						 const gchar	*str);
+void		 xb_opcode_text_init_steal	(XbOpcode	*opcode,
+						 gchar		*str);
 
 G_END_DECLS
