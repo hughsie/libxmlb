@@ -95,12 +95,6 @@ LIBXMLB_0.1.1 {
     xb_machine_parse;
     xb_machine_run;
     xb_machine_set_debug_flags;
-    xb_machine_stack_pop;
-    xb_machine_stack_push;
-    xb_machine_stack_push_integer;
-    xb_machine_stack_push_text;
-    xb_machine_stack_push_text_static;
-    xb_machine_stack_push_text_steal;
     xb_opcode_cmp_str;
     xb_opcode_cmp_val;
     xb_opcode_func_new;
@@ -145,8 +139,6 @@ LIBXMLB_0.1.3 {
     xb_machine_get_stack_size;
     xb_machine_set_stack_size;
     xb_stack_get_type;
-    xb_stack_pop;
-    xb_stack_push;
     xb_stack_push_steal;
   local: *;
 } LIBXMLB_0.1.2;
@@ -222,3 +214,22 @@ LIBXMLB_0.1.15 {
     xb_query_set_flags;
   local: *;
 } LIBXMLB_0.1.13;
+
+LIBXMLB_0.2.0 {
+  global:
+    xb_machine_opcode_func_init;
+    xb_machine_stack_pop;
+    xb_machine_stack_push;
+    xb_machine_stack_push_integer;
+    xb_machine_stack_push_text;
+    xb_machine_stack_push_text_static;
+    xb_machine_stack_push_text_steal;
+    xb_opcode_func_init;
+    xb_opcode_integer_init;
+    xb_opcode_text_init;
+    xb_opcode_text_init_static;
+    xb_opcode_text_init_steal;
+    xb_stack_pop;
+    xb_stack_push;
+  local: *;
+} LIBXMLB_0.1.15;

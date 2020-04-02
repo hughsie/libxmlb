@@ -12,14 +12,6 @@
 
 #include "xb-opcode-private.h"
 
-struct _XbOpcode {
-	gint		 ref;
-	XbOpcodeKind	 kind;
-	guint32		 val;
-	gpointer	 ptr;
-	GDestroyNotify	 destroy_func;
-};
-
 /**
  * xb_opcode_kind_to_string:
  * @kind: a #XbOpcodeKind, e.g. %XB_OPCODE_KIND_FUNCTION
@@ -237,16 +229,29 @@ xb_opcode_get_str (XbOpcode *self)
  * refcount drops to zero.
  *
  * Since: 0.1.1
+ * Deprecated: 0.2.0: Use stack-allocated #XbOpcodes, and xb_opcode_clear()
  **/
 void
 xb_opcode_unref (XbOpcode *self)
 {
-	g_assert (self->ref > 0);
-	if (--self->ref > 0)
-		return;
+	g_assert_not_reached ();
+}
+
+/**
+ * xb_opcode_clear:
+ * @self: a #XbOpcode
+ *
+ * Clears any allocated data inside the opcode, but does not free the #XbOpcode
+ * itself. This is suitable for calling on stack-allocated #XbOpcodes.
+ *
+ * Since: 0.2.0
+ */
+void
+xb_opcode_clear (XbOpcode *self)
+{
 	if (self->destroy_func)
 		self->destroy_func (self->ptr);
-	g_slice_free (XbOpcode, self);
+	self->destroy_func = NULL;
 }
 
 /**
@@ -258,12 +263,29 @@ xb_opcode_unref (XbOpcode *self)
  * Returns: (transfer none): the original @self #XbOpcode instance
  *
  * Since: 0.1.1
+ * Deprecated: 0.2.0: Use stack-allocated #XbOpcodes
  **/
 XbOpcode *
 xb_opcode_ref (XbOpcode *self)
 {
-	self->ref++;
-	return self;
+	g_assert_not_reached ();
+}
+
+/**
+ * xb_opcode_text_init:
+ * @opcode: a stack allocated #XbOpcode to initialise
+ * @str: a string
+ *
+ * Initialises a stack allocated #XbOpcode to contain a text literal.
+ * The @str argument is copied internally and is not tied to the lifecycle of
+ * the #XbOpcode.
+ *
+ * Since: 0.2.0
+ **/
+void
+xb_opcode_text_init (XbOpcode *opcode, const gchar *str)
+{
+	xb_opcode_init (opcode, XB_OPCODE_KIND_TEXT, g_strdup (str), 0, g_free);
 }
 
 /**
@@ -276,16 +298,38 @@ xb_opcode_ref (XbOpcode *self)
  * Returns: (transfer full): a #XbOpcode
  *
  * Since: 0.1.1
+ * Deprecated: 0.2.0: Use xb_opcode_text_init() instead
  **/
 XbOpcode *
 xb_opcode_text_new (const gchar *str)
 {
-	XbOpcode *self = g_slice_new0 (XbOpcode);
-	self->ref = 1;
-	self->kind = XB_OPCODE_KIND_TEXT;
-	self->ptr = g_strdup (str);
-	self->destroy_func = g_free;
-	return self;
+	/* Deprecated. */
+	g_assert_not_reached ();
+}
+
+/**
+ * xb_opcode_init:
+ * @opcode: allocated opcode to fill
+ * @kind: a #XbOpcodeKind, e.g. %XB_OPCODE_KIND_INTEGER
+ * @str: a string
+ * @val: a integer value
+ * @destroy_func: (nullable): a #GDestroyNotify, e.g. g_free()
+ *
+ * Initialises a stack allocated #XbOpcode.
+ *
+ * Since: 0.2.0
+ **/
+void
+xb_opcode_init (XbOpcode       *opcode,
+                XbOpcodeKind    kind,
+                const gchar    *str,
+                guint32         val,
+                GDestroyNotify  destroy_func)
+{
+	opcode->kind = kind;
+	opcode->ptr = (gpointer) str;
+	opcode->val = val;
+	opcode->destroy_func = destroy_func;
 }
 
 /**
@@ -300,6 +344,7 @@ xb_opcode_text_new (const gchar *str)
  * Returns: (transfer full): a #XbOpcode
  *
  * Since: 0.1.4
+ * Deprecated: 0.2.0: Use xb_opcode_init() instead
  **/
 XbOpcode *
 xb_opcode_new (XbOpcodeKind kind,
@@ -307,13 +352,23 @@ xb_opcode_new (XbOpcodeKind kind,
 	       guint32 val,
 	       GDestroyNotify destroy_func)
 {
-	XbOpcode *self = g_slice_new0 (XbOpcode);
-	self->ref = 1;
-	self->kind = kind;
-	self->ptr = (gpointer) str;
-	self->val = val;
-	self->destroy_func = destroy_func;
-	return self;
+	g_assert_not_reached ();
+}
+
+/**
+ * xb_opcode_text_init_static:
+ * @opcode: a stack allocated #XbOpcode to initialise
+ * @str: a string
+ *
+ * Initialises a stack allocated #XbOpcode to contain a text literal, where
+ * @str is either static text or will outlive the #XbOpcode lifecycle.
+ *
+ * Since: 0.2.0
+ **/
+void
+xb_opcode_text_init_static (XbOpcode *opcode, const gchar *str)
+{
+	xb_opcode_init (opcode, XB_OPCODE_KIND_TEXT, str, 0, NULL);
 }
 
 /**
@@ -326,15 +381,28 @@ xb_opcode_new (XbOpcodeKind kind,
  * Returns: (transfer full): a #XbOpcode
  *
  * Since: 0.1.1
+ * Deprecated: 0.2.0: Use xb_opcode_text_init_static() instead
  **/
 XbOpcode *
 xb_opcode_text_new_static (const gchar *str)
 {
-	XbOpcode *self = g_slice_new0 (XbOpcode);
-	self->ref = 1;
-	self->kind = XB_OPCODE_KIND_TEXT;
-	self->ptr = (gpointer) str;
-	return self;
+	g_assert_not_reached ();
+}
+
+/**
+ * xb_opcode_text_init_steal:
+ * @opcode: a stack allocated #XbOpcode to initialise
+ * @str: a string
+ *
+ * Initialises a stack allocated #XbOpcode to contain a text literal, stealing
+ * the @str. Once the opcode is finalized g_free() will be called on @str.
+ *
+ * Since: 0.2.0
+ **/
+void
+xb_opcode_text_init_steal (XbOpcode *opcode, gchar *str)
+{
+	xb_opcode_init (opcode, XB_OPCODE_KIND_TEXT, g_steal_pointer (&str), 0, g_free);
 }
 
 /**
@@ -347,16 +415,29 @@ xb_opcode_text_new_static (const gchar *str)
  * Returns: (transfer full): a #XbOpcode
  *
  * Since: 0.1.1
+ * Deprecated: 0.2.0: Use xb_opcode_text_init_steal() instead
  **/
 XbOpcode *
 xb_opcode_text_new_steal (gchar *str)
 {
-	XbOpcode *self = g_slice_new0 (XbOpcode);
-	self->ref = 1;
-	self->kind = XB_OPCODE_KIND_TEXT;
-	self->ptr = (gpointer) str;
-	self->destroy_func = g_free;
-	return self;
+	g_assert_not_reached ();
+}
+
+/**
+ * xb_opcode_func_init:
+ * @opcode: a stack allocated #XbOpcode to initialise
+ * @func: a function index
+ *
+ * Initialises a stack allocated #XbOpcode to contain a specific function.
+ * Custom functions can be registered using xb_machine_add_func() and retrieved
+ * using xb_machine_opcode_func_new().
+ *
+ * Since: 0.2.0
+ **/
+void
+xb_opcode_func_init (XbOpcode *opcode, guint32 func)
+{
+	xb_opcode_init (opcode, XB_OPCODE_KIND_FUNCTION, NULL, func, NULL);
 }
 
 /**
@@ -369,15 +450,27 @@ xb_opcode_text_new_steal (gchar *str)
  * Returns: (transfer full): a #XbOpcode
  *
  * Since: 0.1.1
+ * Deprecated: 0.2.0: Use xb_opcode_func_init() instead
  **/
 XbOpcode *
 xb_opcode_func_new (guint32 func)
 {
-	XbOpcode *self = g_slice_new0 (XbOpcode);
-	self->ref = 1;
-	self->kind = XB_OPCODE_KIND_FUNCTION;
-	self->val = func;
-	return self;
+	g_assert_not_reached ();
+}
+
+/**
+ * xb_opcode_bind_init:
+ * @opcode: a stack allocated #XbOpcode to initialise
+ *
+ * Initialises a stack allocated #XbOpcode to contain a bind variable. A value
+ * needs to be assigned to this opcode at runtime using xb_query_bind_str().
+ *
+ * Since: 0.2.0
+ **/
+void
+xb_opcode_bind_init (XbOpcode *opcode)
+{
+	xb_opcode_init (opcode, XB_OPCODE_KIND_BOUND_INTEGER, NULL, 0, NULL);
 }
 
 /**
@@ -389,14 +482,12 @@ xb_opcode_func_new (guint32 func)
  * Returns: (transfer full): a #XbOpcode
  *
  * Since: 0.1.4
+ * Deprecated: 0.2.0: Use xb_opcode_bind_init() instead
  **/
 XbOpcode *
 xb_opcode_bind_new (void)
 {
-	XbOpcode *self = g_slice_new0 (XbOpcode);
-	self->ref = 1;
-	self->kind = XB_OPCODE_KIND_BOUND_INTEGER;
-	return self;
+	g_assert_not_reached ();
 }
 
 /* private */
@@ -439,6 +530,21 @@ xb_opcode_set_kind (XbOpcode *self, XbOpcodeKind kind)
 }
 
 /**
+ * xb_opcode_integer_init:
+ * @opcode: a stack allocated #XbOpcode to initialise
+ * @val: a integer value
+ *
+ * Initialises a stack allocated #XbOpcode to contain an integer literal.
+ *
+ * Since: 0.2.0
+ **/
+void
+xb_opcode_integer_init (XbOpcode *opcode, guint32 val)
+{
+	xb_opcode_init (opcode, XB_OPCODE_KIND_INTEGER, NULL, val, NULL);
+}
+
+/**
  * xb_opcode_integer_new:
  * @val: a integer value
  *
@@ -447,31 +553,27 @@ xb_opcode_set_kind (XbOpcode *self, XbOpcodeKind kind)
  * Returns: (transfer full): a #XbOpcode
  *
  * Since: 0.1.1
+ * Deprecated: 0.2.0: Use xb_opcode_integer_init() instead
  **/
 XbOpcode *
 xb_opcode_integer_new (guint32 val)
 {
-	XbOpcode *self = g_slice_new0 (XbOpcode);
-	self->ref = 1;
-	self->kind = XB_OPCODE_KIND_INTEGER;
-	self->val = val;
-	return self;
+	g_assert_not_reached ();
 }
 
 /* private */
-XbOpcode *
-xb_opcode_bool_new (gboolean val)
+void
+xb_opcode_bool_init (XbOpcode *opcode, gboolean val)
 {
-	XbOpcode *self = g_slice_new0 (XbOpcode);
-	self->ref = 1;
-	self->kind = XB_OPCODE_KIND_BOOLEAN;
-	self->val = val;
-	return self;
+	xb_opcode_init (opcode, XB_OPCODE_KIND_BOOLEAN, NULL, !!val, NULL);
 }
 
+/* Effectively this is deprecated, as ref() and unref() are deprecated and will
+ * abort. It’s kept for ABI compatibility. */
 GType
 xb_opcode_get_type (void)
 {
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 	static GType type = 0;
 	if (G_UNLIKELY (!type)) {
 		type = g_boxed_type_register_static ("XbOpcode",
@@ -479,4 +581,5 @@ xb_opcode_get_type (void)
 						     (GBoxedFreeFunc) xb_opcode_unref);
 	}
 	return type;
+G_GNUC_END_IGNORE_DEPRECATIONS
 }

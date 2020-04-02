@@ -115,8 +115,12 @@ void		 xb_machine_add_operator	(XbMachine		*self,
 						 const gchar		*str,
 						 const gchar		*name);
 
-XbOpcode	*xb_machine_opcode_func_new	(XbMachine		*self,
+gboolean	 xb_machine_opcode_func_init	(XbMachine		*self,
+						 XbOpcode		*opcode,
 						 const gchar		*func_name);
+G_DEPRECATED_FOR(xb_machine_opcode_func_init)
+XbOpcode	*xb_machine_opcode_func_new	(XbMachine		*self,
+						 const gchar		*func_name) G_GNUC_NORETURN;
 gchar		*xb_machine_opcode_to_string	(XbMachine		*self,
 						 XbOpcode		*opcode)
 G_DEPRECATED_FOR(xb_opcode_to_string);
@@ -124,26 +128,33 @@ gchar		*xb_machine_opcodes_to_string	(XbMachine		*self,
 						 XbStack		*opcodes)
 G_DEPRECATED_FOR(xb_stack_to_string);
 
-XbOpcode	*xb_machine_stack_pop		(XbMachine		*self,
-						 XbStack		*stack);
-void		 xb_machine_stack_push		(XbMachine		*self,
+gboolean	 xb_machine_stack_pop		(XbMachine		*self,
 						 XbStack		*stack,
-						 XbOpcode		*opcode);
+						 XbOpcode		*opcode_out);
+gboolean	 xb_machine_stack_push		(XbMachine		*self,
+						 XbStack		*stack,
+						 XbOpcode		**opcode_out,
+						 GError			**error);
+G_DEPRECATED_FOR(xb_machine_stach_push)
 void		 xb_machine_stack_push_steal	(XbMachine		*self,
 						 XbStack		*stack,
-						 XbOpcode		*opcode);
-void		 xb_machine_stack_push_text	(XbMachine		*self,
+						 XbOpcode		*opcode) G_GNUC_NORETURN;
+gboolean	 xb_machine_stack_push_text	(XbMachine		*self,
 						 XbStack		*stack,
-						 const gchar		*str);
-void		 xb_machine_stack_push_text_static (XbMachine		*self,
+						 const gchar		*str,
+						 GError			**error);
+gboolean	 xb_machine_stack_push_text_static (XbMachine		*self,
 						 XbStack		*stack,
-						 const gchar		*str);
-void		 xb_machine_stack_push_text_steal (XbMachine		*self,
+						 const gchar		*str,
+						 GError			**error);
+gboolean	 xb_machine_stack_push_text_steal (XbMachine		*self,
 						 XbStack		*stack,
-						 gchar			*str);
-void		 xb_machine_stack_push_integer	(XbMachine		*self,
+						 gchar			*str,
+						 GError			**error);
+gboolean	 xb_machine_stack_push_integer	(XbMachine		*self,
 						 XbStack		*stack,
-						 guint32		 val);
+						 guint32		 val,
+						 GError			**error);
 void		 xb_machine_set_stack_size	(XbMachine		*self,
 						 guint			 stack_size);
 guint		 xb_machine_get_stack_size	(XbMachine		*self);
