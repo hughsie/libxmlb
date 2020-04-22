@@ -22,7 +22,7 @@ the text XML data where a lot of the tag content is duplicated, but can actually
 be larger than the original XML file. This isn't important; the fast query speed
 and the ability to mmap strings without copies more than makes up for the larger
 on-disk size. If you want to compress your XML, this library probably isn't for
-you -- just use gzip -- its gives you an almost a perfect compression ratio for
+you -- just use gzip -- it gives you an almost a perfect compression ratio for
 data like this.
 
 For example:
