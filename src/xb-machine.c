@@ -577,7 +577,7 @@ xb_machine_opcodes_optimize_fn (XbMachine *self,
 	stack_str = xb_stack_to_string (stack);
 	if (!item->method_cb (self, stack, NULL, item->user_data, NULL, &error_local)) {
 		if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_OPTIMIZER) {
-			g_debug ("ignoring opimized call to %s(%s): %s",
+			g_debug ("ignoring optimized call to %s(%s): %s",
 				 item->name,
 				 stack_str,
 				 error_local->message);
