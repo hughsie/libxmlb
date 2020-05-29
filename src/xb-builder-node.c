@@ -27,7 +27,10 @@ typedef struct {
 	gchar			*tail;
 	guint32			 tail_idx;
 	XbBuilderNode		*parent;	/* noref */
-	GPtrArray		*children;	/* of XbBuilderNode */
+
+	/* Around 87% of all XML nodes have zero children, so this array is only
+	 * allocated if it’s non-empty. %NULL means an empty array. */
+	GPtrArray		*children;	/* (element-type XbBuilderNode) (nullable) */
 
 	/* Around 80% of all XML nodes have zero attributes, so this array is only
 	 * allocated if it’s non-empty. %NULL means an empty array. */
@@ -77,7 +80,7 @@ xb_builder_node_add_flag (XbBuilderNode *self, XbBuilderNodeFlags flag)
 		return;
 
 	priv->flags |= flag;
-	for (guint i = 0; i < priv->children->len; i++) {
+	for (guint i = 0; priv->children != NULL && i < priv->children->len; i++) {
 		XbBuilderNode *c = g_ptr_array_index (priv->children, i);
 		xb_builder_node_add_flag (c, flag);
 	}
@@ -455,6 +458,9 @@ xb_builder_node_add_child (XbBuilderNode *self, XbBuilderNode *child)
 	priv_child->parent = self;
 	g_object_add_weak_pointer (G_OBJECT (self), (gpointer *) &priv_child->parent);
 
+	if (priv->children == NULL)
+		priv->children = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+
 	g_ptr_array_add (priv->children, g_object_ref (child));
 }
 
@@ -477,7 +483,8 @@ xb_builder_node_remove_child (XbBuilderNode *self, XbBuilderNode *child)
 	g_object_remove_weak_pointer (G_OBJECT (self), (gpointer *) &priv_child->parent);
 	priv_child->parent = NULL;
 
-	g_ptr_array_remove (priv->children, child);
+	if (priv->children != NULL)
+		g_ptr_array_remove (priv->children, child);
 }
 
 /**
@@ -538,6 +545,12 @@ xb_builder_node_get_children (XbBuilderNode *self)
 {
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_BUILDER_NODE (self), NULL);
+
+	/* For backwards compatibility reasons we have to return a non-%NULL
+	 * array here. */
+	if (priv->children == NULL)
+		priv->children = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+
 	return priv->children;
 }
 
@@ -556,7 +569,7 @@ xb_builder_node_get_first_child (XbBuilderNode *self)
 {
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_BUILDER_NODE (self), NULL);
-	if (priv->children->len == 0)
+	if (priv->children == NULL || priv->children->len == 0)
 		return NULL;
 	return g_ptr_array_index (priv->children, 0);
 }
@@ -576,7 +589,7 @@ xb_builder_node_get_last_child (XbBuilderNode *self)
 {
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_BUILDER_NODE (self), NULL);
-	if (priv->children->len == 0)
+	if (priv->children == NULL || priv->children->len == 0)
 		return NULL;
 	return g_ptr_array_index (priv->children, priv->children->len - 1);
 }
@@ -600,6 +613,9 @@ xb_builder_node_get_child (XbBuilderNode *self, const gchar *element, const gcha
 
 	g_return_val_if_fail (XB_IS_BUILDER_NODE (self), NULL);
 	g_return_val_if_fail (element != NULL, NULL);
+
+	if (priv->children == NULL)
+		return NULL;
 
 	for (guint i = 0; i < priv->children->len; i++) {
 		XbBuilderNode *child = g_ptr_array_index (priv->children, i);
@@ -625,16 +641,17 @@ xb_builder_node_traverse_cb (XbBuilderNodeTraverseHelper *helper,
 			     XbBuilderNode *bn,
 			     gint depth)
 {
-	GPtrArray *children = xb_builder_node_get_children (bn);
+	XbBuilderNodePrivate *priv = GET_PRIVATE (bn);
+	GPtrArray *children = priv->children;
 
 	/* only leaves */
 	if (helper->flags == G_TRAVERSE_LEAVES &&
-	    children->len > 0)
+	    children != NULL && children->len > 0)
 		return;
 
 	/* only non-leaves */
 	if (helper->flags == G_TRAVERSE_NON_LEAVES &&
-	    children->len == 0)
+	    (children == NULL || children->len == 0))
 		return;
 
 	/* recurse */
@@ -642,7 +659,7 @@ xb_builder_node_traverse_cb (XbBuilderNodeTraverseHelper *helper,
 		if (helper->func (bn, helper->user_data))
 			return;
 	}
-	if (helper->max_depth < 0 || depth < helper->max_depth) {
+	if ((helper->max_depth < 0 || depth < helper->max_depth) && children != NULL) {
 		for (guint i = 0; i < children->len; i++) {
 			XbBuilderNode *bc = g_ptr_array_index (children, i);
 			xb_builder_node_traverse_cb (helper, bc, depth + 1);
@@ -728,6 +745,10 @@ xb_builder_node_sort_children (XbBuilderNode *self,
 	};
 	g_return_if_fail (XB_IS_BUILDER_NODE (self));
 	g_return_if_fail (func != NULL);
+
+	if (priv->children == NULL)
+		return;
+
 	g_ptr_array_sort_with_data (priv->children,
 				    xb_builder_node_sort_children_cb,
 				    &helper);
@@ -849,7 +870,7 @@ xb_builder_node_init (XbBuilderNode *self)
 	priv->text_idx = XB_SILO_UNSET;
 	priv->tail_idx = XB_SILO_UNSET;
 	priv->attrs = NULL;  /* only allocated when an attribute is added */
-	priv->children = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+	priv->children = NULL;  /* only allocated when a child is added */
 }
 
 static void
@@ -861,7 +882,7 @@ xb_builder_node_finalize (GObject *obj)
 	g_free (priv->text);
 	g_free (priv->tail);
 	g_clear_pointer (&priv->attrs, g_ptr_array_unref);
-	g_ptr_array_unref (priv->children);
+	g_clear_pointer (&priv->children, g_ptr_array_unref);
 	G_OBJECT_CLASS (xb_builder_node_parent_class)->finalize (obj);
 }
 
@@ -1014,7 +1035,7 @@ xb_builder_node_export_helper (XbBuilderNode *self,
 	}
 
 	/* recurse deeper */
-	for (guint i = 0; i < priv->children->len; i++) {
+	for (guint i = 0; priv->children != NULL && i < priv->children->len; i++) {
 		XbBuilderNode *child = g_ptr_array_index (priv->children, i);
 		helper->level++;
 		if (!xb_builder_node_export_helper (child, helper, error))
