@@ -28,11 +28,16 @@ typedef struct {
 	guint32			 tail_idx;
 	XbBuilderNode		*parent;	/* noref */
 	GPtrArray		*children;	/* of XbBuilderNode */
-	GPtrArray		*attrs;		/* of XbBuilderNodeAttr */
+
+	/* Around 80% of all XML nodes have zero attributes, so this array is only
+	 * allocated if it’s non-empty. %NULL means an empty array. */
+	GPtrArray		*attrs;		/* (element-type XbBuilderNodeAttr) (nullable) */
 } XbBuilderNodePrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (XbBuilderNode, xb_builder_node, G_TYPE_OBJECT)
 #define GET_PRIVATE(o) (xb_builder_node_get_instance_private (o))
+
+static void xb_builder_node_attr_free (XbBuilderNodeAttr *attr);
 
 /**
  * xb_builder_node_has_flag:
@@ -131,6 +136,10 @@ xb_builder_node_get_attr (XbBuilderNode *self, const gchar *name)
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_BUILDER_NODE (self), NULL);
 	g_return_val_if_fail (name != NULL, NULL);
+
+	if (priv->attrs == NULL)
+		return NULL;
+
 	for (guint i = 0; i < priv->attrs->len; i++) {
 		XbBuilderNodeAttr *a = g_ptr_array_index (priv->attrs, i);
 		if (g_strcmp0 (a->name, name) == 0)
@@ -219,6 +228,7 @@ xb_builder_node_get_tail (XbBuilderNode *self)
 }
 
 /* private */
+/* Returns NULL if the array is empty */
 GPtrArray *
 xb_builder_node_get_attrs (XbBuilderNode *self)
 {
@@ -352,6 +362,9 @@ xb_builder_node_set_attr (XbBuilderNode *self, const gchar *name, const gchar *v
 	g_return_if_fail (XB_IS_BUILDER_NODE (self));
 	g_return_if_fail (name != NULL);
 
+	if (priv->attrs == NULL)
+		priv->attrs = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_builder_node_attr_free);
+
 	/* check for existing name */
 	for (guint i = 0; i < priv->attrs->len; i++) {
 		a = g_ptr_array_index (priv->attrs, i);
@@ -387,6 +400,9 @@ xb_builder_node_remove_attr (XbBuilderNode *self, const gchar *name)
 
 	g_return_if_fail (XB_IS_BUILDER_NODE (self));
 	g_return_if_fail (name != NULL);
+
+	if (priv->attrs == NULL)
+		return;
 
 	for (guint i = 0; i < priv->attrs->len; i++) {
 		XbBuilderNodeAttr *a = g_ptr_array_index (priv->attrs, i);
@@ -813,7 +829,8 @@ xb_builder_node_size (XbBuilderNode *self)
 {
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 	guint32 sz = sizeof(XbSiloNode);
-	return sz + priv->attrs->len * sizeof(XbSiloAttr);
+	gsize n_attrs = (priv->attrs != NULL) ? priv->attrs->len : 0;
+	return sz + n_attrs * sizeof(XbSiloAttr);
 }
 
 static void
@@ -831,7 +848,7 @@ xb_builder_node_init (XbBuilderNode *self)
 	priv->element_idx = XB_SILO_UNSET;
 	priv->text_idx = XB_SILO_UNSET;
 	priv->tail_idx = XB_SILO_UNSET;
-	priv->attrs = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_builder_node_attr_free);
+	priv->attrs = NULL;  /* only allocated when an attribute is added */
 	priv->children = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 }
 
@@ -843,7 +860,7 @@ xb_builder_node_finalize (GObject *obj)
 	g_free (priv->element);
 	g_free (priv->text);
 	g_free (priv->tail);
-	g_ptr_array_unref (priv->attrs);
+	g_clear_pointer (&priv->attrs, g_ptr_array_unref);
 	g_ptr_array_unref (priv->children);
 	G_OBJECT_CLASS (xb_builder_node_parent_class)->finalize (obj);
 }
@@ -978,7 +995,7 @@ xb_builder_node_export_helper (XbBuilderNode *self,
 	g_string_append_printf (helper->xml, "<%s", priv->element);
 
 	/* add any attributes */
-	for (guint i = 0; i < priv->attrs->len; i++) {
+	for (guint i = 0; priv->attrs != NULL && i < priv->attrs->len; i++) {
 		XbBuilderNodeAttr *a = g_ptr_array_index (priv->attrs, i);
 		g_autofree gchar *key = xb_string_xml_escape (a->name);
 		g_autofree gchar *val = xb_string_xml_escape (a->value);
