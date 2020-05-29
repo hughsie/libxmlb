@@ -425,6 +425,7 @@ xb_builder_source_get_istream (XbBuilderSource *self,
 {
 	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
 	g_autofree gchar *basename = NULL;
+	GFile *file;
 
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), NULL);
 
@@ -439,11 +440,13 @@ xb_builder_source_get_istream (XbBuilderSource *self,
 
 	/* run the content type handlers until we get application/xml */
 	basename = g_file_get_basename (priv->file);
+	file = priv->file;
+
 	do {
 		XbBuilderSourceAdapter *item;
 		g_autofree gchar *content_type = NULL;
 		g_autoptr(GInputStream) istream_tmp = NULL;
-		g_autoptr(XbBuilderSourceCtx) ctx = xb_builder_source_ctx_new (priv->istream);
+		g_autoptr(XbBuilderSourceCtx) ctx = xb_builder_source_ctx_new (file, priv->istream);
 
 		/* get the content type of the stream */
 		xb_builder_source_ctx_set_filename (ctx, basename);
@@ -471,6 +474,12 @@ xb_builder_source_get_istream (XbBuilderSource *self,
 			return NULL;
 		xb_builder_source_remove_last_extension (basename);
 		g_set_object (&priv->istream, istream_tmp);
+
+		/* the #GFile is only useful for the outermost input stream,
+		 * for example it points to the .tar.gz file, while inner input
+		 * streams are the .xml output of decompressing the .gz in
+		 * memory and can’t be represented as a #GFile */
+		file = NULL;
 
 		if (item->is_simple)
 			break;

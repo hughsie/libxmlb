@@ -14,6 +14,7 @@
 #include "xb-common-private.h"
 
 typedef struct {
+	GFile			*file;
 	GInputStream		*istream;
 	gchar			*basename;
 	gchar			*content_type;
@@ -182,6 +183,7 @@ xb_builder_source_ctx_finalize (GObject *obj)
 	XbBuilderSourceCtxPrivate *priv = GET_PRIVATE (self);
 	g_free (priv->basename);
 	g_object_unref (priv->istream);
+	g_clear_object (&priv->file);
 	G_OBJECT_CLASS (xb_builder_source_ctx_parent_class)->finalize (obj);
 }
 
@@ -194,6 +196,8 @@ xb_builder_source_ctx_class_init (XbBuilderSourceCtxClass *klass)
 
 /**
  * xb_builder_source_ctx_new:
+ * @file: (transfer none) (nullable): Path to the file which contains the source,
+ *    or %NULL if the source is not directly loadable from disk
  * @istream: (transfer none): Input stream to load the source from
  *
  * Creates a new builder source_ctx.
@@ -203,10 +207,15 @@ xb_builder_source_ctx_class_init (XbBuilderSourceCtxClass *klass)
  * Since: 0.1.7
  **/
 XbBuilderSourceCtx *
-xb_builder_source_ctx_new (GInputStream *istream)
+xb_builder_source_ctx_new (GFile *file, GInputStream *istream)
 {
 	XbBuilderSourceCtx *self = g_object_new (XB_TYPE_BUILDER_SOURCE_CTX, NULL);
 	XbBuilderSourceCtxPrivate *priv = GET_PRIVATE (self);
+
+	g_return_val_if_fail (file == NULL || G_IS_FILE (file), NULL);
+	g_return_val_if_fail (G_IS_INPUT_STREAM (istream), NULL);
+
+	priv->file = (file != NULL) ? g_object_ref (file) : NULL;
 	priv->istream = g_object_ref (istream);
 	return self;
 }
