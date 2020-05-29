@@ -85,7 +85,7 @@ _g_input_stream_read_bytes_in_chunks (GInputStream *stream,
  *
  * Returns the data currently being processed.
  *
- * Returns: (transfer none): a #GInputStream
+ * Returns: (transfer full): a #GBytes
  *
  * Since: 0.1.7
  **/
@@ -110,7 +110,7 @@ xb_builder_source_ctx_get_bytes (XbBuilderSourceCtx *self,
  *
  * Returns the basename of the file currently being processed.
  *
- * Returns: a basename, or %NULL if unset
+ * Returns: (transfer none) (nullable): a basename, or %NULL if unset
  *
  * Since: 0.1.7
  **/
@@ -125,11 +125,13 @@ xb_builder_source_ctx_get_filename (XbBuilderSourceCtx *self)
 /**
  * xb_builder_source_ctx_get_content_type:
  * @self: a #XbBuilderSourceCtx
+ * @cancellable: a #GCancellable, or %NULL
+ * @error: the #GError, or %NULL
  *
  * Returns the content type of the input stream currently being
  * processed.
  *
- * Returns: (transfer full): a content type (e.g. `application/x-desktop`), or %NULL
+ * Returns: (transfer full): a content type (e.g. `application/x-desktop`), or %NULL on error
  *
  * Since: 0.1.7
  **/
@@ -192,7 +194,7 @@ xb_builder_source_ctx_class_init (XbBuilderSourceCtxClass *klass)
 
 /**
  * xb_builder_source_ctx_new:
- * @element: An element name, e.g. "component"
+ * @istream: (transfer none): Input stream to load the source from
  *
  * Creates a new builder source_ctx.
  *
