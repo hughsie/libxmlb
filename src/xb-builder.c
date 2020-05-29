@@ -321,7 +321,7 @@ xb_builder_strtab_attr_name_cb (XbBuilderNode *bn, gpointer user_data)
 	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE))
 		return FALSE;
 	attrs = xb_builder_node_get_attrs (bn);
-	for (guint i = 0; i < attrs->len; i++) {
+	for (guint i = 0; attrs != NULL && i < attrs->len; i++) {
 		XbBuilderNodeAttr *attr = g_ptr_array_index (attrs, i);
 		attr->name_idx = xb_builder_compile_add_to_strtab (helper, attr->name);
 	}
@@ -340,7 +340,7 @@ xb_builder_strtab_attr_value_cb (XbBuilderNode *bn, gpointer user_data)
 	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_IGNORE))
 		return FALSE;
 	attrs = xb_builder_node_get_attrs (bn);
-	for (guint i = 0; i < attrs->len; i++) {
+	for (guint i = 0; attrs != NULL && i < attrs->len; i++) {
 		XbBuilderNodeAttr *attr = g_ptr_array_index (attrs, i);
 		attr->value_idx = xb_builder_compile_add_to_strtab (helper, attr->value);
 	}
@@ -454,7 +454,7 @@ xb_builder_nodetab_write_node (XbBuilderNodetabHelper *helper, XbBuilderNode *bn
 	GPtrArray *attrs = xb_builder_node_get_attrs (bn);
 	XbSiloNode sn = {
 		.is_node	= TRUE,
-		.nr_attrs	= attrs->len,
+		.nr_attrs	= (attrs != NULL) ? attrs->len : 0,
 		.element_name	= xb_builder_node_get_element_idx (bn),
 		.next		= 0x0,
 		.parent		= 0x0,
@@ -480,7 +480,7 @@ xb_builder_nodetab_write_node (XbBuilderNodetabHelper *helper, XbBuilderNode *bn
 	XB_SILO_APPENDBUF (helper->buf, &sn, sizeof(XbSiloNode));
 
 	/* add to the buf */
-	for (guint i = 0; i < attrs->len; i++) {
+	for (guint i = 0; attrs != NULL && i < attrs->len; i++) {
 		XbBuilderNodeAttr *ba = g_ptr_array_index (attrs, i);
 		XbSiloAttr attr = {
 			.attr_name	= ba->name_idx,
