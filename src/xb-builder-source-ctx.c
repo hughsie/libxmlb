@@ -15,7 +15,7 @@
 
 typedef struct {
 	GInputStream		*istream;
-	gchar			*filename;
+	gchar			*basename;
 	gchar			*content_type;
 } XbBuilderSourceCtxPrivate;
 
@@ -110,7 +110,7 @@ xb_builder_source_ctx_get_bytes (XbBuilderSourceCtx *self,
  *
  * Returns the basename of the file currently being processed.
  *
- * Returns: a filename, or %NULL if unset
+ * Returns: a basename, or %NULL if unset
  *
  * Since: 0.1.7
  **/
@@ -119,7 +119,7 @@ xb_builder_source_ctx_get_filename (XbBuilderSourceCtx *self)
 {
 	XbBuilderSourceCtxPrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE_CTX (self), NULL);
-	return priv->filename;
+	return priv->basename;
 }
 
 /**
@@ -153,19 +153,19 @@ xb_builder_source_ctx_get_content_type (XbBuilderSourceCtx *self,
 			return NULL;
 	}
 	if (bufsz > 0)
-		return xb_content_type_guess (priv->filename, buf, bufsz);
-	return xb_content_type_guess (priv->filename, NULL, 0);
+		return xb_content_type_guess (priv->basename, buf, bufsz);
+	return xb_content_type_guess (priv->basename, NULL, 0);
 }
 
 /* private */
 void
-xb_builder_source_ctx_set_filename (XbBuilderSourceCtx *self, const gchar *filename)
+xb_builder_source_ctx_set_filename (XbBuilderSourceCtx *self, const gchar *basename)
 {
 	XbBuilderSourceCtxPrivate *priv = GET_PRIVATE (self);
 	g_return_if_fail (XB_IS_BUILDER_SOURCE_CTX (self));
-	g_return_if_fail (filename != NULL);
-	g_free (priv->filename);
-	priv->filename = g_strdup (filename);
+	g_return_if_fail (basename != NULL);
+	g_free (priv->basename);
+	priv->basename = g_strdup (basename);
 }
 
 static void
@@ -178,7 +178,7 @@ xb_builder_source_ctx_finalize (GObject *obj)
 {
 	XbBuilderSourceCtx *self = XB_BUILDER_SOURCE_CTX (obj);
 	XbBuilderSourceCtxPrivate *priv = GET_PRIVATE (self);
-	g_free (priv->filename);
+	g_free (priv->basename);
 	g_object_unref (priv->istream);
 	G_OBJECT_CLASS (xb_builder_source_ctx_parent_class)->finalize (obj);
 }
