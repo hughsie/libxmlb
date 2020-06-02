@@ -22,7 +22,6 @@
 #include "xb-string-private.h"
 
 typedef struct {
-	GObject			 parent_instance;
 	XbMachineDebugFlags	 debug_flags;
 	GPtrArray		*methods;	/* of XbMachineMethodItem */
 	GPtrArray		*operators;	/* of XbMachineOperator */
