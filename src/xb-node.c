@@ -15,7 +15,6 @@
 #include "xb-silo-export-private.h"
 
 typedef struct {
-	GObject			 parent_instance;
 	XbSilo			*silo;
 	XbSiloNode		*sn;
 } XbNodePrivate;

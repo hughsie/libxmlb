@@ -24,7 +24,6 @@
 #include "xb-string-private.h"
 
 typedef struct {
-	GObject			 parent_instance;
 	GMappedFile		*mmap;
 	gchar			*guid;
 	gboolean		 valid;

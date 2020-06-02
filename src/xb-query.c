@@ -17,7 +17,6 @@
 #include "xb-stack-private.h"
 
 typedef struct {
-	GObject			 parent_instance;
 	GPtrArray		*sections;		/* of XbQuerySection */
 	XbSilo			*silo;
 	XbQueryFlags		 flags;

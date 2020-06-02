@@ -13,7 +13,6 @@
 #include "xb-builder-fixup-private.h"
 
 typedef struct {
-	GObject			 parent_instance;
 	gchar			*id;
 	XbBuilderFixupFunc	 func;
 	gpointer		 user_data;
