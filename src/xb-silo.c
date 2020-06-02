@@ -36,7 +36,7 @@ typedef struct {
 	GHashTable		*strindex;
 	GHashTable		*nodes;
 	GMutex			 nodes_mutex;
-	GHashTable		*file_monitors;	/* of fn:XbSiloFileMonitorItem */
+	GHashTable		*file_monitors;	/* of GFile:XbSiloFileMonitorItem */
 	XbMachine		*machine;
 	XbSiloProfileFlags	 profile_flags;
 	GString			*profile_str;
@@ -764,7 +764,6 @@ xb_silo_watch_file (XbSilo *self,
 {
 	XbSiloFileMonitorItem *item;
 	XbSiloPrivate *priv = GET_PRIVATE (self);
-	g_autofree gchar *fn = g_file_get_path (file);
 	g_autoptr(GFileMonitor) file_monitor = NULL;
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
@@ -772,7 +771,7 @@ xb_silo_watch_file (XbSilo *self,
 	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
 	/* already exists */
-	item = g_hash_table_lookup (priv->file_monitors, fn);
+	item = g_hash_table_lookup (priv->file_monitors, file);
 	if (item != NULL)
 		return TRUE;
 
@@ -788,7 +787,7 @@ xb_silo_watch_file (XbSilo *self,
 	item->file_monitor = g_object_ref (file_monitor);
 	item->file_monitor_id = g_signal_connect (file_monitor, "changed",
 						  G_CALLBACK (xb_silo_watch_file_cb), self);
-	g_hash_table_insert (priv->file_monitors, g_steal_pointer (&fn), item);
+	g_hash_table_insert (priv->file_monitors, g_object_ref (file), item);
 	return TRUE;
 }
 
@@ -1311,8 +1310,8 @@ static void
 xb_silo_init (XbSilo *self)
 {
 	XbSiloPrivate *priv = GET_PRIVATE (self);
-	priv->file_monitors = g_hash_table_new_full (g_str_hash, g_str_equal,
-						     g_free, (GDestroyNotify) xb_silo_file_monitor_item_free);
+	priv->file_monitors = g_hash_table_new_full (g_file_hash, (GEqualFunc) g_file_equal,
+						     g_object_unref, (GDestroyNotify) xb_silo_file_monitor_item_free);
 	priv->nodes = g_hash_table_new_full (g_direct_hash, g_direct_equal,
 					     NULL, (GDestroyNotify) g_object_unref);
 	priv->strtab_tags = g_hash_table_new (g_str_hash, g_str_equal);
