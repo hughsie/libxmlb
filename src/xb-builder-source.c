@@ -16,7 +16,6 @@
 #include "xb-builder-source-private.h"
 
 typedef struct {
-	GObject			 parent_instance;
 	GInputStream		*istream;
 	GFile			*file;
 	GPtrArray		*fixups;	/* of XbBuilderFixup */

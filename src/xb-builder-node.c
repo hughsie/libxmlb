@@ -16,7 +16,6 @@
 #include "xb-string-private.h"
 
 typedef struct {
-	GObject			 parent_instance;
 	guint32			 offset;
 	gint			 priority;
 	XbBuilderNodeFlags	 flags;

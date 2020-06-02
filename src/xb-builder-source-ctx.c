@@ -13,7 +13,6 @@
 #include "xb-builder-source-ctx-private.h"
 
 typedef struct {
-	GObject			 parent_instance;
 	GInputStream		*istream;
 	gchar			*filename;
 	gchar			*content_type;

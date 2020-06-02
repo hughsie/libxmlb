@@ -19,7 +19,6 @@
 #include "xb-builder-node-private.h"
 
 typedef struct {
-	GObject			 parent_instance;
 	GPtrArray		*sources;	/* of XbBuilderSource */
 	GPtrArray		*nodes;		/* of XbBuilderNode */
 	GPtrArray		*fixups;	/* of XbBuilderFixup */
