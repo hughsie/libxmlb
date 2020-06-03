@@ -436,7 +436,6 @@ xb_builder_node_add_child (XbBuilderNode *self, XbBuilderNode *child)
 
 	/* no refcount */
 	priv_child->parent = self;
-	g_object_add_weak_pointer (G_OBJECT (self), (gpointer *) &priv_child->parent);
 
 	g_ptr_array_add (priv->children, g_object_ref (child));
 }
@@ -457,7 +456,6 @@ xb_builder_node_remove_child (XbBuilderNode *self, XbBuilderNode *child)
 	XbBuilderNodePrivate *priv_child = GET_PRIVATE (child);
 
 	/* no refcount */
-	g_object_remove_weak_pointer (G_OBJECT (self), (gpointer *) &priv_child->parent);
 	priv_child->parent = NULL;
 
 	g_ptr_array_remove (priv->children, child);
@@ -835,6 +833,24 @@ xb_builder_node_init (XbBuilderNode *self)
 }
 
 static void
+xb_builder_node_dispose (GObject *obj)
+{
+	XbBuilderNode *self = XB_BUILDER_NODE (obj);
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+
+	/* clear all the child nodes’ parent pointers */
+	if (priv->children != NULL) {
+		for (guint i = 0; i < priv->children->len; i++) {
+			XbBuilderNode *child = g_ptr_array_index (priv->children, i);
+			XbBuilderNodePrivate *priv_child = GET_PRIVATE (child);
+			priv_child->parent = NULL;
+		}
+	}
+
+	G_OBJECT_CLASS (xb_builder_node_parent_class)->dispose (obj);
+}
+
+static void
 xb_builder_node_finalize (GObject *obj)
 {
 	XbBuilderNode *self = XB_BUILDER_NODE (obj);
@@ -851,6 +867,8 @@ static void
 xb_builder_node_class_init (XbBuilderNodeClass *klass)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+	object_class->dispose = xb_builder_node_dispose;
 	object_class->finalize = xb_builder_node_finalize;
 }
 
