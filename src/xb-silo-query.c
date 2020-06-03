@@ -50,11 +50,27 @@ xb_silo_query_node_matches (XbSilo *self,
 	return TRUE;
 }
 
+/**
+ * XbSiloQueryHelperFlags:
+ * @XB_SILO_QUERY_HELPER_NONE: No flags set.
+ * @XB_SILO_QUERY_HELPER_USE_SN: Return #XbSiloNodes as results, rather than
+ *    wrapping them in #XbNode. This assumes that they’ll be wrapped later.
+ *
+ * Flags for #XbSiloQueryHelper.
+ *
+ * Since: 0.2.0
+ */
+typedef enum {
+	XB_SILO_QUERY_HELPER_NONE = 0,
+	XB_SILO_QUERY_HELPER_USE_SN = 1 << 0,
+} XbSiloQueryHelperFlags;
+
 typedef struct {
 	GPtrArray	*sections;	/* of XbQuerySection */
-	GPtrArray	*results;	/* of XbNode */
+	GPtrArray	*results;	/* of XbNode or XbSiloNode (see @flags) */
 	GHashTable	*results_hash;	/* of sn:1 */
 	guint		 limit;
+	XbSiloQueryHelperFlags	 flags;
 	XbSiloQueryData	*query_data;
 } XbSiloQueryHelper;
 
@@ -63,7 +79,10 @@ xb_silo_query_section_add_result (XbSilo *self, XbSiloQueryHelper *helper, XbSil
 {
 	if (g_hash_table_lookup (helper->results_hash, sn) != NULL)
 		return FALSE;
-	g_ptr_array_add (helper->results, xb_silo_node_create (self, sn));
+	if (helper->flags & XB_SILO_QUERY_HELPER_USE_SN)
+		g_ptr_array_add (helper->results, sn);
+	else
+		g_ptr_array_add (helper->results, xb_silo_node_create (self, sn));
 	g_hash_table_add (helper->results_hash, sn);
 	return helper->results->len == helper->limit;
 }
@@ -167,11 +186,13 @@ xb_silo_query_part (XbSilo *self,
 		    GHashTable *results_hash,
 		    XbQuery *query,
 		    XbSiloQueryData *query_data,
+		    XbSiloQueryHelperFlags flags,
 		    GError **error)
 {
 	XbSiloQueryHelper helper = {
 		.results = results,
 		.limit = xb_query_get_limit (query),
+		.flags = flags,
 		.results_hash = results_hash,
 		.query_data = query_data,
 	};
@@ -181,32 +202,15 @@ xb_silo_query_part (XbSilo *self,
 	return xb_silo_query_section_root (self, sroot, 0, &helper, error);
 }
 
-/**
- * xb_silo_query_with_root: (skip)
- * @self: a #XbSilo
- * @n: (allow-none): a #XbNode
- * @xpath: an XPath, e.g. `/components/component[@type=desktop]/id[abe.desktop]`
- * @limit: maximum number of results to return, or 0 for "all"
- * @error: the #GError, or %NULL
- *
- * Searches the silo using an XPath query, returning up to @limit results.
- *
- * It is safe to call this function from a different thread to the one that
- * created the #XbSilo.
- *
- * Please note: Only a subset of XPath is supported.
- *
- * Returns: (transfer container) (element-type XbNode): results, or %NULL if unfound
- *
- * Since: 0.1.0
- **/
-GPtrArray *
-xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limit, GError **error)
+/* Returns an array with (element-type XbSiloNode) if
+ * %XB_SILO_QUERY_HELPER_USE_SN is set, and (element-type XbNode) otherwise. */
+static GPtrArray *
+silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limit, XbSiloQueryHelperFlags flags, GError **error)
 {
 	XbSiloNode *sn = NULL;
 	g_auto(GStrv) split = NULL;
 	g_autoptr(GHashTable) results_hash = g_hash_table_new (g_direct_hash, g_direct_equal);
-	g_autoptr(GPtrArray) results = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+	g_autoptr(GPtrArray) results = NULL;
 	g_autoptr(GTimer) timer = g_timer_new ();
 	XbSiloQueryData query_data = {
 		.sn = NULL,
@@ -225,6 +229,11 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 				     "silo has no data");
 		return NULL;
 	}
+
+	if (flags & XB_SILO_QUERY_HELPER_USE_SN)
+		results = g_ptr_array_new_with_free_func (NULL);
+	else
+		results = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 
 	/* subtree query */
 	if (n != NULL) {
@@ -264,6 +273,7 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 		if (!xb_silo_query_part (self, sn,
 					 results, results_hash,
 					 query, &query_data,
+					 flags,
 					 error)) {
 			return NULL;
 		}
@@ -287,6 +297,53 @@ xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limi
 		return NULL;
 	}
 	return g_steal_pointer (&results);
+}
+
+/**
+ * xb_silo_query_with_root: (skip)
+ * @self: a #XbSilo
+ * @n: (allow-none): a #XbNode
+ * @xpath: an XPath, e.g. `/components/component[@type=desktop]/id[abe.desktop]`
+ * @limit: maximum number of results to return, or 0 for "all"
+ * @error: the #GError, or %NULL
+ *
+ * Searches the silo using an XPath query, returning up to @limit results.
+ *
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbSilo.
+ *
+ * Please note: Only a subset of XPath is supported.
+ *
+ * Returns: (transfer container) (element-type XbNode): results, or %NULL if unfound
+ *
+ * Since: 0.1.0
+ **/
+GPtrArray *
+xb_silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limit, GError **error)
+{
+	return silo_query_with_root (self, n, xpath, limit, XB_SILO_QUERY_HELPER_NONE, error);
+}
+
+/**
+ * xb_silo_query_sn_with_root: (skip)
+ * @self: a #XbSilo
+ * @n: (allow-none): a #XbNode
+ * @xpath: an XPath, e.g. `/components/component[@type=desktop]/id[abe.desktop]`
+ * @limit: maximum number of results to return, or 0 for "all"
+ * @error: the #GError, or %NULL
+ *
+ * A version of xb_silo_query_with_root() which returns results as #XbSiloNodes,
+ * rather than as #XbNodes. This is intended to be used internally to save on
+ * intermediate #XbNode allocations.
+ *
+ * Returns: (transfer container) (element-type XbSiloNode): results, or %NULL if unfound
+ *
+ * Since: 0.2.0
+ **/
+GPtrArray *
+xb_silo_query_sn_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limit, GError **error)
+{
+	return silo_query_with_root (self, n, xpath, limit, XB_SILO_QUERY_HELPER_USE_SN, error);
 }
 
 static void
@@ -345,7 +402,8 @@ xb_silo_query_with_root_full (XbSilo *self, XbNode *n, XbQuery *query, GError **
 
 	/* only one query allowed */
 	if (!xb_silo_query_part (self, sn, results, results_hash,
-				 query, &query_data, error))
+				 query, &query_data,
+				 XB_SILO_QUERY_HELPER_NONE, error))
 		return NULL;
 
 	/* profile */
