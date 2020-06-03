@@ -35,6 +35,9 @@ struct _XbBuilderSourceClass {
  * @XB_BUILDER_SOURCE_FLAG_NONE:		No extra flags to use
  * @XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT:	Do not attempt to repair XML whitespace
  * @XB_BUILDER_SOURCE_FLAG_WATCH_FILE:		Watch the source file for changes
+ * @XB_BUILDER_SOURCE_FLAG_WATCH_DIRECTORY:	Watch the directory containing the source file for changes
+ * 	(for example, if watching all the sources in a directory — this allows the
+ * 	file monitors to be shared)
  *
  * The flags for converting to XML.
  **/
@@ -42,6 +45,7 @@ typedef enum {
 	XB_BUILDER_SOURCE_FLAG_NONE		= 0,		/* Since: 0.1.0 */
 	XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT	= 1 << 0,	/* Since: 0.1.0 */
 	XB_BUILDER_SOURCE_FLAG_WATCH_FILE	= 1 << 1,	/* Since: 0.1.0 */
+	XB_BUILDER_SOURCE_FLAG_WATCH_DIRECTORY	= 1 << 2,	/* Since: 0.2.0 */
 	/*< private >*/
 	XB_BUILDER_SOURCE_FLAG_LAST
 } XbBuilderSourceFlags;
