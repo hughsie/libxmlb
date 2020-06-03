@@ -13,6 +13,11 @@
 
 G_BEGIN_DECLS
 
+GPtrArray	*xb_silo_query_sn_with_root	(XbSilo		*self,
+						 XbNode		*n,
+						 const gchar	*xpath,
+						 guint		 limit,
+						 GError		**error);
 GPtrArray	*xb_silo_query_with_root	(XbSilo		*self,
 						 XbNode		*n,
 						 const gchar	*xpath,
