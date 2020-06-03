@@ -648,11 +648,18 @@ xb_builder_watch_source (XbBuilder *self,
 {
 	XbBuilderPrivate *priv = GET_PRIVATE (self);
 	GFile *file = xb_builder_source_get_file (source);
+	g_autoptr(GFile) watched_file = NULL;
 	if (file == NULL)
 		return TRUE;
-	if ((xb_builder_source_get_flags (source) & XB_BUILDER_SOURCE_FLAG_WATCH_FILE) == 0)
+	if ((xb_builder_source_get_flags (source) & (XB_BUILDER_SOURCE_FLAG_WATCH_FILE | XB_BUILDER_SOURCE_FLAG_WATCH_DIRECTORY)) == 0)
 		return TRUE;
-	if (!xb_silo_watch_file (priv->silo, file, cancellable, error))
+
+	if (xb_builder_source_get_flags (source) & XB_BUILDER_SOURCE_FLAG_WATCH_DIRECTORY)
+		watched_file = g_file_get_parent (file);
+	else
+		watched_file = g_object_ref (file);
+
+	if (!xb_silo_watch_file (priv->silo, watched_file, cancellable, error))
 		return FALSE;
 	return TRUE;
 }

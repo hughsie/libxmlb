@@ -776,8 +776,8 @@ xb_silo_watch_file (XbSilo *self,
 		return TRUE;
 
 	/* try to create */
-	file_monitor = g_file_monitor_file (file, G_FILE_MONITOR_NONE,
-					    cancellable, error);
+	file_monitor = g_file_monitor (file, G_FILE_MONITOR_NONE,
+				       cancellable, error);
 	if (file_monitor == NULL)
 		return FALSE;
 	g_file_monitor_set_rate_limit (file_monitor, 20);
