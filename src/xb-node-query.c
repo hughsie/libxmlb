@@ -12,6 +12,7 @@
 
 #include "xb-node-private.h"
 #include "xb-node-query.h"
+#include "xb-silo-export-private.h"
 #include "xb-silo-query-private.h"
 
 /**
@@ -151,16 +152,21 @@ const gchar *
 xb_node_query_text (XbNode *self, const gchar *xpath, GError **error)
 {
 	const gchar *tmp;
-	g_autoptr(XbNode) n = NULL;
+	XbSilo *silo;
+	g_autoptr(GPtrArray) results = NULL;
+	XbSiloNode *sn;
 
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (xpath != NULL, NULL);
 	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
-	n = xb_node_query_first (self, xpath, error);
-	if (n == NULL)
+	silo = xb_node_get_silo (self);
+	results = xb_silo_query_sn_with_root (silo, self, xpath, 1, error);
+	if (results == NULL)
 		return NULL;
-	tmp = xb_node_get_text (n);
+	sn = g_ptr_array_index (results, 0);
+
+	tmp = xb_silo_node_get_text (silo, sn);
 	if (tmp == NULL) {
 		g_set_error_literal (error,
 				     G_IO_ERROR,
@@ -192,25 +198,30 @@ xb_node_query_text (XbNode *self, const gchar *xpath, GError **error)
 const gchar *
 xb_node_query_attr (XbNode *self, const gchar *xpath, const gchar *name, GError **error)
 {
-	const gchar *tmp;
-	g_autoptr(XbNode) n = NULL;
+	XbSiloAttr *a;
+	XbSilo *silo;
+	g_autoptr(GPtrArray) results = NULL;
+	XbSiloNode *sn;
 
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (xpath != NULL, NULL);
 	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
-	n = xb_node_query_first (self, xpath, error);
-	if (n == NULL)
+	silo = xb_node_get_silo (self);
+	results = xb_silo_query_sn_with_root (silo, self, xpath, 1, error);
+	if (results == NULL)
 		return NULL;
-	tmp = xb_node_get_attr (n, name);
-	if (tmp == NULL) {
+	sn = g_ptr_array_index (results, 0);
+
+	a = xb_silo_node_get_attr_by_str (silo, sn, name);
+	if (a == NULL) {
 		g_set_error_literal (error,
 				     G_IO_ERROR,
 				     G_IO_ERROR_NOT_FOUND,
 				     "no text data");
 		return NULL;
 	}
-	return tmp;
+	return xb_silo_from_strtab (silo, a->attr_value);
 }
 
 /**
@@ -234,16 +245,25 @@ xb_node_query_attr (XbNode *self, const gchar *xpath, const gchar *name, GError 
 gchar *
 xb_node_query_export (XbNode *self, const gchar *xpath, GError **error)
 {
-	g_autoptr(XbNode) n = NULL;
+	GString *xml;
+	XbSilo *silo;
+	g_autoptr(GPtrArray) results = NULL;
+	XbSiloNode *sn;
 
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (xpath != NULL, NULL);
 	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
-	n = xb_node_query_first (self, xpath, error);
-	if (n == NULL)
+	silo = xb_node_get_silo (self);
+	results = xb_silo_query_sn_with_root (silo, self, xpath, 1, error);
+	if (results == NULL)
 		return NULL;
-	return xb_node_export (n, XB_NODE_EXPORT_FLAG_NONE, error);
+	sn = g_ptr_array_index (results, 0);
+
+	xml = xb_silo_export_with_root (silo, sn, XB_NODE_EXPORT_FLAG_NONE, error);
+	if (xml == NULL)
+		return NULL;
+	return g_string_free (xml, FALSE);
 }
 
 /**
@@ -266,16 +286,19 @@ xb_node_query_export (XbNode *self, const gchar *xpath, GError **error)
 guint64
 xb_node_query_text_as_uint (XbNode *self, const gchar *xpath, GError **error)
 {
-	g_autoptr(XbNode) n = NULL;
+	const gchar *tmp;
 
 	g_return_val_if_fail (XB_IS_NODE (self), G_MAXUINT64);
 	g_return_val_if_fail (xpath != NULL, G_MAXUINT64);
 	g_return_val_if_fail (error == NULL || *error == NULL, G_MAXUINT64);
 
-	n = xb_node_query_first (self, xpath, error);
-	if (n == NULL)
+	tmp = xb_node_query_text (self, xpath, error);
+	if (tmp == NULL)
 		return G_MAXUINT64;
-	return xb_node_get_text_as_uint (n);
+
+	if (g_str_has_prefix (tmp, "0x"))
+		return g_ascii_strtoull (tmp + 2, NULL, 16);
+	return g_ascii_strtoull (tmp, NULL, 10);
 }
 
 /**
@@ -299,14 +322,17 @@ xb_node_query_text_as_uint (XbNode *self, const gchar *xpath, GError **error)
 guint64
 xb_node_query_attr_as_uint (XbNode *self, const gchar *xpath, const gchar *name, GError **error)
 {
-	g_autoptr(XbNode) n = NULL;
+	const gchar *tmp;
 
 	g_return_val_if_fail (XB_IS_NODE (self), G_MAXUINT64);
 	g_return_val_if_fail (xpath != NULL, G_MAXUINT64);
 	g_return_val_if_fail (error == NULL || *error == NULL, G_MAXUINT64);
 
-	n = xb_node_query_first (self, xpath, error);
-	if (n == NULL)
+	tmp = xb_node_query_attr (self, xpath, name, error);
+	if (tmp == NULL)
 		return G_MAXUINT64;
-	return xb_node_get_attr_as_uint (n, name);
+
+	if (g_str_has_prefix (tmp, "0x"))
+		return g_ascii_strtoull (tmp + 2, NULL, 16);
+	return g_ascii_strtoull (tmp, NULL, 10);
 }
