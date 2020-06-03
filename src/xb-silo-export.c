@@ -101,7 +101,7 @@ xb_silo_export_node (XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, G
 
 /* private */
 GString *
-xb_silo_export_with_root (XbSilo *self, XbNode *root, XbNodeExportFlags flags, GError **error)
+xb_silo_export_with_root (XbSilo *self, XbSiloNode *sroot, XbNodeExportFlags flags, GError **error)
 {
 	XbSiloNode *sn;
 	XbSiloExportHelper helper = {
@@ -117,8 +117,8 @@ xb_silo_export_with_root (XbSilo *self, XbNode *root, XbNodeExportFlags flags, G
 		flags |= XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS;
 
 	/* optional subtree export */
-	if (root != NULL) {
-		sn = xb_node_get_sn (root);
+	if (sroot != NULL) {
+		sn = sroot;
 		if (sn != NULL && flags & XB_NODE_EXPORT_FLAG_ONLY_CHILDREN)
 			sn = xb_silo_node_get_child (self, sn);
 	} else {
