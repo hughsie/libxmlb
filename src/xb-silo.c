@@ -33,7 +33,8 @@ typedef struct {
 	guint32			 strtab;
 	GHashTable		*strtab_tags;
 	GHashTable		*strindex;
-	GHashTable		*nodes;
+	gboolean		 enable_node_cache;
+	GHashTable		*nodes;	/* (mutex nodes_mutex) */
 	GMutex			 nodes_mutex;
 	GHashTable		*file_monitors;	/* of GFile:XbSiloFileMonitorItem */
 	XbMachine		*machine;
@@ -57,6 +58,7 @@ enum {
 	PROP_0,
 	PROP_GUID,
 	PROP_VALID,
+	PROP_ENABLE_NODE_CACHE,
 	PROP_LAST
 };
 
@@ -593,16 +595,20 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 	XbSiloPrivate *priv = GET_PRIVATE (self);
 	gsize sz = 0;
 	guint32 off = 0;
-	g_autoptr(GMutexLocker) locker = g_mutex_locker_new (&priv->nodes_mutex);
+	g_autoptr(GMutexLocker) locker = NULL;
 	g_autoptr(GTimer) timer = g_timer_new ();
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (blob != NULL, FALSE);
 	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
-	g_return_val_if_fail (locker != NULL, FALSE);
 
 	/* no longer valid */
-	g_hash_table_remove_all (priv->nodes);
+	if (priv->enable_node_cache) {
+		locker = g_mutex_locker_new (&priv->nodes_mutex);
+		if (priv->nodes != NULL)
+			g_hash_table_remove_all (priv->nodes);
+	}
+
 	g_hash_table_remove_all (priv->strtab_tags);
 	g_clear_pointer (&priv->guid, g_free);
 
@@ -717,6 +723,56 @@ xb_silo_set_profile_flags (XbSilo *self, XbSiloProfileFlags profile_flags)
 	priv->profile_flags = profile_flags;
 }
 
+/**
+ * xb_silo_get_enable_node_cache:
+ * @self: an #XbSilo
+ *
+ * Get #XbSilo:enable-node-cache.
+ *
+ * Since: 0.2.0
+ */
+gboolean
+xb_silo_get_enable_node_cache (XbSilo *self)
+{
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
+	return priv->enable_node_cache;
+}
+
+/**
+ * xb_silo_set_enable_node_cache:
+ * @self: an #XbSilo
+ * @enable_node_cache: %TRUE to enable the node cache, %FALSE otherwise
+ *
+ * Set #XbSilo:enable-node-cache.
+ *
+ * This is not thread-safe, and can only be called before the #XbSilo is passed
+ * between threads.
+ *
+ * Since: 0.2.0
+ */
+void
+xb_silo_set_enable_node_cache (XbSilo *self, gboolean enable_node_cache)
+{
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+
+	g_return_if_fail (XB_IS_SILO (self));
+
+	if (priv->enable_node_cache == enable_node_cache)
+		return;
+
+	priv->enable_node_cache = enable_node_cache;
+
+	/* if disabling the cache, destroy any existing data structures;
+	 * if enabling it, create them lazily when the first entry is cached
+	 * (see xb_silo_node_create()) */
+	if (!enable_node_cache) {
+		g_clear_pointer (&priv->nodes, g_hash_table_unref);
+	}
+
+	g_object_notify (G_OBJECT (self), "enable-node-cache");
+}
+
 /* private */
 XbSiloProfileFlags
 xb_silo_get_profile_flags (XbSilo *self)
@@ -821,9 +877,8 @@ xb_silo_load_from_file (XbSilo *self,
 	g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), FALSE);
 	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
-	/* no longer valid */
+	/* no longer valid (@nodes is cleared by xb_silo_load_from_bytes()) */
 	g_hash_table_remove_all (priv->file_monitors);
-	g_hash_table_remove_all (priv->nodes);
 	g_hash_table_remove_all (priv->strtab_tags);
 	g_clear_pointer (&priv->guid, g_free);
 	if (priv->mmap != NULL)
@@ -937,9 +992,19 @@ xb_silo_node_create (XbSilo *self, XbSiloNode *sn)
 {
 	XbNode *n;
 	XbSiloPrivate *priv = GET_PRIVATE (self);
-	g_autoptr(GMutexLocker) locker = g_mutex_locker_new (&priv->nodes_mutex);
+	g_autoptr(GMutexLocker) locker = NULL;
 
-	g_return_val_if_fail (locker != NULL, NULL);
+	/* the cache should only be enabled/disabled before threads are
+	 * spawned, so this can be accessed unlocked */
+	if (!priv->enable_node_cache)
+		return xb_node_new (self, sn);
+
+	locker = g_mutex_locker_new (&priv->nodes_mutex);
+
+	/* ensure the cache exists */
+	if (priv->nodes == NULL)
+		priv->nodes = g_hash_table_new_full (g_direct_hash, g_direct_equal,
+						     NULL, (GDestroyNotify) g_object_unref);
 
 	/* does already exist */
 	n = g_hash_table_lookup (priv->nodes, sn);
@@ -1283,6 +1348,9 @@ xb_silo_get_property (GObject *obj, guint prop_id, GValue *value, GParamSpec *ps
 	case PROP_VALID:
 		g_value_set_boolean (value, priv->valid);
 		break;
+	case PROP_ENABLE_NODE_CACHE:
+		g_value_set_boolean (value, priv->enable_node_cache);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (obj, prop_id, pspec);
 		break;
@@ -1299,6 +1367,9 @@ xb_silo_set_property (GObject *obj, guint prop_id, const GValue *value, GParamSp
 		g_free (priv->guid);
 		priv->guid = g_value_dup_string (value);
 		break;
+	case PROP_ENABLE_NODE_CACHE:
+		xb_silo_set_enable_node_cache (self, g_value_get_boolean (value));
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (obj, prop_id, pspec);
 		break;
@@ -1311,12 +1382,11 @@ xb_silo_init (XbSilo *self)
 	XbSiloPrivate *priv = GET_PRIVATE (self);
 	priv->file_monitors = g_hash_table_new_full (g_file_hash, (GEqualFunc) g_file_equal,
 						     g_object_unref, (GDestroyNotify) xb_silo_file_monitor_item_free);
-	priv->nodes = g_hash_table_new_full (g_direct_hash, g_direct_equal,
-					     NULL, (GDestroyNotify) g_object_unref);
 	priv->strtab_tags = g_hash_table_new (g_str_hash, g_str_equal);
 	priv->strindex = g_hash_table_new (g_str_hash, g_str_equal);
 	priv->profile_str = g_string_new (NULL);
 
+	priv->nodes = NULL;  /* initialised when first used */
 	g_mutex_init (&priv->nodes_mutex);
 
 #ifdef HAVE_LIBSTEMMER
@@ -1347,6 +1417,10 @@ xb_silo_init (XbSilo *self)
 				     xb_silo_machine_fixup_attr_exists_cb, self, NULL);
 	xb_machine_add_text_handler (priv->machine,
 				     xb_silo_machine_fixup_attr_text_cb, self, NULL);
+
+	/* default value for the node cache; most clients will want to disable
+	 * this ASAP */
+	xb_silo_set_enable_node_cache (self, TRUE);
 }
 
 static void
@@ -1355,6 +1429,7 @@ xb_silo_finalize (GObject *obj)
 	XbSilo *self = XB_SILO (obj);
 	XbSiloPrivate *priv = GET_PRIVATE (self);
 
+	g_clear_pointer (&priv->nodes, g_hash_table_unref);
 	g_mutex_clear (&priv->nodes_mutex);
 
 #ifdef HAVE_LIBSTEMMER
@@ -1368,7 +1443,6 @@ xb_silo_finalize (GObject *obj)
 	g_object_unref (priv->machine);
 	g_hash_table_unref (priv->strindex);
 	g_hash_table_unref (priv->file_monitors);
-	g_hash_table_unref (priv->nodes);
 	g_hash_table_unref (priv->strtab_tags);
 	if (priv->mmap != NULL)
 		g_mapped_file_unref (priv->mmap);
@@ -1402,6 +1476,32 @@ xb_silo_class_init (XbSiloClass *klass)
 				      G_PARAM_READABLE |
 				      G_PARAM_STATIC_NAME);
 	g_object_class_install_property (object_class, PROP_VALID, pspec);
+
+	/**
+	 * XbSilo:enable-node-cache:
+	 *
+	 * Whether to cache all #XbNode instances ever constructed in a single
+	 * cache in the #XbSilo, so that the same #XbNode instance is always
+	 * returned in query results for a given XPath. This is a form of
+	 * memoisation, and allows xb_node_get_data() and xb_node_set_data() to
+	 * be used.
+	 *
+	 * This is enabled by default to preserve compatibility with older
+	 * versions of libxmlb, but most clients will want to disable it. It
+	 * adds a large memory overhead (no #XbNode is ever finalised) but
+	 * achieves moderately low hit rates for typical XML parsing workloads
+	 * where most nodes are accessed only once or twice as they are
+	 * processed and then processing moves on to other nodes.
+	 *
+	 * This property can only be changed before the #XbSilo is passed
+	 * between threads. Changing it is not thread-safe.
+	 *
+	 * Since: 0.2.0
+	 */
+	pspec = g_param_spec_boolean ("enable-node-cache", NULL, NULL, TRUE,
+				      G_PARAM_READWRITE |
+				      G_PARAM_STATIC_NAME);
+	g_object_class_install_property (object_class, PROP_ENABLE_NODE_CACHE, pspec);
 }
 
 /**

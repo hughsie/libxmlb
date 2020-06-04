@@ -203,6 +203,8 @@ LIBXMLB_0.2.0 {
     xb_machine_stack_push_text;
     xb_machine_stack_push_text_static;
     xb_machine_stack_push_text_steal;
+    xb_silo_get_enable_node_cache;
+    xb_silo_set_enable_node_cache;
     xb_stack_pop;
     xb_stack_push;
   local: *;

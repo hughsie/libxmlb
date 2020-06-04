@@ -718,6 +718,9 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 	if (flags & XB_BUILDER_COMPILE_FLAG_SINGLE_LANG)
 		flags |= XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS;
 
+	/* disable the silo cache of all the XbNodes */
+	xb_silo_set_enable_node_cache (priv->silo, (flags & XB_BUILDER_COMPILE_FLAG_NO_NODE_CACHE) == 0);
+
 	/* the builder needs to know the locales */
 	if (priv->locales->len == 0 && (flags & XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS)) {
 		g_set_error_literal (error,
@@ -894,6 +897,9 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 	/* profile new silo if needed */
 	xb_silo_set_profile_flags (silo_tmp, priv->profile_flags);
 
+	/* no need for the node cache */
+	xb_silo_set_enable_node_cache (silo_tmp, FALSE);
+
 	/* load the file and peek at the GUIDs */
 	fn = g_file_get_path (file);
 	g_debug ("attempting to load %s", fn);
@@ -920,6 +926,9 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 		if (g_strcmp0 (xb_silo_get_guid (silo_tmp), guid) == 0 ||
 		    (flags & XB_BUILDER_COMPILE_FLAG_IGNORE_GUID) > 0) {
 			g_autoptr(GBytes) blob = xb_silo_get_bytes (silo_tmp);
+
+			xb_silo_set_enable_node_cache (priv->silo, (flags & XB_BUILDER_COMPILE_FLAG_NO_NODE_CACHE) == 0);
+
 			g_debug ("loading silo with file contents");
 			if (!xb_silo_load_from_bytes (priv->silo, blob,
 						      load_flags, error))

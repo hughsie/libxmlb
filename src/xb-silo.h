@@ -93,4 +93,8 @@ void		 xb_silo_set_profile_flags		(XbSilo		*self,
 							 XbSiloProfileFlags profile_flags);
 const gchar	*xb_silo_get_profile_string		(XbSilo		*self);
 
+gboolean	 xb_silo_get_enable_node_cache		(XbSilo		*self);
+void		 xb_silo_set_enable_node_cache		(XbSilo		*self,
+							 gboolean	 enable_node_cache);
+
 G_END_DECLS
