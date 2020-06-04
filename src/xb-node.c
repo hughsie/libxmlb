@@ -29,6 +29,11 @@ G_DEFINE_TYPE_WITH_PRIVATE (XbNode, xb_node, G_TYPE_OBJECT)
  *
  * Gets any data that has been set on the node using xb_node_set_data().
  *
+ * This will only work across queries to the associated silo if the silo has
+ * its #XbSilo:enable-node-cache property set to %TRUE. Otherwise a new #XbNode
+ * may be constructed for future queries which return the same element as a
+ * result.
+ *
  * Returns: (transfer none): a #GBytes, or %NULL if not found
  *
  * Since: 0.1.0
@@ -36,8 +41,10 @@ G_DEFINE_TYPE_WITH_PRIVATE (XbNode, xb_node, G_TYPE_OBJECT)
 GBytes *
 xb_node_get_data (XbNode *self, const gchar *key)
 {
+	XbNodePrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (key != NULL, NULL);
+	g_return_val_if_fail (priv->silo, NULL);
 	return g_object_get_data (G_OBJECT (self), key);
 }
 
@@ -49,14 +56,21 @@ xb_node_get_data (XbNode *self, const gchar *key)
  *
  * Sets some data on the node which can be retrieved using xb_node_get_data().
  *
+ * This will only work across queries to the associated silo if the silo has
+ * its #XbSilo:enable-node-cache property set to %TRUE. Otherwise a new #XbNode
+ * may be constructed for future queries which return the same element as a
+ * result.
+ *
  * Since: 0.1.0
  **/
 void
 xb_node_set_data (XbNode *self, const gchar *key, GBytes *data)
 {
+	XbNodePrivate *priv = GET_PRIVATE (self);
 	g_return_if_fail (XB_IS_NODE (self));
 	g_return_if_fail (key != NULL);
 	g_return_if_fail (data != NULL);
+	g_return_if_fail (priv->silo);
 	g_object_set_data_full (G_OBJECT (self), key,
 				g_bytes_ref (data),
 				(GDestroyNotify) g_bytes_unref);
