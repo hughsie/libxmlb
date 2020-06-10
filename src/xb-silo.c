@@ -63,16 +63,32 @@ enum {
 };
 
 /* private */
+GTimer *
+xb_silo_start_profile (XbSilo *self)
+{
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+
+	/* nothing to do; g_timer_new() does a syscall to clock_gettime() which
+	 * is best avoided if not needed */
+	if (!priv->profile_flags)
+		return NULL;
+
+	return g_timer_new ();
+}
+
+/* private */
 void
 xb_silo_add_profile (XbSilo *self, GTimer *timer, const gchar *fmt, ...)
 {
 	XbSiloPrivate *priv = GET_PRIVATE (self);
 	va_list args;
-	g_autoptr(GString) str = g_string_new (NULL);
+	g_autoptr(GString) str = NULL;
 
 	/* nothing to do */
 	if (!priv->profile_flags)
 		return;
+
+	str = g_string_new ("");
 
 	/* add duration */
 	if (timer != NULL) {
@@ -596,7 +612,7 @@ xb_silo_load_from_bytes (XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErr
 	gsize sz = 0;
 	guint32 off = 0;
 	g_autoptr(GMutexLocker) locker = NULL;
-	g_autoptr(GTimer) timer = g_timer_new ();
+	g_autoptr(GTimer) timer = xb_silo_start_profile (self);
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (blob != NULL, FALSE);
@@ -870,7 +886,7 @@ xb_silo_load_from_file (XbSilo *self,
 	XbSiloPrivate *priv = GET_PRIVATE (self);
 	g_autofree gchar *fn = NULL;
 	g_autoptr(GBytes) blob = NULL;
-	g_autoptr(GTimer) timer = g_timer_new ();
+	g_autoptr(GTimer) timer = xb_silo_start_profile (self);
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
@@ -924,7 +940,7 @@ xb_silo_save_to_file (XbSilo *self,
 {
 	XbSiloPrivate *priv = GET_PRIVATE (self);
 	g_autoptr(GFile) file_parent = NULL;
-	g_autoptr(GTimer) timer = g_timer_new ();
+	g_autoptr(GTimer) timer = xb_silo_start_profile (self);
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
