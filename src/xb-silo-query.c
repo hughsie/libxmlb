@@ -211,7 +211,7 @@ silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limit, 
 	g_auto(GStrv) split = NULL;
 	g_autoptr(GHashTable) results_hash = g_hash_table_new (g_direct_hash, g_direct_equal);
 	g_autoptr(GPtrArray) results = NULL;
-	g_autoptr(GTimer) timer = g_timer_new ();
+	g_autoptr(GTimer) timer = xb_silo_start_profile (self);
 	XbSiloQueryData query_data = {
 		.sn = NULL,
 		.position = 0,
@@ -381,7 +381,7 @@ xb_silo_query_with_root_full (XbSilo *self, XbNode *n, XbQuery *query, GError **
 	XbSiloNode *sn = NULL;
 	g_autoptr(GHashTable) results_hash = g_hash_table_new (g_direct_hash, g_direct_equal);
 	g_autoptr(GPtrArray) results = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
-	g_autoptr(GTimer) timer = g_timer_new ();
+	g_autoptr(GTimer) timer = xb_silo_start_profile (self);
 	XbSiloQueryData query_data = {
 		.sn = NULL,
 		.position = 0,

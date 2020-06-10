@@ -220,7 +220,7 @@ xb_builder_compile_source (XbBuilderCompileHelper *helper,
 	g_autoptr(GPtrArray) children_copy = NULL;
 	g_autoptr(GInputStream) istream = NULL;
 	g_autoptr(GMarkupParseContext) ctx = NULL;
-	g_autoptr(GTimer) timer = g_timer_new ();
+	g_autoptr(GTimer) timer = xb_silo_start_profile (helper->silo);
 	g_autoptr(XbBuilderNode) root_tmp = xb_builder_node_new (NULL);
 	const GMarkupParser parser = {
 		xb_builder_compile_start_element_cb,
@@ -707,7 +707,7 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 		.buf = NULL,
 	};
 	g_autoptr(GPtrArray) nodes_to_destroy = g_ptr_array_new ();
-	g_autoptr(GTimer) timer = g_timer_new ();
+	g_autoptr(GTimer) timer = xb_silo_start_profile (priv->silo);
 	g_autoptr(XbBuilderCompileHelper) helper = NULL;
 
 	g_return_val_if_fail (XB_IS_BUILDER (self), NULL);
