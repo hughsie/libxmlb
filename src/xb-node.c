@@ -132,7 +132,7 @@ xb_node_get_root (XbNode *self)
 	sn = xb_silo_get_sroot (priv->silo);
 	if (sn == NULL)
 		return NULL;
-	return xb_silo_node_create (priv->silo, sn);
+	return xb_silo_node_create (priv->silo, sn, FALSE);
 }
 
 /**
@@ -156,7 +156,7 @@ xb_node_get_parent (XbNode *self)
 	sn = xb_silo_node_get_parent (priv->silo, priv->sn);
 	if (sn == NULL)
 		return NULL;
-	return xb_silo_node_create (priv->silo, sn);
+	return xb_silo_node_create (priv->silo, sn, FALSE);
 }
 
 /**
@@ -180,7 +180,7 @@ xb_node_get_next (XbNode *self)
 	sn = xb_silo_node_get_next (priv->silo, priv->sn);
 	if (sn == NULL)
 		return NULL;
-	return xb_silo_node_create (priv->silo, sn);
+	return xb_silo_node_create (priv->silo, sn, FALSE);
 }
 
 /**
@@ -204,7 +204,7 @@ xb_node_get_child (XbNode *self)
 	sn = xb_silo_node_get_child (priv->silo, priv->sn);
 	if (sn == NULL)
 		return NULL;
-	return xb_silo_node_create (priv->silo, sn);
+	return xb_silo_node_create (priv->silo, sn, FALSE);
 }
 
 /**

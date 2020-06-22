@@ -86,7 +86,8 @@ XbSiloAttr	*xb_silo_node_get_attr_by_str	(XbSilo		*self,
 guint		 xb_silo_node_get_depth		(XbSilo		*self,
 						 XbSiloNode	*n);
 XbNode		*xb_silo_node_create		(XbSilo		*self,
-						 XbSiloNode	*sn);
+						 XbSiloNode	*sn,
+						 gboolean	 force_node_cache);
 GTimer		*xb_silo_start_profile		(XbSilo		*self);
 void		 xb_silo_add_profile		(XbSilo		*self,
 						 GTimer		*timer,
