@@ -569,7 +569,9 @@ xb_silo_query_build_index (XbSilo *self,
 	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
 	/* do the query */
-	array = xb_silo_query_with_root (self, NULL, xpath, 0, &error_local);
+	array = silo_query_with_root (self, NULL, xpath, 0,
+				      XB_SILO_QUERY_HELPER_USE_SN,
+				      &error_local);
 	if (array == NULL) {
 		if (g_error_matches (error_local,
 				     G_IO_ERROR,
@@ -586,8 +588,7 @@ xb_silo_query_build_index (XbSilo *self,
 
 	/* add each attribute name AND value */
 	for (guint i = 0; i < array->len; i++) {
-		XbNode *n = g_ptr_array_index (array, i);
-		XbSiloNode *sn = xb_node_get_sn (n);
+		XbSiloNode *sn = g_ptr_array_index (array, i);
 		if (attr != NULL) {
 			guint32 off = xb_silo_get_offset_for_node (self, sn);
 			for (guint8 j = 0; j < sn->nr_attrs; j++) {
