@@ -16,6 +16,5 @@ G_BEGIN_DECLS
 XbNode		*xb_node_new				(XbSilo		*silo,
 							 XbSiloNode	*sn);
 XbSiloNode	*xb_node_get_sn				(XbNode		*self);
-XbSilo		*xb_node_get_silo			(XbNode		*self);
 
 G_END_DECLS

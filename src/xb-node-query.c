@@ -10,8 +10,8 @@
 
 #include <gio/gio.h>
 
-#include "xb-node-private.h"
 #include "xb-node-query.h"
+#include "xb-node-silo.h"
 #include "xb-silo-export-private.h"
 #include "xb-silo-query-private.h"
 

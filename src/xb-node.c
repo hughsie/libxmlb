@@ -12,6 +12,7 @@
 #include <gio/gio.h>
 
 #include "xb-node-private.h"
+#include "xb-node-silo.h"
 #include "xb-silo-export-private.h"
 
 typedef struct {
@@ -94,14 +95,14 @@ xb_node_get_sn (XbNode *self)
 }
 
 /**
- * xb_node_get_silo: (skip)
+ * xb_node_get_silo:
  * @self: a #XbNode
  *
  * Gets the #XbSilo for the node.
  *
  * Returns: (transfer none): a #XbSilo
  *
- * Since: 0.1.0
+ * Since: 0.2.0
  **/
 XbSilo *
 xb_node_get_silo (XbNode *self)
