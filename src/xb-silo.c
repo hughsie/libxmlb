@@ -1433,10 +1433,6 @@ xb_silo_init (XbSilo *self)
 				     xb_silo_machine_fixup_attr_exists_cb, self, NULL);
 	xb_machine_add_text_handler (priv->machine,
 				     xb_silo_machine_fixup_attr_text_cb, self, NULL);
-
-	/* default value for the node cache; most clients will want to disable
-	 * this ASAP */
-	xb_silo_set_enable_node_cache (self, TRUE);
 }
 
 static void
