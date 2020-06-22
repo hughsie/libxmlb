@@ -294,7 +294,7 @@ XbNode *
 xb_silo_get_root (XbSilo *self)
 {
 	g_return_val_if_fail (XB_IS_SILO (self), NULL);
-	return xb_silo_node_create (self, xb_silo_get_sroot (self));
+	return xb_silo_node_create (self, xb_silo_get_sroot (self), FALSE);
 }
 
 /* private */
@@ -1004,15 +1004,15 @@ xb_silo_new_from_xml (const gchar *xml, GError **error)
 
 /* private */
 XbNode *
-xb_silo_node_create (XbSilo *self, XbSiloNode *sn)
+xb_silo_node_create (XbSilo *self, XbSiloNode *sn, gboolean force_node_cache)
 {
 	XbNode *n;
 	XbSiloPrivate *priv = GET_PRIVATE (self);
 	g_autoptr(GMutexLocker) locker = NULL;
 
 	/* the cache should only be enabled/disabled before threads are
-	 * spawned, so this can be accessed unlocked */
-	if (!priv->enable_node_cache)
+	 * spawned, so `priv->enable_node_cache` can be accessed unlocked */
+	if (!priv->enable_node_cache && !force_node_cache)
 		return xb_node_new (self, sn);
 
 	locker = g_mutex_locker_new (&priv->nodes_mutex);

@@ -79,10 +79,13 @@ xb_silo_query_section_add_result (XbSilo *self, XbSiloQueryHelper *helper, XbSil
 {
 	if (g_hash_table_lookup (helper->results_hash, sn) != NULL)
 		return FALSE;
-	if (helper->flags & XB_SILO_QUERY_HELPER_USE_SN)
+	if (helper->flags & XB_SILO_QUERY_HELPER_USE_SN) {
 		g_ptr_array_add (helper->results, sn);
-	else
-		g_ptr_array_add (helper->results, xb_silo_node_create (self, sn));
+	} else {
+		gboolean force_node_cache = (helper->flags & XB_QUERY_FLAG_FORCE_NODE_CACHE) > 0;
+		g_ptr_array_add (helper->results,
+				 xb_silo_node_create (self, sn, force_node_cache));
+	}
 	g_hash_table_add (helper->results_hash, sn);
 	return helper->results->len == helper->limit;
 }

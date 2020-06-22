@@ -33,6 +33,7 @@ struct _XbQueryClass {
  * @XB_QUERY_FLAG_OPTIMIZE:		Optimize the query when possible
  * @XB_QUERY_FLAG_USE_INDEXES:		Use the indexed parameters
  * @XB_QUERY_FLAG_REVERSE:		Reverse the results order
+ * @XB_QUERY_FLAG_FORCE_NODE_CACHE:	Always cache the #XbNode objects
  *
  * The flags used fo query.
  **/
@@ -41,6 +42,7 @@ typedef enum {
 	XB_QUERY_FLAG_OPTIMIZE		= 1 << 0,		/* Since: 0.1.6 */
 	XB_QUERY_FLAG_USE_INDEXES	= 1 << 1,		/* Since: 0.1.6 */
 	XB_QUERY_FLAG_REVERSE		= 1 << 2,		/* Since: 0.1.15 */
+	XB_QUERY_FLAG_FORCE_NODE_CACHE	= 1 << 3,		/* Since: 0.2.0 */
 	/*< private >*/
 	XB_QUERY_FLAG_LAST
 } XbQueryFlags;
