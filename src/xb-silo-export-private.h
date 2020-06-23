@@ -7,6 +7,7 @@
 #pragma once
 
 #include "xb-silo-export.h"
+#include "xb-silo-private.h"
 
 G_BEGIN_DECLS
 

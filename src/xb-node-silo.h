@@ -8,7 +8,7 @@
 
 #include <glib-object.h>
 
-#include "xb-silo-private.h"
+#include "xb-silo.h"
 #include "xb-node.h"
 
 G_BEGIN_DECLS
