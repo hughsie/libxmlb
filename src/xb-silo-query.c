@@ -55,14 +55,16 @@ xb_silo_query_node_matches (XbSilo *self,
  * @XB_SILO_QUERY_HELPER_NONE: No flags set.
  * @XB_SILO_QUERY_HELPER_USE_SN: Return #XbSiloNodes as results, rather than
  *    wrapping them in #XbNode. This assumes that they’ll be wrapped later.
+ * @XB_SILO_QUERY_HELPER_FORCE_NODE_CACHE: Always cache the #XbNode objects
  *
  * Flags for #XbSiloQueryHelper.
  *
  * Since: 0.2.0
  */
 typedef enum {
-	XB_SILO_QUERY_HELPER_NONE = 0,
-	XB_SILO_QUERY_HELPER_USE_SN = 1 << 0,
+	XB_SILO_QUERY_HELPER_NONE		= 0,
+	XB_SILO_QUERY_HELPER_USE_SN		= 1 << 0,
+	XB_SILO_QUERY_HELPER_FORCE_NODE_CACHE	= 1 << 1,
 } XbSiloQueryHelperFlags;
 
 typedef struct {
@@ -82,7 +84,7 @@ xb_silo_query_section_add_result (XbSilo *self, XbSiloQueryHelper *helper, XbSil
 	if (helper->flags & XB_SILO_QUERY_HELPER_USE_SN) {
 		g_ptr_array_add (helper->results, sn);
 	} else {
-		gboolean force_node_cache = (helper->flags & XB_QUERY_FLAG_FORCE_NODE_CACHE) > 0;
+		gboolean force_node_cache = (helper->flags & XB_SILO_QUERY_HELPER_FORCE_NODE_CACHE) > 0;
 		g_ptr_array_add (helper->results,
 				 xb_silo_node_create (self, sn, force_node_cache));
 	}
@@ -202,6 +204,8 @@ xb_silo_query_part (XbSilo *self,
 
 	/* find each section */
 	helper.sections = xb_query_get_sections (query);
+	if (xb_query_get_flags (query) & XB_QUERY_FLAG_FORCE_NODE_CACHE)
+		helper.flags |= XB_SILO_QUERY_HELPER_FORCE_NODE_CACHE;
 	return xb_silo_query_section_root (self, sroot, 0, &helper, error);
 }
 

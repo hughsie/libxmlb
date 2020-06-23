@@ -1767,6 +1767,43 @@ xb_xpath_query_reverse_func (void)
 }
 
 static void
+xb_xpath_query_force_node_cache_func (void)
+{
+	gboolean ret;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbNode) n1 = NULL;
+	g_autoptr(XbNode) n2 = NULL;
+	g_autoptr(XbQuery) query = NULL;
+	g_autoptr(XbSilo) silo = NULL;
+	const gchar *xml =
+	"<names>\n"
+	"  <name>foo</name>\n"
+	"</names>\n";
+
+	/* import from XML */
+	ret = xb_test_import_xml (builder, xml, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* use a cache for this specific result */
+	query = xb_query_new_full (silo, "names/name",
+				   XB_QUERY_FLAG_FORCE_NODE_CACHE, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (query);
+	n1 = xb_silo_query_first_full (silo, query, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n1);
+	n2 = xb_silo_query_first_full (silo, query, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n2);
+	g_assert (n1 == n2);
+}
+
+static void
 xb_xpath_glob_func (void)
 {
 	g_autofree gchar *xml2 = NULL;
@@ -2420,6 +2457,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/xpath", xb_xpath_func);
 	g_test_add_func ("/libxmlb/xpath-query", xb_xpath_query_func);
 	g_test_add_func ("/libxmlb/xpath-query{reverse}", xb_xpath_query_reverse_func);
+	g_test_add_func ("/libxmlb/xpath-query{force-node-cache}", xb_xpath_query_force_node_cache_func);
 	g_test_add_func ("/libxmlb/xpath{helpers}", xb_xpath_helpers_func);
 	g_test_add_func ("/libxmlb/xpath{prepared}", xb_xpath_prepared_func);
 	g_test_add_func ("/libxmlb/xpath{incomplete}", xb_xpath_incomplete_func);
