@@ -84,29 +84,29 @@ xb_stack_func (void)
 	g_autoptr(XbStack) stack = xb_stack_new (3);
 
 	/* push three opcodes */
-	g_assert_true (xb_stack_push (stack, &op3));
+	g_assert_true (xb_stack_push (stack, &op3, NULL));
 	xb_opcode_text_init (op3, "dave");
-	g_assert_true (xb_stack_push (stack, &op2));
+	g_assert_true (xb_stack_push (stack, &op2, NULL));
 	xb_opcode_integer_init (op2, 1);
-	g_assert_true (xb_stack_push (stack, &op1));
+	g_assert_true (xb_stack_push (stack, &op1, NULL));
 	xb_opcode_func_init (op1, 0);
-	g_assert_false (xb_stack_push (stack, &op4));
+	g_assert_false (xb_stack_push (stack, &op4, NULL));
 	g_assert_null (op4);
 
 	/* pop the same opcodes */
-	g_assert_true (xb_stack_pop (stack, &op1_popped));
+	g_assert_true (xb_stack_pop (stack, &op1_popped, NULL));
 	g_assert_cmpint (xb_opcode_get_kind (&op1_popped), ==, XB_OPCODE_KIND_FUNCTION);
 
-	g_assert_true (xb_stack_pop (stack, &op2_popped));
+	g_assert_true (xb_stack_pop (stack, &op2_popped, NULL));
 	g_assert_cmpint (xb_opcode_get_kind (&op2_popped), ==, XB_OPCODE_KIND_INTEGER);
 	g_assert_cmpuint (xb_opcode_get_val (&op2_popped), ==, 1);
 
-	g_assert_true (xb_stack_pop (stack, &op3_popped));
+	g_assert_true (xb_stack_pop (stack, &op3_popped, NULL));
 	g_assert_cmpint (xb_opcode_get_kind (&op3_popped), ==, XB_OPCODE_KIND_TEXT);
 	g_assert_cmpstr (xb_opcode_get_str (&op3_popped), ==, "dave");
 
 	/* re-add one opcode */
-	g_assert_true (xb_stack_push (stack, &op4));
+	g_assert_true (xb_stack_push (stack, &op4, NULL));
 	xb_opcode_text_init (op4, "dave again");
 	g_assert_nonnull (op4);
 
@@ -120,11 +120,11 @@ xb_stack_peek_func (void)
 	g_autoptr(XbStack) stack = xb_stack_new (3);
 
 	/* push three opcodes */
-	g_assert_true (xb_stack_push (stack, &op1));
+	g_assert_true (xb_stack_push (stack, &op1, NULL));
 	xb_opcode_func_init (op1, 0);
-	g_assert_true (xb_stack_push (stack, &op2));
+	g_assert_true (xb_stack_push (stack, &op2, NULL));
 	xb_opcode_integer_init (op2, 1);
-	g_assert_true (xb_stack_push (stack, &op3));
+	g_assert_true (xb_stack_push (stack, &op3, NULL));
 	xb_opcode_text_init (op3, "dave");
 
 	/* peek the same opcodes */

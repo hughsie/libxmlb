@@ -62,6 +62,7 @@ xb_stack_ref (XbStack *self)
  * xb_stack_pop:
  * @self: a #XbStack
  * @opcode_out: (out caller-allocates) (optional): return location for the popped #XbOpcode
+ * @error: a #GError, or %NULL
  *
  * Pops an opcode off the stack.
  *
@@ -70,13 +71,42 @@ xb_stack_ref (XbStack *self)
  * Since: 0.2.0
  **/
 gboolean
-xb_stack_pop (XbStack *self, XbOpcode *opcode_out)
+xb_stack_pop (XbStack *self, XbOpcode *opcode_out, GError **error)
 {
-	if (self->pos == 0)
+	if (self->pos == 0) {
+		g_set_error (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_INVALID_DATA,
+			     "stack is empty");
 		return FALSE;
+	}
 	self->pos--;
 	if (opcode_out != NULL)
 		*opcode_out = self->opcodes[self->pos];
+	return TRUE;
+}
+
+/**
+ * xb_stack_pop_two: (skip):
+ **/
+gboolean
+xb_stack_pop_two (XbStack *self,
+		  XbOpcode *opcode1_out,
+		  XbOpcode *opcode2_out,
+		  GError **error)
+{
+	if (self->pos < 2) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_INVALID_DATA,
+				     "stack is not full enough");
+		return FALSE;
+	}
+	if (opcode1_out != NULL)
+		*opcode1_out = self->opcodes[self->pos - 1];
+	if (opcode2_out != NULL)
+		*opcode2_out = self->opcodes[self->pos - 2];
+	self->pos -= 2;
 	return TRUE;
 }
 
@@ -101,10 +131,10 @@ xb_stack_peek (XbStack *self, guint idx)
 
 /* private */
 gboolean
-xb_stack_push_bool (XbStack *self, gboolean val)
+xb_stack_push_bool (XbStack *self, gboolean val, GError **error)
 {
 	XbOpcode *op;
-	if (!xb_stack_push (self, &op))
+	if (!xb_stack_push (self, &op, error))
 		return FALSE;
 	xb_opcode_bool_init (op, val);
 	return TRUE;
@@ -132,6 +162,7 @@ xb_stack_peek_tail (XbStack *self)
  * xb_stack_push:
  * @self: a #XbStack
  * @opcode_out: (out) (nullable): return location for the new #XbOpcode
+ * @error: a #GError, or %NULL
  *
  * Pushes a new empty opcode onto the end of the stack. A pointer to the opcode
  * is returned in @opcode_out so that the caller can initialise it. This must be
@@ -144,10 +175,16 @@ xb_stack_peek_tail (XbStack *self)
  **/
 gboolean
 xb_stack_push (XbStack *self,
-	       XbOpcode **opcode_out)
+	       XbOpcode **opcode_out,
+	       GError **error)
 {
 	if (self->pos >= self->max_size) {
 		*opcode_out = NULL;
+		g_set_error (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_NO_SPACE,
+			     "stack is already at maximum size of %u",
+			     self->max_size);
 		return FALSE;
 	}
 
