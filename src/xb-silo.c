@@ -17,6 +17,7 @@
 #endif
 
 #include "xb-builder.h"
+#include "xb-machine-private.h"
 #include "xb-node-private.h"
 #include "xb-opcode-private.h"
 #include "xb-silo-private.h"
@@ -1035,12 +1036,12 @@ xb_silo_node_create (XbSilo *self, XbSiloNode *sn, gboolean force_node_cache)
 
 /* Push two opcodes onto the stack with appropriate rollback on failure. */
 static gboolean
-_xb_stack_push_two (XbStack *opcodes, XbOpcode **op1, XbOpcode **op2)
+_xb_stack_push_two (XbStack *opcodes, XbOpcode **op1, XbOpcode **op2, GError **error)
 {
-	if (!xb_stack_push (opcodes, op1))
+	if (!xb_stack_push (opcodes, op1, error))
 		return FALSE;
-	if (!xb_stack_push (opcodes, op2)) {
-		xb_stack_pop (opcodes, NULL);
+	if (!xb_stack_push (opcodes, op2, error)) {
+		xb_stack_pop (opcodes, NULL, NULL);
 		return FALSE;
 	}
 	return TRUE;
@@ -1056,7 +1057,7 @@ xb_silo_machine_fixup_position_cb (XbMachine *self,
 	XbOpcode *op1;
 	XbOpcode *op2;
 
-	if (!_xb_stack_push_two (opcodes, &op1, &op2))
+	if (!_xb_stack_push_two (opcodes, &op1, &op2, error))
 		return FALSE;
 
 	xb_machine_opcode_func_init (self, op1, "position");
@@ -1075,7 +1076,7 @@ xb_silo_machine_fixup_attr_exists_cb (XbMachine *self,
 	XbOpcode *op1;
 	XbOpcode *op2;
 
-	if (!_xb_stack_push_two (opcodes, &op1, &op2))
+	if (!_xb_stack_push_two (opcodes, &op1, &op2, error))
 		return FALSE;
 
 	xb_opcode_text_init_static (op1, NULL);
@@ -1105,7 +1106,8 @@ xb_silo_machine_func_attr_cb (XbMachine *self,
 		return FALSE;
 	}
 
-	xb_machine_stack_pop (self, stack, &op);
+	if (!xb_machine_stack_pop (self, stack, &op, error))
+		return FALSE;
 
 	/* indexed string */
 	if (xb_opcode_get_kind (&op) == XB_OPCODE_KIND_INDEXED_TEXT) {
@@ -1150,7 +1152,8 @@ xb_silo_machine_func_stem_cb (XbMachine *self,
 		return FALSE;
 	}
 
-	xb_machine_stack_pop (self, stack, &op);
+	if (!xb_machine_stack_pop (self, stack, &op, error))
+		return FALSE;
 
 	/* TEXT */
 	str = xb_opcode_get_str (&op);
@@ -1229,8 +1232,7 @@ xb_silo_machine_func_first_cb (XbMachine *self,
 				     "cannot optimize: no silo to query");
 		return FALSE;
 	}
-	xb_stack_push_bool (stack, query_data->position == 1);
-	return TRUE;
+	return xb_stack_push_bool (stack, query_data->position == 1, error);
 }
 
 static gboolean
@@ -1249,8 +1251,7 @@ xb_silo_machine_func_last_cb (XbMachine *self,
 				     "cannot optimize: no silo to query");
 		return FALSE;
 	}
-	xb_stack_push_bool (stack, query_data->sn->next == 0);
-	return TRUE;
+	return xb_stack_push_bool (stack, query_data->sn->next == 0, error);
 }
 
 static gboolean
@@ -1300,13 +1301,12 @@ xb_silo_machine_func_search_cb (XbMachine *self,
 		return FALSE;
 	}
 
-	xb_machine_stack_pop (self, stack, &op1);
-	xb_machine_stack_pop (self, stack, &op2);
+	if (!xb_machine_stack_pop_two (self, stack, &op1, &op2, error))
+		return FALSE;
 
 	/* TEXT:TEXT */
-	xb_stack_push_bool (stack, xb_string_search (xb_opcode_get_str (&op2),
-						     xb_opcode_get_str (&op1)));
-	return TRUE;
+	return xb_stack_push_bool (stack, xb_string_search (xb_opcode_get_str (&op2),
+							    xb_opcode_get_str (&op1)), error);
 }
 
 static gboolean
@@ -1322,7 +1322,7 @@ xb_silo_machine_fixup_attr_text_cb (XbMachine *self,
 		XbOpcode *op1;
 		XbOpcode *op2;
 
-		if (!_xb_stack_push_two (opcodes, &op1, &op2))
+		if (!_xb_stack_push_two (opcodes, &op1, &op2, error))
 			return FALSE;
 
 		xb_opcode_text_init (op1, text + 1);
@@ -1331,8 +1331,8 @@ xb_silo_machine_fixup_attr_text_cb (XbMachine *self,
 					     G_IO_ERROR,
 					     G_IO_ERROR_NOT_SUPPORTED,
 					     "no attr opcode");
-			xb_stack_pop (opcodes, NULL);
-			xb_stack_pop (opcodes, NULL);
+			xb_stack_pop (opcodes, NULL, NULL);
+			xb_stack_pop (opcodes, NULL, NULL);
 			return FALSE;
 		}
 

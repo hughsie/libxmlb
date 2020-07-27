@@ -121,7 +121,8 @@ gboolean	 xb_machine_opcode_func_init	(XbMachine		*self,
 
 gboolean	 xb_machine_stack_pop		(XbMachine		*self,
 						 XbStack		*stack,
-						 XbOpcode		*opcode_out);
+						 XbOpcode		*opcode_out,
+						 GError			**error);
 gboolean	 xb_machine_stack_push		(XbMachine		*self,
 						 XbStack		*stack,
 						 XbOpcode		**opcode_out,

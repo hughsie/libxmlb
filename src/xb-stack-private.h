@@ -17,8 +17,13 @@ void		 xb_stack_unref			(XbStack	*self);
 XbStack		*xb_stack_ref			(XbStack	*self);
 guint		 xb_stack_get_size		(XbStack	*self);
 guint		 xb_stack_get_max_size		(XbStack	*self);
+gboolean	 xb_stack_pop_two		(XbStack	*self,
+						 XbOpcode	*opcode1_out,
+						 XbOpcode	*opcode2_out,
+						 GError		**error);
 gboolean	 xb_stack_push_bool		(XbStack	*self,
-						 gboolean	 val);
+						 gboolean	 val,
+						 GError		**error);
 XbOpcode	*xb_stack_peek			(XbStack	*self,
 						 guint		 idx);
 XbOpcode	*xb_stack_peek_head		(XbStack	*self);
