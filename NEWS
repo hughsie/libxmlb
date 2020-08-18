@@ -1,6 +1,32 @@
+Version 0.2.0
+~~~~~~~~~~~~~
+Released: 2020-08-18
+
+Important:
+ - This release breaks API and ABI and bumps the version of libxmlb.so and so
+   packages that depend on this library (e.g. fwupd or gnome-software) will need
+   to be rebuilt at the same time.
+
+New Features:
+ - Add the missing TEXT:INTE XPath support (Richard Hughes)
+ - Add variant of xb_silo_query_with_root() avoiding XbNode creation (Philip Withnall)
+ - Add XB_BUILDER_SOURCE_FLAG_WATCH_DIRECTORY flag (Philip Withnall)
+ - Allow specifying the node cache behaviour for the query (Richard Hughes)
+
+Bugfixes:
+ - Avoid recursion when setting flags if possible (Philip Withnall)
+ - Avoid using weak pointers when building the silo (Philip Withnall)
+ - Change the default value for the node cache (Richard Hughes)
+ - Do not allocate opcodes individually (Philip Withnall)
+ - Do not show a critical warning for invalid XML (Richard Hughes)
+ - Do not unconditionally create GTimer objects (Philip Withnall)
+ - Do not use the node cache when building indexes (Richard Hughes)
+ - Lazy load more arrays to reduce RSS usage (Philip Withnall)
+ - Report silo versions when versions mismatch (Robert Ancell)
+
 Version 0.1.15
 ~~~~~~~~~~~~~~
-Released: 2020-xx-xx
+Released: 2020-03-04
 
 New Features:
  - Add xb_builder_source_add_simple_adapter (Daniel Campello)
