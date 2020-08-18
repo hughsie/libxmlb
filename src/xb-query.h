@@ -35,7 +35,7 @@ struct _XbQueryClass {
  * @XB_QUERY_FLAG_REVERSE:		Reverse the results order
  * @XB_QUERY_FLAG_FORCE_NODE_CACHE:	Always cache the #XbNode objects
  *
- * The flags used fo query.
+ * The flags used for queries.
  **/
 typedef enum {
 	XB_QUERY_FLAG_NONE		= 0,			/* Since: 0.1.6 */
