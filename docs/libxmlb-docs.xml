@@ -40,6 +40,7 @@
     <xi:include href="xml/xb-silo-export.xml"/>
     <xi:include href="xml/xb-silo-query.xml"/>
     <xi:include href="xml/xb-string.xml"/>
+    <xi:include href="xml/xb-value-bindings.xml"/>
   </reference>
 
   <index id="api-index-full">

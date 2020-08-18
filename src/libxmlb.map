@@ -210,3 +210,18 @@ LIBXMLB_0.2.0 {
     xb_stack_push;
   local: *;
 } LIBXMLB_0.1.15;
+
+LIBXMLB_0.3.0 {
+  global:
+    xb_value_bindings_bind_str;
+    xb_value_bindings_bind_val;
+    xb_value_bindings_clear;
+    xb_value_bindings_copy;
+    xb_value_bindings_copy_binding;
+    xb_value_bindings_free;
+    xb_value_bindings_get_type;
+    xb_value_bindings_init;
+    xb_value_bindings_is_bound;
+    xb_value_bindings_lookup_opcode;
+  local: *;
+} LIBXMLB_0.2.0;

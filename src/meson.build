@@ -26,6 +26,7 @@ xb_headers = files(
   'xb-silo-query.h',
   'xb-stack.h',
   'xb-string.h',
+  'xb-value-bindings.h',
 ) + [libxmlb_version_h]
 
 install_headers(
@@ -56,6 +57,7 @@ libxmlb = library(
     'xb-silo-query.c',
     'xb-stack.c',
     'xb-string.c',
+    'xb-value-bindings.c',
   ],
   soversion : lt_current,
   version : lt_version,
@@ -138,6 +140,8 @@ if get_option('introspection')
       'xb-stack.h',
       'xb-string.c',
       'xb-string.h',
+      'xb-value-bindings.c',
+      'xb-value-bindings.h',
     ],
     nsversion : '2.0',
     namespace : 'Xmlb',
@@ -212,6 +216,7 @@ if get_option('tests')
       'xb-silo-query.c',
       'xb-stack.c',
       'xb-string.c',
+      'xb-value-bindings.c',
     ],
     include_directories : [
       configinc,
