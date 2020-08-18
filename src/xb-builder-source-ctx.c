@@ -11,6 +11,7 @@
 #include <gio/gio.h>
 
 #include "xb-builder-source-ctx-private.h"
+#include "xb-common-private.h"
 
 typedef struct {
 	GInputStream		*istream;
@@ -100,39 +101,22 @@ xb_builder_source_ctx_get_content_type (XbBuilderSourceCtx *self,
 					GError **error)
 {
 	XbBuilderSourceCtxPrivate *priv = GET_PRIVATE (self);
-	g_autofree gchar *content_type = NULL;
+	gsize bufsz = 0;
+	guchar buf[4096] = { 0x00 };
 
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE_CTX (self), NULL);
 
 	if (G_IS_SEEKABLE (priv->istream)) {
-		gsize bufsz = 0;
-		guchar buf[4096] = { 0x00 };
 		if (!g_input_stream_read_all (priv->istream, buf, sizeof(buf),
 					      &bufsz, cancellable, error))
 			return NULL;
 		if (!g_seekable_seek (G_SEEKABLE (priv->istream), 0, G_SEEK_SET,
 				      cancellable, error))
 			return NULL;
-		if (bufsz > 0)
-			content_type = g_content_type_guess (priv->filename, buf, bufsz, NULL);
 	}
-
-	/* either unseekable, or empty */
-	if (content_type == NULL)
-		content_type = g_content_type_guess (priv->filename, NULL, 0, NULL);
-
-#ifdef _WIN32
-	/* map Windows "mime-type" to a content type */
-	if (g_strcmp0 (content_type, ".gz") == 0)
-		return g_strdup ("application/gzip");
-	if (g_strcmp0 (content_type, ".txt") == 0 ||
-	    g_strcmp0 (content_type, ".xml") == 0)
-		return g_strdup ("application/xml");
-	if (g_strcmp0 (content_type, ".desktop") == 0)
-		return g_strdup ("application/x-desktop");
-#endif
-
-	return g_steal_pointer (&content_type);
+	if (bufsz > 0)
+		return xb_content_type_guess (priv->filename, buf, bufsz);
+	return xb_content_type_guess (priv->filename, NULL, 0);
 }
 
 /* private */
