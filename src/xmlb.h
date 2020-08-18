@@ -23,6 +23,7 @@
 #include <libxmlb/xb-silo-query.h>
 #include <libxmlb/xb-stack.h>
 #include <libxmlb/xb-string.h>
+#include <libxmlb/xb-value-bindings.h>
 #include <libxmlb/xb-version.h>
 
 #undef __LIBXMLB_H_INSIDE__
