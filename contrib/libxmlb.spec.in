@@ -72,12 +72,12 @@ Executable and data files for installed tests.
 %license LICENSE
 %{_libexecdir}/xb-tool
 %dir %{_libdir}/girepository-1.0
-%{_libdir}/girepository-1.0/*.typelib
+%{_libdir}/girepository-1.0/Xmlb-2.0.typelib
 %{_libdir}/libxmlb.so.2*
 
 %files devel
 %dir %{_datadir}/gir-1.0
-%{_datadir}/gir-1.0/*.gir
+%{_datadir}/gir-1.0/Xmlb-2.0.gir
 %dir %{_datadir}/gtk-doc
 %dir %{_datadir}/gtk-doc/html
 %{_datadir}/gtk-doc/html/libxmlb

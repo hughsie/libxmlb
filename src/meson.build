@@ -137,7 +137,7 @@ if get_option('introspection')
       'xb-string.c',
       'xb-string.h',
     ],
-    nsversion : '1.0',
+    nsversion : '2.0',
     namespace : 'Xmlb',
     symbol_prefix : 'xb',
     identifier_prefix : 'Xb',
