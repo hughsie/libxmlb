@@ -194,7 +194,7 @@ xb_query_get_bound_opcode (XbQuery *self, guint idx)
 			XbStack *stack = g_ptr_array_index (section->predicates, j);
 			for (guint k = 0; k < xb_stack_get_size (stack); k++) {
 				XbOpcode *op = xb_stack_peek (stack, k);
-				if (xb_opcode_is_bound (op)) {
+				if (xb_opcode_is_binding (op)) {
 					if (idx == idx_cnt++)
 						return op;
 				}

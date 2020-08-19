@@ -44,7 +44,7 @@ void		 xb_opcode_init			(XbOpcode	*opcode,
 						 GDestroyNotify	 destroy_func);
 void		 xb_opcode_clear		(XbOpcode	*opcode);
 void		 xb_opcode_bind_init		(XbOpcode	*opcode);
-gboolean	 xb_opcode_is_bound		(XbOpcode	*self);
+gboolean	 xb_opcode_is_binding		(XbOpcode	*self);
 void		 xb_opcode_bind_str		(XbOpcode	*self,
 						 gchar		*str,
 						 GDestroyNotify	 destroy_func);
