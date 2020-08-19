@@ -183,7 +183,7 @@ xb_opcode_cmp_str (XbOpcode *self)
 
 /* private */
 gboolean
-xb_opcode_is_bound (XbOpcode *self)
+xb_opcode_is_binding (XbOpcode *self)
 {
 	return (self->kind & XB_OPCODE_FLAG_BOUND) > 0;
 }
