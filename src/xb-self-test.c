@@ -473,11 +473,7 @@ xb_builder_chained_adapters_func (void)
 	g_autoptr(XbSilo) silo = NULL;
 
 	/* import a source file */
-	path = g_build_filename (TESTDIR, "test.xml.gz.gz.gz", NULL);
-	if (!g_file_test (path, G_FILE_TEST_EXISTS)) {
-		g_free (path);
-		path = g_build_filename (INSTALLEDTESTDIR, "test.xml.gz.gz.gz", NULL);
-	}
+	path = g_test_build_filename (G_TEST_DIST, "test.xml.gz.gz.gz", NULL);
 	file_src = g_file_new_for_path (path);
 	ret = xb_builder_source_load_file (source, file_src,
 					   XB_BUILDER_SOURCE_FLAG_NONE,

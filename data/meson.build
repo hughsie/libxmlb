@@ -8,6 +8,6 @@ if get_option('tests') and host_machine.system() != 'windows'
   )
 
   install_data(['test.xml.gz.gz.gz'],
-    install_dir: installed_test_datadir,
+    install_dir: installed_test_bindir,
   )
 endif

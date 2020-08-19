@@ -186,6 +186,9 @@ if get_option('introspection')
 endif
 
 if get_option('tests')
+  testdatadirs = environment()
+  testdatadirs.set('G_TEST_SRCDIR', join_paths(meson.source_root(), 'data'))
+  testdatadirs.set('G_TEST_BUILDDIR', meson.current_build_dir())
   e = executable(
     'xb-self-test',
     sources : [
@@ -210,10 +213,6 @@ if get_option('tests')
     include_directories : [
       configinc,
     ],
-    c_args : [
-      '-DTESTDIR="@0@/../data"'.format(meson.current_source_dir()),
-      '-DINSTALLEDTESTDIR="' + installed_test_datadir + '"',
-    ],
     dependencies : [
       gio,
       libxmlb_dep,
@@ -221,5 +220,5 @@ if get_option('tests')
     install : true,
     install_dir : installed_test_bindir
   )
-  test('xb-self-test', e)
+  test('xb-self-test', e, env : testdatadirs)
 endif

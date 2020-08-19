@@ -86,10 +86,11 @@ Executable and data files for installed tests.
 %{_libdir}/pkgconfig/xmlb.pc
 
 %files tests
+%dir %{_libexecdir}/installed-tests/libxmlb
 %{_libexecdir}/installed-tests/libxmlb/xb-self-test
-%{_datadir}/installed-tests/libxmlb/libxmlb.test
-%{_datadir}/installed-tests/libxmlb/test.xml.gz.gz.gz
+%{_libexecdir}/installed-tests/libxmlb/test.xml.gz.gz.gz
 %dir %{_datadir}/installed-tests/libxmlb
+%{_datadir}/installed-tests/libxmlb/libxmlb.test
 
 %changelog
 * #LONGDATE# Richard Hughes <richard@hughsie.com> #VERSION#-0.#BUILD##ALPHATAG#
