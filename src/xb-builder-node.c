@@ -785,10 +785,6 @@ xb_builder_node_set_priority (XbBuilderNode *self, gint priority)
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 	g_return_if_fail (XB_IS_BUILDER_NODE (self));
 	priv->priority = priority;
-	for (guint i = 0; priv->children != NULL && i < priv->children->len; i++) {
-		XbBuilderNode *c = g_ptr_array_index (priv->children, i);
-		xb_builder_node_set_priority (c, priority);
-	}
 }
 
 /* private */
