@@ -1,3 +1,13 @@
+Version 0.2.1
+~~~~~~~~~~~~~
+Released: 2020-09-07
+
+Bugfixes:
+ - Do not assume g_content_type_guess() always returns valid results (Richard Hughes)
+ - Make the build reproducible (Richard Hughes)
+ - Revert "Do not show a critical warning for invalid XML" (Richard Hughes)
+ - Update the header location to reflect the new API (Richard Hughes)
+
 Version 0.2.0
 ~~~~~~~~~~~~~
 Released: 2020-08-18
