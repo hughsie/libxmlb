@@ -266,8 +266,10 @@ silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limit, 
 		if (query == NULL) {
 			if (g_error_matches (error_local, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT) &&
 			    (split[i + 1] != NULL || results->len > 0)) {
-				g_debug ("ignoring for OR statement: %s",
-					 error_local->message);
+				if (xb_silo_get_profile_flags (self) & XB_SILO_PROFILE_FLAG_DEBUG) {
+					g_debug ("ignoring for OR statement: %s",
+						 error_local->message);
+				}
 				continue;
 			}
 			g_propagate_prefixed_error (error,

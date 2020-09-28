@@ -754,7 +754,8 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
 			root = g_object_ref (helper->root);
 		}
 
-		g_debug ("compiling %s…", source_guid);
+		if (priv->profile_flags & XB_SILO_PROFILE_FLAG_DEBUG)
+			g_debug ("compiling %s…", source_guid);
 		if (!xb_builder_compile_source (helper, source, root,
 						cancellable, &error_local)) {
 			if (flags & XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID) {
