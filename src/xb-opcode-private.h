@@ -45,9 +45,11 @@ void		 xb_opcode_init			(XbOpcode	*opcode,
 void		 xb_opcode_clear		(XbOpcode	*opcode);
 void		 xb_opcode_bind_init		(XbOpcode	*opcode);
 gboolean	 xb_opcode_is_binding		(XbOpcode	*self);
+G_DEPRECATED_FOR(xb_value_bindings_bind_str)
 void		 xb_opcode_bind_str		(XbOpcode	*self,
 						 gchar		*str,
 						 GDestroyNotify	 destroy_func);
+G_DEPRECATED_FOR(xb_value_bindings_bind_val)
 void		 xb_opcode_bind_val		(XbOpcode	*self,
 						 guint32	 val);
 void		 xb_opcode_set_kind		(XbOpcode	*self,

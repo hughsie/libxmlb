@@ -1682,6 +1682,7 @@ xb_xpath_prepared_func (void)
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
 	g_autoptr(XbSilo) silo = NULL;
 	g_autoptr(XbQuery) query = NULL;
+	g_auto(XbQueryContext) context = XB_QUERY_CONTEXT_INIT ();
 	g_autoptr(XbNode) component = NULL;
 	g_autoptr(GPtrArray) components = NULL;
 	const gchar *xml =
@@ -1714,10 +1715,8 @@ xb_xpath_prepared_func (void)
 	query = xb_query_new (silo, "id[text()=?]/..", &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (query);
-	ret = xb_query_bind_str (query, 0, "gimp.desktop", &error);
-	g_assert_no_error (error);
-	g_assert_true (ret);
-	components = xb_node_query_full (component, query, &error);
+	xb_value_bindings_bind_str (xb_query_context_get_bindings (&context), 0, "gimp.desktop", NULL);
+	components = xb_node_query_with_context (component, query, &context, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (components);
 	g_assert_cmpint (components->len, ==, 1);
@@ -1754,7 +1753,7 @@ xb_xpath_query_reverse_func (void)
 	query = xb_query_new_full (silo, "names/name", XB_QUERY_FLAG_REVERSE, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (query);
-	names = xb_silo_query_full (silo, query, &error);
+	names = xb_silo_query_with_context (silo, query, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (names);
 	g_assert_cmpint (names->len, ==, 3);
@@ -1790,10 +1789,10 @@ xb_xpath_query_force_node_cache_func (void)
 				   XB_QUERY_FLAG_FORCE_NODE_CACHE, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (query);
-	n1 = xb_silo_query_first_full (silo, query, &error);
+	n1 = xb_silo_query_first_with_context (silo, query, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (n1);
-	n2 = xb_silo_query_first_full (silo, query, &error);
+	n2 = xb_silo_query_first_with_context (silo, query, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (n2);
 	g_assert (n1 == n2);

@@ -61,10 +61,13 @@ void		 xb_query_set_limit		(XbQuery	*self,
 XbQueryFlags	 xb_query_get_flags		(XbQuery	*self);
 void		 xb_query_set_flags		(XbQuery	*self,
 						 XbQueryFlags	 flags);
+
+G_DEPRECATED_FOR(xb_value_bindings_bind_str)
 gboolean	 xb_query_bind_str		(XbQuery	*self,
 						 guint		 idx,
 						 const gchar	*str,
 						 GError		**error);
+G_DEPRECATED_FOR(xb_value_bindings_bind_val)
 gboolean	 xb_query_bind_val		(XbQuery	*self,
 						 guint		 idx,
 						 guint32	 val,

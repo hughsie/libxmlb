@@ -8,6 +8,7 @@
 
 #include "config.h"
 
+#include <glib.h>
 #include <gio/gio.h>
 
 #include "xb-node-query.h"
@@ -48,7 +49,8 @@ xb_node_query (XbNode *self, const gchar *xpath, guint limit, GError **error)
  * @query: an #XbQuery
  * @error: the #GError, or %NULL
  *
- * Searches the silo using a prepared query.
+ * Searches the silo using a prepared query. To search using a query with
+ * bound values, use xb_node_query_with_context().
  *
  * It is safe to call this function from a different thread to the one that
  * created the #XbSilo.
@@ -65,7 +67,37 @@ xb_node_query_full (XbNode *self, XbQuery *query, GError **error)
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (XB_IS_QUERY (query), NULL);
 	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
-	return xb_silo_query_with_root_full (xb_node_get_silo (self), self, query, error);
+	return xb_silo_query_with_root_full (xb_node_get_silo (self), self, query, NULL, error);
+}
+
+/**
+ * xb_node_query_with_context:
+ * @self: a #XbNode
+ * @query: an #XbQuery
+ * @context: (nullable) (transfer none): context including values bound to opcodes of type
+ *     %XB_OPCODE_KIND_BOUND_INTEGER or %XB_OPCODE_KIND_BOUND_TEXT, or %NULL if
+ *     the query doesn’t need any context
+ * @error: the #GError, or %NULL
+ *
+ * Searches the silo using a prepared query, substituting values from the
+ * bindings in @context for bound opcodes as needed.
+ *
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbSilo.
+ *
+ * Please note: Only a subset of XPath is supported.
+ *
+ * Returns: (transfer container) (element-type XbNode): results, or %NULL if unfound
+ *
+ * Since: 0.3.0
+ **/
+GPtrArray *
+xb_node_query_with_context (XbNode *self, XbQuery *query, XbQueryContext *context, GError **error)
+{
+	g_return_val_if_fail (XB_IS_NODE (self), NULL);
+	g_return_val_if_fail (XB_IS_QUERY (query), NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+	return xb_silo_query_with_root_full (xb_node_get_silo (self), self, query, context, error);
 }
 
 /**
@@ -74,7 +106,9 @@ xb_node_query_full (XbNode *self, XbQuery *query, GError **error)
  * @query: an #XbQuery
  * @error: the #GError, or %NULL
  *
- * Searches the silo using a prepared query, returning up to one result.
+ * Searches the silo using a prepared query, returning up to one result. To
+ * search using a query with bound values, use
+ * xb_node_query_first_with_context().
  *
  * It is safe to call this function from a different thread to the one that
  * created the #XbSilo.
@@ -88,14 +122,50 @@ xb_node_query_full (XbNode *self, XbQuery *query, GError **error)
 XbNode *
 xb_node_query_first_full (XbNode *self, XbQuery *query, GError **error)
 {
+	return xb_node_query_first_with_context (self, query, NULL, error);
+}
+
+/**
+ * xb_node_query_first_with_context:
+ * @self: a #XbNode
+ * @query: an #XbQuery
+ * @context: (nullable) (transfer none): context including values bound to opcodes of type
+ *     %XB_OPCODE_KIND_BOUND_INTEGER or %XB_OPCODE_KIND_BOUND_TEXT, or %NULL if
+ *     the query doesn’t need any context
+ * @error: the #GError, or %NULL
+ *
+ * Searches the silo using a prepared query, returning up to one result.
+ *
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbSilo.
+ *
+ * Please note: Only a subset of XPath is supported.
+ *
+ * Returns: (transfer full): a #XbNode, or %NULL if unfound
+ *
+ * Since: 0.3.0
+ **/
+XbNode *
+xb_node_query_first_with_context (XbNode *self, XbQuery *query, XbQueryContext *context, GError **error)
+{
 	g_autoptr(GPtrArray) results = NULL;
+	guint old_limit;
 
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (XB_IS_QUERY (query), NULL);
 	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
+	if (context != NULL) {
+		old_limit = xb_query_context_get_limit (context);
+		xb_query_context_set_limit (context, 1);
+	}
+
 	/* nodes don't have to include themselves as part of the query */
-	results = xb_silo_query_with_root_full (xb_node_get_silo (self), self, query, error);
+	results = xb_silo_query_with_root_full (xb_node_get_silo (self), self, query, context, error);
+
+	if (context != NULL)
+		xb_query_context_set_limit (context, old_limit);
+
 	if (results == NULL)
 		return NULL;
 	return g_object_ref (g_ptr_array_index (results, 0));

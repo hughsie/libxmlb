@@ -9,6 +9,7 @@
 #include <glib-object.h>
 
 #include "xb-query.h"
+#include "xb-query-context.h"
 #include "xb-node.h"
 
 G_BEGIN_DECLS
@@ -17,15 +18,27 @@ GPtrArray	*xb_node_query			(XbNode		*self,
 						 const gchar	*xpath,
 						 guint		 limit,
 						 GError		**error);
+
 GPtrArray	*xb_node_query_full		(XbNode		*self,
 						 XbQuery	*query,
 						 GError		**error);
+GPtrArray	*xb_node_query_with_context	(XbNode		*self,
+						 XbQuery	*query,
+						 XbQueryContext	*context,
+						 GError		**error);
+
 XbNode		*xb_node_query_first		(XbNode		*self,
 						 const gchar	*xpath,
 						 GError		**error);
+
 XbNode		*xb_node_query_first_full	(XbNode		*self,
 						 XbQuery	*query,
 						 GError		**error);
+XbNode		*xb_node_query_first_with_context(XbNode	*self,
+						 XbQuery	*query,
+						 XbQueryContext	*context,
+						 GError		**error);
+
 const gchar	*xb_node_query_text		(XbNode		*self,
 						 const gchar	*xpath,
 						 GError		**error);

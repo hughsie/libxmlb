@@ -216,10 +216,14 @@ xb_query_get_bound_opcode (XbQuery *self, guint idx)
  * Returns: %TRUE if the @idx existed
  *
  * Since: 0.1.4
+ * Deprecated: 0.3.0: Use #XbValueBindings and xb_value_bindings_bind_str()
+ *     instead. That keeps the value bindings separate from the #XbQuery,
+ *     allowing queries to be re-used over time and between threads.
  **/
 gboolean
 xb_query_bind_str (XbQuery *self, guint idx, const gchar *str, GError **error)
 {
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 	XbOpcode *op;
 
 	g_return_val_if_fail (XB_IS_QUERY (self), FALSE);
@@ -236,6 +240,7 @@ xb_query_bind_str (XbQuery *self, guint idx, const gchar *str, GError **error)
 	}
 	xb_opcode_bind_str (op, g_strdup (str), g_free);
 	return TRUE;
+G_GNUC_END_IGNORE_DEPRECATIONS
 }
 
 /**
@@ -250,10 +255,14 @@ xb_query_bind_str (XbQuery *self, guint idx, const gchar *str, GError **error)
  * Returns: %TRUE if the @idx existed
  *
  * Since: 0.1.4
+ * Deprecated: 0.3.0: Use #XbValueBindings and xb_value_bindings_bind_val()
+ *     instead. That keeps the value bindings separate from the #XbQuery,
+ *     allowing queries to be re-used over time and between threads.
  **/
 gboolean
 xb_query_bind_val (XbQuery *self, guint idx, guint32 val, GError **error)
 {
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 	XbOpcode *op;
 
 	g_return_val_if_fail (XB_IS_QUERY (self), FALSE);
@@ -270,6 +279,7 @@ xb_query_bind_val (XbQuery *self, guint idx, guint32 val, GError **error)
 	}
 	xb_opcode_bind_val (op, val);
 	return TRUE;
+G_GNUC_END_IGNORE_DEPRECATIONS
 }
 
 static void
