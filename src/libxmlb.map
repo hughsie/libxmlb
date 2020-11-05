@@ -213,6 +213,9 @@ LIBXMLB_0.2.0 {
 
 LIBXMLB_0.3.0 {
   global:
+    xb_machine_run_with_bindings;
+    xb_node_query_first_with_context;
+    xb_node_query_with_context;
     xb_query_context_clear;
     xb_query_context_copy;
     xb_query_context_free;
@@ -223,6 +226,8 @@ LIBXMLB_0.3.0 {
     xb_query_context_init;
     xb_query_context_set_flags;
     xb_query_context_set_limit;
+    xb_silo_query_first_with_context;
+    xb_silo_query_with_context;
     xb_value_bindings_bind_str;
     xb_value_bindings_bind_val;
     xb_value_bindings_clear;

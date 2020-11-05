@@ -334,7 +334,8 @@ xb_opcode_func_init (XbOpcode *opcode, guint32 func)
  * @opcode: a stack allocated #XbOpcode to initialise
  *
  * Initialises a stack allocated #XbOpcode to contain a bind variable. A value
- * needs to be assigned to this opcode at runtime using xb_query_bind_str().
+ * needs to be assigned to this opcode at runtime using
+ * xb_value_bindings_bind_str() or xb_value_bindings_bind_val().
  *
  * Since: 0.2.0
  **/

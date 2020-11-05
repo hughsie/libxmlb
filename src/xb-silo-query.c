@@ -13,6 +13,7 @@
 
 #include "xb-node-private.h"
 #include "xb-opcode.h"
+#include "xb-opcode-private.h"
 #include "xb-silo-private.h"
 #include "xb-silo-query-private.h"
 #include "xb-stack-private.h"
@@ -24,6 +25,9 @@ xb_silo_query_node_matches (XbSilo *self,
 			    XbSiloNode *sn,
 			    XbQuerySection *section,
 			    XbSiloQueryData *query_data,
+			    XbValueBindings *bindings,
+			    guint bindings_offset,
+			    guint *bindings_offset_end_out,
 			    gboolean *result,
 			    GError **error)
 {
@@ -41,10 +45,42 @@ xb_silo_query_node_matches (XbSilo *self,
 	if (section->predicates != NULL) {
 		for (guint i = 0; i < section->predicates->len; i++) {
 			XbStack *opcodes = g_ptr_array_index (section->predicates, i);
-			if (!xb_machine_run (machine, opcodes, result, query_data, error))
+			g_auto(XbValueBindings) predicate_bindings = XB_VALUE_BINDINGS_INIT ();
+			guint predicate_bindings_idx = 0;
+			XbValueBindings *predicate_bindings_ptr = NULL;
+
+			if (bindings != NULL)
+				predicate_bindings_ptr = &predicate_bindings;
+
+			/* set up the bindings for this predicate */
+			for (guint k = 0; bindings != NULL && k < xb_stack_get_size (opcodes); k++) {
+				XbOpcode *op = xb_stack_peek (opcodes, k);
+				if (xb_opcode_is_binding (op)) {
+					/* ignore errors as they’ll be caught by xb_machine_run() */
+					xb_value_bindings_copy_binding (bindings,
+									bindings_offset + predicate_bindings_idx,
+									&predicate_bindings,
+									predicate_bindings_idx);
+					predicate_bindings_idx++;
+				}
+			}
+
+			/* run the predicate; pass NULL for the bindings iff
+			 * (bindings == NULL), as that means we’ve been called
+			 * with pre-0.3.0-style pre-bound values */
+			if (!xb_machine_run_with_bindings (machine, opcodes,
+							   predicate_bindings_ptr,
+							   result,
+							   query_data,
+							   error))
 				return FALSE;
+
+			bindings_offset += predicate_bindings_idx;
 		}
 	}
+
+	if (bindings_offset_end_out != NULL)
+		*bindings_offset_end_out = bindings_offset;
 
 	/* success */
 	return TRUE;
@@ -70,6 +106,7 @@ typedef enum {
 typedef struct {
 	GPtrArray	*sections;	/* of XbQuerySection */
 	GPtrArray	*results;	/* of XbNode or XbSiloNode (see @flags) */
+	XbValueBindings	*bindings;
 	GHashTable	*results_hash;	/* of sn:1 */
 	guint		 limit;
 	XbSiloQueryHelperFlags	 flags;
@@ -99,6 +136,7 @@ static gboolean
 xb_silo_query_section_root (XbSilo *self,
 			    XbSiloNode *sn,
 			    guint i,
+			    guint bindings_offset,
 			    XbSiloQueryHelper *helper,
 			    GError **error)
 {
@@ -131,7 +169,7 @@ xb_silo_query_section_root (XbSilo *self,
 		}
 //		g_debug ("PARENT @%u",
 //			 xb_silo_get_offset_for_node (self, parent));
-		return xb_silo_query_section_root (self, parent, i + 1, helper, error);
+		return xb_silo_query_section_root (self, parent, i + 1, bindings_offset, helper, error);
 	}
 
 	/* no node means root */
@@ -156,9 +194,12 @@ xb_silo_query_section_root (XbSilo *self,
 	/* continue matching children ".." */
 	do {
 		gboolean result = TRUE;
+		guint bindings_offset_end;
 		query_data->sn = sn;
 		if (!xb_silo_query_node_matches (self, machine, sn, section,
-						 query_data, &result, error))
+						 query_data, helper->bindings,
+						 bindings_offset, &bindings_offset_end,
+						 &result, error))
 			return FALSE;
 		if (result) {
 			if (i == helper->sections->len - 1) {
@@ -170,7 +211,8 @@ xb_silo_query_section_root (XbSilo *self,
 //				g_debug ("MATCH %s at @%u, deeper",
 //					 xb_silo_node_get_element (self, sn),
 //					 xb_silo_get_offset_for_node (self, sn));
-				if (!xb_silo_query_section_root (self, sn, i + 1, helper, error))
+				if (!xb_silo_query_section_root (self, sn, i + 1,
+								 bindings_offset_end, helper, error))
 					return FALSE;
 				if (helper->results->len > 0 &&
 				    helper->results->len == helper->limit)
@@ -190,13 +232,15 @@ xb_silo_query_part (XbSilo *self,
 		    GPtrArray *results,
 		    GHashTable *results_hash,
 		    XbQuery *query,
+		    XbQueryContext *context,
 		    XbSiloQueryData *query_data,
 		    XbSiloQueryHelperFlags flags,
 		    GError **error)
 {
 	XbSiloQueryHelper helper = {
 		.results = results,
-		.limit = xb_query_get_limit (query),
+		.bindings = (context != NULL) ? xb_query_context_get_bindings (context) : NULL,
+		.limit = (context != NULL ) ? xb_query_context_get_limit (context) : xb_query_get_limit (query),
 		.flags = flags,
 		.results_hash = results_hash,
 		.query_data = query_data,
@@ -206,7 +250,7 @@ xb_silo_query_part (XbSilo *self,
 	helper.sections = xb_query_get_sections (query);
 	if (xb_query_get_flags (query) & XB_QUERY_FLAG_FORCE_NODE_CACHE)
 		helper.flags |= XB_SILO_QUERY_HELPER_FORCE_NODE_CACHE;
-	return xb_silo_query_section_root (self, sroot, 0, &helper, error);
+	return xb_silo_query_section_root (self, sroot, 0, 0, &helper, error);
 }
 
 /* Returns an array with (element-type XbSiloNode) if
@@ -281,7 +325,7 @@ silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limit, 
 		xb_query_set_limit (query, limit);
 		if (!xb_silo_query_part (self, sn,
 					 results, results_hash,
-					 query, &query_data,
+					 query, NULL, &query_data,
 					 flags,
 					 error)) {
 			return NULL;
@@ -371,6 +415,9 @@ _g_ptr_array_reverse (GPtrArray *array)
  * @self: a #XbSilo
  * @n: (allow-none): a #XbNode
  * @query: an #XbQuery
+ * @context: (nullable) (transfer none): context including values bound to opcodes of type
+ *     %XB_OPCODE_KIND_BOUND_INTEGER or %XB_OPCODE_KIND_BOUND_TEXT, or %NULL if
+ *     the query doesn’t need any context
  * @error: the #GError, or %NULL
  *
  * Searches the silo using an XPath query, returning up to @limit results.
@@ -382,10 +429,10 @@ _g_ptr_array_reverse (GPtrArray *array)
  *
  * Returns: (transfer container) (element-type XbNode): results, or %NULL if unfound
  *
- * Since: 0.1.4
+ * Since: 0.3.0
  **/
 GPtrArray *
-xb_silo_query_with_root_full (XbSilo *self, XbNode *n, XbQuery *query, GError **error)
+xb_silo_query_with_root_full (XbSilo *self, XbNode *n, XbQuery *query, XbQueryContext *context, GError **error)
 {
 	XbSiloNode *sn = NULL;
 	g_autoptr(GHashTable) results_hash = g_hash_table_new (g_direct_hash, g_direct_equal);
@@ -411,7 +458,7 @@ xb_silo_query_with_root_full (XbSilo *self, XbNode *n, XbQuery *query, GError **
 
 	/* only one query allowed */
 	if (!xb_silo_query_part (self, sn, results, results_hash,
-				 query, &query_data,
+				 query, context, &query_data,
 				 XB_SILO_QUERY_HELPER_NONE, error))
 		return NULL;
 
@@ -464,10 +511,36 @@ xb_silo_query_with_root_full (XbSilo *self, XbNode *n, XbQuery *query, GError **
 GPtrArray *
 xb_silo_query_full (XbSilo *self, XbQuery *query, GError **error)
 {
+	return xb_silo_query_with_context (self, query, NULL, error);
+}
+
+/**
+ * xb_silo_query_with_context:
+ * @self: a #XbSilo
+ * @query: an #XbQuery
+ * @context: (nullable) (transfer none): context including values bound to opcodes of type
+ *     %XB_OPCODE_KIND_BOUND_INTEGER or %XB_OPCODE_KIND_BOUND_TEXT, or %NULL if
+ *     the query doesn’t need any context
+ * @error: the #GError, or %NULL
+ *
+ * Searches the silo using an XPath query.
+ *
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbSilo.
+ *
+ * Please note: Only a subset of XPath is supported.
+ *
+ * Returns: (transfer container) (element-type XbNode): results, or %NULL if unfound
+ *
+ * Since: 0.3.0
+ **/
+GPtrArray *
+xb_silo_query_with_context (XbSilo *self, XbQuery *query, XbQueryContext *context, GError **error)
+{
 	g_return_val_if_fail (XB_IS_SILO (self), NULL);
 	g_return_val_if_fail (XB_IS_QUERY (query), NULL);
 	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
-	return xb_silo_query_with_root_full (self, NULL, query, error);
+	return xb_silo_query_with_root_full (self, NULL, query, context, error);
 }
 
 /**
@@ -490,8 +563,45 @@ xb_silo_query_full (XbSilo *self, XbQuery *query, GError **error)
 XbNode *
 xb_silo_query_first_full (XbSilo *self, XbQuery *query, GError **error)
 {
+	return xb_silo_query_first_with_context (self, query, NULL, error);
+}
+
+/**
+ * xb_silo_query_first_with_context:
+ * @self: a #XbSilo
+ * @query: an #XbQuery
+ * @context: (nullable) (transfer none): context including values bound to opcodes of type
+ *     %XB_OPCODE_KIND_BOUND_INTEGER or %XB_OPCODE_KIND_BOUND_TEXT, or %NULL if
+ *     the query doesn’t need any context
+ * @error: the #GError, or %NULL
+ *
+ * Searches the silo using an XPath query, returning up to one result.
+ *
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbSilo.
+ *
+ * Please note: Only a tiny subset of XPath 1.0 is supported.
+ *
+ * Returns: (transfer none): a #XbNode, or %NULL if unfound
+ *
+ * Since: 0.3.0
+ **/
+XbNode *
+xb_silo_query_first_with_context (XbSilo *self, XbQuery *query, XbQueryContext *context, GError **error)
+{
 	g_autoptr(GPtrArray) results = NULL;
-	results = xb_silo_query_full (self, query, error);
+	guint old_limit;
+
+	if (context != NULL) {
+		old_limit = xb_query_context_get_limit (context);
+		xb_query_context_set_limit (context, 1);
+	}
+
+	results = xb_silo_query_with_context (self, query, context, error);
+
+	if (context != NULL)
+		xb_query_context_set_limit (context, old_limit);
+
 	if (results == NULL)
 		return NULL;
 	return g_object_ref (g_ptr_array_index (results, 0));

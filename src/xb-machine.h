@@ -10,6 +10,7 @@
 
 #include "xb-opcode.h"
 #include "xb-stack.h"
+#include "xb-value-bindings.h"
 
 G_BEGIN_DECLS
 
@@ -90,8 +91,16 @@ XbStack		*xb_machine_parse_full		(XbMachine		*self,
 						 gssize			 text_len,
 						 XbMachineParseFlags	 flags,
 						 GError			**error);
+
+G_DEPRECATED_FOR(xb_machine_run_with_bindings)
 gboolean	 xb_machine_run			(XbMachine		*self,
 						 XbStack		*opcodes,
+						 gboolean		*result,
+						 gpointer		 exec_data,
+						 GError			**error);
+gboolean	 xb_machine_run_with_bindings	(XbMachine		*self,
+						 XbStack		*opcodes,
+						 XbValueBindings	*bindings,
 						 gboolean		*result,
 						 gpointer		 exec_data,
 						 GError			**error);

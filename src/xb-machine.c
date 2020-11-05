@@ -911,6 +911,7 @@ xb_machine_run_func (XbMachine *self,
  * Returns: a new #XbOpcode, or %NULL
  *
  * Since: 0.1.1
+ * Deprecated: 0.3.0: Use xb_machine_run_with_bindings() instead.
  **/
 gboolean
 xb_machine_run (XbMachine *self,
@@ -919,10 +920,43 @@ xb_machine_run (XbMachine *self,
 		gpointer exec_data,
 		GError **error)
 {
+	return xb_machine_run_with_bindings (self, opcodes, NULL, result, exec_data, error);
+}
+
+/**
+ * xb_machine_run_with_bindings:
+ * @self: a #XbMachine
+ * @opcodes: a #XbStack of opcodes
+ * @bindings: (nullable) (transfer none): values bound to opcodes of type
+ *     %XB_OPCODE_KIND_BOUND_INTEGER or %XB_OPCODE_KIND_BOUND_TEXT, or %NULL if
+ *     the query doesn’t need any bound values
+ * @result: (out): return status after running @opcodes
+ * @exec_data: per-run user data that is passed to all the #XbMachineMethodFunc functions
+ * @error: a #GError, or %NULL
+ *
+ * Runs a set of opcodes on the virtual machine, using the bound values given in
+ * @bindings to substitute for bound opcodes.
+ *
+ * It is safe to call this function from a different thread to the one that
+ * created the #XbMachine.
+ *
+ * Returns: a new #XbOpcode, or %NULL
+ *
+ * Since: 0.3.0
+ **/
+gboolean
+xb_machine_run_with_bindings (XbMachine        *self,
+			      XbStack          *opcodes,
+			      XbValueBindings  *bindings,
+			      gboolean         *result,
+			      gpointer          exec_data,
+			      GError          **error)
+{
 	XbMachinePrivate *priv = GET_PRIVATE (self);
 	g_auto(XbOpcode) opcode_success = XB_OPCODE_INIT ();
 	g_autoptr(XbStack) stack = NULL;
 	guint opcodes_stack_size = xb_stack_get_size (opcodes);
+	guint bound_opcode_idx = 0;
 
 	g_return_val_if_fail (XB_IS_MACHINE (self), FALSE);
 	g_return_val_if_fail (opcodes != NULL, FALSE);
@@ -934,6 +968,38 @@ xb_machine_run (XbMachine *self,
 	for (guint i = 0; i < opcodes_stack_size; i++) {
 		XbOpcode *opcode = xb_stack_peek (opcodes, i);
 		XbOpcodeKind kind = xb_opcode_get_kind (opcode);
+
+		/* replace post-0.3.0-style bound opcodes with their bound values */
+		if (bindings != NULL &&
+		    (kind == XB_OPCODE_KIND_BOUND_TEXT ||
+		     kind == XB_OPCODE_KIND_BOUND_INTEGER)) {
+			XbOpcode *machine_opcode;
+			if (!xb_machine_stack_push (self,
+						    stack,
+						    &machine_opcode,
+						    error))
+				return FALSE;
+			if (!xb_value_bindings_lookup_opcode (bindings, bound_opcode_idx++, machine_opcode)) {
+				g_autofree gchar *tmp1 = xb_stack_to_string (stack);
+				g_autofree gchar *tmp2 = xb_stack_to_string (opcodes);
+				g_set_error (error,
+					     G_IO_ERROR,
+					     G_IO_ERROR_INVALID_DATA,
+					     "opcode was not bound at runtime, stack:%s, opcodes:%s",
+					     tmp1, tmp2);
+				return FALSE;
+			}
+			continue;
+		} else if (kind == XB_OPCODE_KIND_BOUND_UNSET) {
+			g_autofree gchar *tmp1 = xb_stack_to_string (stack);
+			g_autofree gchar *tmp2 = xb_stack_to_string (opcodes);
+			g_set_error (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_INVALID_DATA,
+				     "opcode was not bound at runtime, stack:%s, opcodes:%s",
+				     tmp1, tmp2);
+			return FALSE;
+		}
 
 		/* process the stack */
 		if (kind == XB_OPCODE_KIND_FUNCTION) {
@@ -953,8 +1019,9 @@ xb_machine_run (XbMachine *self,
 		    kind == XB_OPCODE_KIND_BOOLEAN ||
 		    kind == XB_OPCODE_KIND_INTEGER ||
 		    kind == XB_OPCODE_KIND_INDEXED_TEXT ||
-		    kind == XB_OPCODE_KIND_BOUND_TEXT ||
-		    kind == XB_OPCODE_KIND_BOUND_INTEGER) {
+		    (bindings == NULL &&
+		     (kind == XB_OPCODE_KIND_BOUND_TEXT ||
+		      kind == XB_OPCODE_KIND_BOUND_INTEGER))) {
 			XbOpcode *machine_opcode;
 			if (!xb_machine_stack_push (self,
 						    stack,
@@ -964,18 +1031,6 @@ xb_machine_run (XbMachine *self,
 			*machine_opcode = *opcode;
 			machine_opcode->destroy_func = NULL;
 			continue;
-		}
-
-		/* unbound */
-		if (kind == XB_OPCODE_KIND_BOUND_UNSET) {
-			g_autofree gchar *tmp1 = xb_stack_to_string (stack);
-			g_autofree gchar *tmp2 = xb_stack_to_string (opcodes);
-			g_set_error (error,
-				     G_IO_ERROR,
-				     G_IO_ERROR_INVALID_DATA,
-				     "opcode was not bound at runtime, stack:%s, opcodes:%s",
-				     tmp1, tmp2);
-			return FALSE;
 		}
 
 		/* invalid */
