@@ -4,7 +4,7 @@ libxmlb Release Notes
 
 git shortlog 0.2.1.. | grep -i -v trivial | grep -v Merge > NEWS.new
 
-Version 0.2.2
+Version 0.3.0
 ~~~~~~~~~~~~~
 Released: 2020-xx-xx
 
@@ -15,7 +15,7 @@ Bugfixes:
 Commit changes to git:
 
 # MAKE SURE THESE ARE CORRECT
-export release_ver="0.2.1"
+export release_ver="0.3.0"
 
 git commit -a -m "Release libxmlb ${release_ver}"
 git tag -s -f -m "Release libxmlb ${release_ver}" "${release_ver}"
