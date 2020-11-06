@@ -48,7 +48,7 @@ xb_node_query (XbNode *self, const gchar *xpath, guint limit, GError **error)
  * @query: an #XbQuery
  * @error: the #GError, or %NULL
  *
- * Searches the silo using an prepared query.
+ * Searches the silo using a prepared query.
  *
  * It is safe to call this function from a different thread to the one that
  * created the #XbSilo.
@@ -74,7 +74,7 @@ xb_node_query_full (XbNode *self, XbQuery *query, GError **error)
  * @query: an #XbQuery
  * @error: the #GError, or %NULL
  *
- * Searches the silo using an prepared query, returning up to one result.
+ * Searches the silo using a prepared query, returning up to one result.
  *
  * It is safe to call this function from a different thread to the one that
  * created the #XbSilo.
