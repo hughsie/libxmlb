@@ -900,7 +900,7 @@ xb_machine_run_func (XbMachine *self,
  * @self: a #XbMachine
  * @opcodes: a #XbStack of opcodes
  * @result: (out): return status after running @opcodes
- * @exec_data: per-run user data that is passed to all the XbMachineMethodFunc functions
+ * @exec_data: per-run user data that is passed to all the #XbMachineMethodFunc functions
  * @error: a #GError, or %NULL
  *
  * Runs a set of opcodes on the virtual machine.
