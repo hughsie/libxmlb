@@ -8,8 +8,6 @@
 
 #include <glib-object.h>
 
-#include "xb-silo.h"
-
 G_BEGIN_DECLS
 
 #define XB_TYPE_QUERY (xb_query_get_type ())
@@ -46,6 +44,8 @@ typedef enum {
 	/*< private >*/
 	XB_QUERY_FLAG_LAST
 } XbQueryFlags;
+
+#include "xb-silo.h"
 
 XbQuery		*xb_query_new			(XbSilo		*silo,
 						 const gchar	*xpath,
