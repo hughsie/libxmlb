@@ -9,6 +9,7 @@
 #include "xb-machine.h"
 #include "xb-node.h"
 #include "xb-silo.h"
+#include "xb-query.h"
 
 #include "xb-string-private.h"
 

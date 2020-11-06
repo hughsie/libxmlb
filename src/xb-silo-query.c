@@ -307,6 +307,7 @@ silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limit, 
 	for (guint i = 0; split[i] != NULL; i++) {
 		g_autoptr(GError) error_local = NULL;
 		g_autoptr(XbQuery) query = xb_query_new (self, split[i], &error_local);
+
 		if (query == NULL) {
 			if (g_error_matches (error_local, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT) &&
 			    (split[i + 1] != NULL || results->len > 0)) {
@@ -322,6 +323,7 @@ silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limit, 
 						    xpath);
 			return NULL;
 		}
+
 		xb_query_set_limit (query, limit);
 		if (!xb_silo_query_part (self, sn,
 					 results, results_hash,

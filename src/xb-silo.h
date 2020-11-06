@@ -99,4 +99,9 @@ gboolean	 xb_silo_get_enable_node_cache		(XbSilo		*self);
 void		 xb_silo_set_enable_node_cache		(XbSilo		*self,
 							 gboolean	 enable_node_cache);
 
+#include "xb-query.h"
+
+XbQuery		*xb_silo_lookup_query			(XbSilo		*self,
+							 const gchar	*xpath);
+
 G_END_DECLS
