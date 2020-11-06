@@ -18,7 +18,7 @@
 
 typedef struct {
 	GPtrArray		*sections;		/* of XbQuerySection */
-	XbSilo			*silo;
+	XbSilo			*silo;			/* (unowned) */
 	XbQueryFlags		 flags;
 	gchar			*xpath;
 	guint			 limit;
@@ -482,6 +482,9 @@ xb_query_parse (XbQuery *self, const gchar *xpath, GError **error)
  * Creates a query to be used by @silo. It may be quicker to create a query
  * manually and re-use it multiple times.
  *
+ * The query will point to strings inside @silo, so the lifetime of @silo must
+ * exceed the lifetime of the returned query.
+ *
  * Returns: (transfer full): a #XbQuery
  *
  * Since: 0.1.6
@@ -496,7 +499,7 @@ xb_query_new_full (XbSilo *silo, const gchar *xpath, XbQueryFlags flags, GError 
 	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
 	/* create */
-	priv->silo = g_object_ref (silo);
+	priv->silo = silo;  /* don’t take a reference, otherwise we get refcount loops with cached queries from xb_silo_lookup_query() */
 	priv->xpath = g_strdup (xpath);
 	priv->flags = flags;
 	priv->sections = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_query_section_free);
@@ -551,7 +554,6 @@ xb_query_finalize (GObject *obj)
 {
 	XbQuery *self = XB_QUERY (obj);
 	XbQueryPrivate *priv = GET_PRIVATE (self);
-	g_object_unref (priv->silo);
 	g_ptr_array_unref (priv->sections);
 	g_free (priv->xpath);
 	G_OBJECT_CLASS (xb_query_parent_class)->finalize (obj);
