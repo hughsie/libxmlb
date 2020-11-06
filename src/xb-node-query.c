@@ -279,7 +279,7 @@ xb_node_query_export (XbNode *self, const gchar *xpath, GError **error)
  *
  * Please note: Only a subset of XPath is supported.
  *
- * Returns: a guint64, or %G_MAXUINT64 if unfound
+ * Returns: a #guint64, or %G_MAXUINT64 if unfound
  *
  * Since: 0.1.0
  **/
@@ -315,7 +315,7 @@ xb_node_query_text_as_uint (XbNode *self, const gchar *xpath, GError **error)
  *
  * Please note: Only a subset of XPath is supported.
  *
- * Returns: a guint64, or %G_MAXUINT64 if unfound
+ * Returns: a #guint64, or %G_MAXUINT64 if unfound
  *
  * Since: 0.1.0
  **/
