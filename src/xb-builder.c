@@ -170,14 +170,9 @@ xb_builder_compile_text_cb (GMarkupParseContext *context,
 		xb_builder_node_set_tail (bc, text, text_len);
 		return;
 	}
-	if (!xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_HAS_TAIL)) {
-		xb_builder_node_set_tail (bn, text, text_len);
-		return;
-	}
-	g_set_error (error,
-		     G_IO_ERROR,
-		     G_IO_ERROR_INVALID_DATA,
-		     "Mismatched XML; cannot store %s", text);
+
+	/* always set a tail, even if already set */
+	xb_builder_node_set_tail (bn, text, text_len);
 }
 
 /**

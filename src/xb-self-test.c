@@ -1513,6 +1513,35 @@ xb_builder_native_lang_func (void)
 }
 
 static void
+xb_builder_comments_func (void)
+{
+	gboolean ret;
+	g_autoptr(GError) error = NULL;
+	g_autofree gchar *str = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbSilo) silo = NULL;
+	const gchar *xml =
+	"<?xml version=\"1.0\" ?>\n"
+	"<components>\n"
+	"  <!-- one -->\n"
+	"  <!-- two -->\n"
+	"</components>\n";
+
+	/* import XML */
+	ret = xb_test_import_xml (builder, xml, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* export */
+	str = xb_silo_export (silo, XB_NODE_EXPORT_FLAG_NONE, &error);
+	g_assert_no_error (error);
+	g_assert_cmpstr (str, ==, "<components></components>");
+}
+
+static void
 xb_builder_native_lang2_func (void)
 {
 	gboolean ret;
@@ -2432,6 +2461,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/stack{peek}", xb_stack_peek_func);
 	g_test_add_func ("/libxmlb/node{data}", xb_node_data_func);
 	g_test_add_func ("/libxmlb/builder", xb_builder_func);
+	g_test_add_func ("/libxmlb/builder{comments}", xb_builder_comments_func);
 	g_test_add_func ("/libxmlb/builder{native-lang}", xb_builder_native_lang_func);
 	g_test_add_func ("/libxmlb/builder{native-lang-nested}", xb_builder_native_lang2_func);
 	g_test_add_func ("/libxmlb/builder{native-lang-locale}", xb_builder_native_lang_no_locales_func);
