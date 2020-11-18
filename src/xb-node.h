@@ -33,6 +33,7 @@ struct _XbNodeClass {
  * @XB_NODE_EXPORT_FLAG_FORMAT_INDENT:		Indent the XML by child depth
  * @XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS:	Include the siblings when converting
  * @XB_NODE_EXPORT_FLAG_ONLY_CHILDREN:		Only export the children of the node
+ * @XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY:		If node has no children, collapse open and close tags
  *
  * The flags for converting to XML.
  **/
@@ -43,6 +44,7 @@ typedef enum {
 	XB_NODE_EXPORT_FLAG_FORMAT_INDENT	= 1 << 2,	/* Since: 0.1.0 */
 	XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS	= 1 << 3,	/* Since: 0.1.0 */
 	XB_NODE_EXPORT_FLAG_ONLY_CHILDREN	= 1 << 4,	/* Since: 0.1.0 */
+	XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY	= 1 << 5,	/* Since: 0.2.2 */
 	/*< private >*/
 	XB_NODE_EXPORT_FLAG_LAST
 } XbNodeExportFlags;

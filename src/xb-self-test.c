@@ -1014,6 +1014,39 @@ xb_node_data_func (void)
 }
 
 static void
+xb_node_export_func (void)
+{
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbNode) n = NULL;
+	g_autoptr(XbSilo) silo = NULL;
+	g_autoptr(GBytes) bytes = g_bytes_new ("foo", 4);
+	g_autofree gchar *xml_default = NULL;
+	g_autofree gchar *xml_collapsed = NULL;
+
+	/* import from XML */
+	silo = xb_silo_new_from_xml ("<component attr1=\"val1\" attr2=\"val2\"/>", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* get node */
+	n = xb_silo_query_first (silo, "component", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+
+	/* export default */
+	xml_default = xb_node_export (n, XB_NODE_EXPORT_FLAG_NONE, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (xml_default);
+	g_assert_cmpstr (xml_default, ==, "<component attr1=\"val1\" attr2=\"val2\"></component>");
+
+	/* export collapsed */
+	xml_collapsed = xb_node_export (n, XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (xml_collapsed);
+	g_assert_cmpstr (xml_collapsed, ==, "<component attr1=\"val1\" attr2=\"val2\" />");
+}
+
+static void
 xb_xpath_parent_subnode_func (void)
 {
 	g_autofree gchar *xml2 = NULL;
@@ -2460,6 +2493,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/stack", xb_stack_func);
 	g_test_add_func ("/libxmlb/stack{peek}", xb_stack_peek_func);
 	g_test_add_func ("/libxmlb/node{data}", xb_node_data_func);
+	g_test_add_func ("/libxmlb/node{export}", xb_node_export_func);
 	g_test_add_func ("/libxmlb/builder", xb_builder_func);
 	g_test_add_func ("/libxmlb/builder{comments}", xb_builder_comments_func);
 	g_test_add_func ("/libxmlb/builder{native-lang}", xb_builder_native_lang_func);
