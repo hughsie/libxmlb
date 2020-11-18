@@ -45,47 +45,54 @@ xb_silo_export_node (XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, G
 		g_string_append_printf (helper->xml, " %s=\"%s\"", key, val);
 	}
 
-	/* finish the opening tag and add any text if it exists */
-	if (sn->text != XB_SILO_UNSET) {
-		g_autofree gchar *text = xb_string_xml_escape (xb_silo_from_strtab (self, sn->text));
-		g_string_append (helper->xml, ">");
-		g_string_append (helper->xml, text);
+	/* collapse open/close tags together if no text or children */
+	if (helper->flags & XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY &&
+	    sn->text == XB_SILO_UNSET &&
+	    xb_silo_node_get_child (self, sn) == NULL) {
+		g_string_append (helper->xml, " />");
 	} else {
-		g_string_append (helper->xml, ">");
-		if (helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE)
-			g_string_append (helper->xml, "\n");
-	}
-	helper->off += xb_silo_node_get_size (sn);
+		/* finish the opening tag and add any text if it exists */
+		if (sn->text != XB_SILO_UNSET) {
+			g_autofree gchar *text = xb_string_xml_escape (xb_silo_from_strtab (self, sn->text));
+			g_string_append (helper->xml, ">");
+			g_string_append (helper->xml, text);
+		} else {
+			g_string_append (helper->xml, ">");
+			if (helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE)
+				g_string_append (helper->xml, "\n");
+		}
+		helper->off += xb_silo_node_get_size (sn);
 
-	/* recurse deeper */
-	while (xb_silo_get_node(self, helper->off)->is_node) {
-		XbSiloNode *child = xb_silo_get_node (self, helper->off);
-		helper->level++;
-		if (!xb_silo_export_node (self, helper, child, error))
+		/* recurse deeper */
+		while (xb_silo_get_node(self, helper->off)->is_node) {
+			XbSiloNode *child = xb_silo_get_node (self, helper->off);
+			helper->level++;
+			if (!xb_silo_export_node (self, helper, child, error))
+				return FALSE;
+			helper->level--;
+		}
+
+		/* check for the single byte sentinel */
+		sn2 = xb_silo_get_node (self, helper->off);
+		if (sn2->is_node) {
+			g_set_error (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_INVALID_DATA,
+				     "no seninel at %" G_GUINT32_FORMAT,
+				     helper->off);
 			return FALSE;
-		helper->level--;
-	}
+		}
+		helper->off += xb_silo_node_get_size (sn2);
 
-	/* check for the single byte sentinel */
-	sn2 = xb_silo_get_node (self, helper->off);
-	if (sn2->is_node) {
-		g_set_error (error,
-			     G_IO_ERROR,
-			     G_IO_ERROR_INVALID_DATA,
-			     "no seninel at %" G_GUINT32_FORMAT,
-			     helper->off);
-		return FALSE;
+		/* add closing tag */
+		if ((helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_INDENT) > 0 &&
+		    sn->text == XB_SILO_UNSET) {
+			for (guint i = 0; i < helper->level; i++)
+				g_string_append (helper->xml, "  ");
+		}
+		g_string_append_printf (helper->xml, "</%s>",
+					xb_silo_from_strtab (self, sn->element_name));
 	}
-	helper->off += xb_silo_node_get_size (sn2);
-
-	/* add closing tag */
-	if ((helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_INDENT) > 0 &&
-	    sn->text == XB_SILO_UNSET) {
-		for (guint i = 0; i < helper->level; i++)
-			g_string_append (helper->xml, "  ");
-	}
-	g_string_append_printf (helper->xml, "</%s>",
-				xb_silo_from_strtab (self, sn->element_name));
 
 	/* add any optional tail */
 	if (sn->tail != XB_SILO_UNSET) {
