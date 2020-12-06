@@ -237,6 +237,7 @@ xb_silo_query_part (XbSilo *self,
 		    XbSiloQueryHelperFlags flags,
 		    GError **error)
 {
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 	XbSiloQueryHelper helper = {
 		.results = results,
 		.bindings = (context != NULL) ? xb_query_context_get_bindings (context) : NULL,
@@ -245,10 +246,12 @@ xb_silo_query_part (XbSilo *self,
 		.results_hash = results_hash,
 		.query_data = query_data,
 	};
+	XbQueryFlags query_flags = (context != NULL) ? xb_query_context_get_flags (context) : xb_query_get_flags (query);
+G_GNUC_END_IGNORE_DEPRECATIONS
 
 	/* find each section */
 	helper.sections = xb_query_get_sections (query);
-	if (xb_query_get_flags (query) & XB_QUERY_FLAG_FORCE_NODE_CACHE)
+	if (query_flags & XB_QUERY_FLAG_FORCE_NODE_CACHE)
 		helper.flags |= XB_SILO_QUERY_HELPER_FORCE_NODE_CACHE;
 	return xb_silo_query_section_root (self, sroot, 0, 0, &helper, error);
 }
@@ -307,6 +310,7 @@ silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limit, 
 	for (guint i = 0; split[i] != NULL; i++) {
 		g_autoptr(GError) error_local = NULL;
 		g_autoptr(XbQuery) query = xb_query_new (self, split[i], &error_local);
+		g_auto(XbQueryContext) context = XB_QUERY_CONTEXT_INIT ();
 
 		if (query == NULL) {
 			if (g_error_matches (error_local, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT) &&
@@ -324,10 +328,10 @@ silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limit, 
 			return NULL;
 		}
 
-		xb_query_set_limit (query, limit);
+		xb_query_context_set_limit (&context, limit);
 		if (!xb_silo_query_part (self, sn,
 					 results, results_hash,
-					 query, NULL, &query_data,
+					 query, &context, &query_data,
 					 flags,
 					 error)) {
 			return NULL;
@@ -444,6 +448,9 @@ xb_silo_query_with_root_full (XbSilo *self, XbNode *n, XbQuery *query, XbQueryCo
 		.sn = NULL,
 		.position = 0,
 	};
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+	XbQueryFlags query_flags = (context != NULL) ? xb_query_context_get_flags (context) : xb_query_get_flags (query);
+G_GNUC_END_IGNORE_DEPRECATIONS
 
 	/* empty silo */
 	if (xb_silo_is_empty (self)) {
@@ -467,11 +474,15 @@ xb_silo_query_with_root_full (XbSilo *self, XbNode *n, XbQuery *query, XbQueryCo
 	/* profile */
 	if (xb_silo_get_profile_flags (self) & XB_SILO_PROFILE_FLAG_XPATH) {
 		g_autofree gchar *tmp = xb_query_to_string (query);
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+		guint limit = (context != NULL) ? xb_query_context_get_limit (context) : xb_query_get_limit (query);
+G_GNUC_END_IGNORE_DEPRECATIONS
+
 		xb_silo_add_profile (self, timer,
 				     "query on %s with `%s` limit=%u -> %u results",
 				     n != NULL ? xb_node_get_element (n) : "/",
 				     tmp,
-				     xb_query_get_limit (query),
+				     limit,
 				     results->len);
 	}
 
@@ -487,7 +498,7 @@ xb_silo_query_with_root_full (XbSilo *self, XbNode *n, XbQuery *query, XbQueryCo
 	}
 
 	/* reverse order */
-	if (xb_query_get_flags (query) & XB_QUERY_FLAG_REVERSE)
+	if (query_flags & XB_QUERY_FLAG_REVERSE)
 		_g_ptr_array_reverse (results);
 
 	return g_steal_pointer (&results);
