@@ -313,6 +313,7 @@ xb_query_repair_opcode_texi (XbQuery *self, XbOpcode *op, GError **error)
 	return TRUE;
 }
 
+/* Returns an error if the XPath is invalid. */
 static gboolean
 xb_query_parse_predicate (XbQuery *self,
 			  XbQuerySection *section,
@@ -360,6 +361,7 @@ xb_query_parse_predicate (XbQuery *self,
 	return TRUE;
 }
 
+/* Returns an error if the XPath is invalid. */
 static XbQuerySection *
 xb_query_parse_section (XbQuery *self, const gchar *xpath, GError **error)
 {
@@ -412,18 +414,16 @@ xb_query_parse_section (XbQuery *self, const gchar *xpath, GError **error)
 		section->kind = XB_SILO_QUERY_KIND_WILDCARD;
 		return g_steal_pointer (&section);
 	}
+
+	/* This may result in @element_idx being set to %XB_SILO_UNSET if the
+	 * given element (`section->element`) is not in the silo at all. Ignore
+	 * that for now, and return no matches when the query is actually run. */
 	section->element_idx = xb_silo_get_strtab_idx (priv->silo, section->element);
-	if (section->element_idx == XB_SILO_UNSET) {
-		g_set_error (error,
-			     G_IO_ERROR,
-			     G_IO_ERROR_INVALID_ARGUMENT,
-			     "element name %s is unknown in silo",
-			     section->element);
-		return NULL;
-	}
+
 	return g_steal_pointer (&section);
 }
 
+/* Returns an error if the XPath is invalid. */
 static gboolean
 xb_query_parse (XbQuery *self, const gchar *xpath, GError **error)
 {
