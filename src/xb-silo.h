@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <glib.h>
+#include <gio/gio.h>
 #include <glib-object.h>
 
 #include "xb-node.h"
