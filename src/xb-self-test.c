@@ -1148,7 +1148,7 @@ xb_xpath_query_func (void)
 
 	/* query with an OR, all sections contains an unknown element */
 	n = xb_silo_query_first (silo, "components/dave|components/mike", &error);
-	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND);
 	g_assert_null (n);
 }
 
@@ -1244,19 +1244,19 @@ xb_xpath_func (void)
 
 	/* query that doesn't find anything */
 	n = xb_silo_query_first (silo, "dave", &error);
-	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND);
 	g_assert_null (n);
 	g_clear_error (&error);
 	g_clear_object (&n);
 
 	n = xb_silo_query_first (silo, "dave/dave", &error);
-	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND);
 	g_assert_null (n);
 	g_clear_error (&error);
 	g_clear_object (&n);
 
 	n = xb_silo_query_first (silo, "components/dave", &error);
-	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND);
 	g_assert_null (n);
 	g_clear_error (&error);
 	g_clear_object (&n);
