@@ -55,10 +55,16 @@ XbQuery		*xb_query_new_full		(XbSilo		*silo,
 						 XbQueryFlags	 flags,
 						 GError		**error);
 const gchar	*xb_query_get_xpath		(XbQuery	*self);
+
+G_DEPRECATED_FOR(xb_query_context_get_limit)
 guint		 xb_query_get_limit		(XbQuery	*self);
+G_DEPRECATED_FOR(xb_query_context_set_limit)
 void		 xb_query_set_limit		(XbQuery	*self,
 						 guint		 limit);
+
+G_DEPRECATED_FOR(xb_query_context_get_flags)
 XbQueryFlags	 xb_query_get_flags		(XbQuery	*self);
+G_DEPRECATED_FOR(xb_query_context_set_flags)
 void		 xb_query_set_flags		(XbQuery	*self,
 						 XbQueryFlags	 flags);
 

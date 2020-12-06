@@ -118,6 +118,8 @@ xb_query_to_string (XbQuery *self)
  *
  * Returns: integer, default 0
  *
+ * Deprecated: 0.3.0: This is not thread-safe. Use xb_query_context_get_limit()
+ *     instead.
  * Since: 0.1.4
  **/
 guint
@@ -135,6 +137,8 @@ xb_query_get_limit (XbQuery *self)
  *
  * Sets the results limit on this query, where 0 is 'all'.
  *
+ * Deprecated: 0.3.0: This is not thread-safe. Use xb_query_context_set_limit()
+ *     instead.
  * Since: 0.1.4
  **/
 void
@@ -153,6 +157,8 @@ xb_query_set_limit (XbQuery *self, guint limit)
  *
  * Returns: #XbQueryFlags, default %XB_QUERY_FLAG_NONE
  *
+ * Deprecated: 0.3.0: This is not thread-safe. Use xb_query_context_get_flags()
+ *     instead.
  * Since: 0.1.15
  **/
 XbQueryFlags
@@ -170,6 +176,8 @@ xb_query_get_flags (XbQuery *self)
  *
  * Sets the flags to use for this query.
  *
+ * Deprecated: 0.3.0: This is not thread-safe. Use xb_query_context_set_flags()
+ *     instead.
  * Since: 0.1.15
  **/
 void
