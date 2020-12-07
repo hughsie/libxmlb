@@ -67,7 +67,7 @@ xb_node_query_full (XbNode *self, XbQuery *query, GError **error)
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (XB_IS_QUERY (query), NULL);
 	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
-	return xb_silo_query_with_root_full (xb_node_get_silo (self), self, query, NULL, error);
+	return xb_silo_query_with_root_full (xb_node_get_silo (self), self, query, NULL, FALSE, error);
 }
 
 /**
@@ -97,7 +97,7 @@ xb_node_query_with_context (XbNode *self, XbQuery *query, XbQueryContext *contex
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (XB_IS_QUERY (query), NULL);
 	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
-	return xb_silo_query_with_root_full (xb_node_get_silo (self), self, query, context, error);
+	return xb_silo_query_with_root_full (xb_node_get_silo (self), self, query, context, FALSE, error);
 }
 
 /**
@@ -149,22 +149,13 @@ XbNode *
 xb_node_query_first_with_context (XbNode *self, XbQuery *query, XbQueryContext *context, GError **error)
 {
 	g_autoptr(GPtrArray) results = NULL;
-	guint old_limit;
 
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (XB_IS_QUERY (query), NULL);
 	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
-	if (context != NULL) {
-		old_limit = xb_query_context_get_limit (context);
-		xb_query_context_set_limit (context, 1);
-	}
-
 	/* nodes don't have to include themselves as part of the query */
-	results = xb_silo_query_with_root_full (xb_node_get_silo (self), self, query, context, error);
-
-	if (context != NULL)
-		xb_query_context_set_limit (context, old_limit);
+	results = xb_silo_query_with_root_full (xb_node_get_silo (self), self, query, context, TRUE, error);
 
 	if (results == NULL)
 		return NULL;

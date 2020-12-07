@@ -233,6 +233,7 @@ xb_silo_query_part (XbSilo *self,
 		    GHashTable *results_hash,
 		    XbQuery *query,
 		    XbQueryContext *context,
+		    gboolean first_result_only,
 		    XbSiloQueryData *query_data,
 		    XbSiloQueryHelperFlags flags,
 		    GError **error)
@@ -241,7 +242,7 @@ G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 	XbSiloQueryHelper helper = {
 		.results = results,
 		.bindings = (context != NULL) ? xb_query_context_get_bindings (context) : NULL,
-		.limit = (context != NULL ) ? xb_query_context_get_limit (context) : xb_query_get_limit (query),
+		.limit = first_result_only ? 1 : (context != NULL ) ? xb_query_context_get_limit (context) : xb_query_get_limit (query),
 		.flags = flags,
 		.results_hash = results_hash,
 		.query_data = query_data,
@@ -331,7 +332,7 @@ silo_query_with_root (XbSilo *self, XbNode *n, const gchar *xpath, guint limit, 
 		xb_query_context_set_limit (&context, limit);
 		if (!xb_silo_query_part (self, sn,
 					 results, results_hash,
-					 query, &context, &query_data,
+					 query, &context, FALSE, &query_data,
 					 flags,
 					 error)) {
 			return NULL;
@@ -424,6 +425,8 @@ _g_ptr_array_reverse (GPtrArray *array)
  * @context: (nullable) (transfer none): context including values bound to opcodes of type
  *     %XB_OPCODE_KIND_BOUND_INTEGER or %XB_OPCODE_KIND_BOUND_TEXT, or %NULL if
  *     the query doesn’t need any context
+ * @first_result_only: %TRUE if only the first result is going to be used; this
+ *     overrides the limit set in @context, and may perform other optimisations
  * @error: the #GError, or %NULL
  *
  * Searches the silo using an XPath query, returning up to @limit results.
@@ -438,7 +441,7 @@ _g_ptr_array_reverse (GPtrArray *array)
  * Since: 0.3.0
  **/
 GPtrArray *
-xb_silo_query_with_root_full (XbSilo *self, XbNode *n, XbQuery *query, XbQueryContext *context, GError **error)
+xb_silo_query_with_root_full (XbSilo *self, XbNode *n, XbQuery *query, XbQueryContext *context, gboolean first_result_only, GError **error)
 {
 	XbSiloNode *sn = NULL;
 	g_autoptr(GHashTable) results_hash = g_hash_table_new (g_direct_hash, g_direct_equal);
@@ -467,7 +470,7 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 
 	/* only one query allowed */
 	if (!xb_silo_query_part (self, sn, results, results_hash,
-				 query, context, &query_data,
+				 query, context, first_result_only, &query_data,
 				 XB_SILO_QUERY_HELPER_NONE, error))
 		return NULL;
 
@@ -475,7 +478,7 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 	if (xb_silo_get_profile_flags (self) & XB_SILO_PROFILE_FLAG_XPATH) {
 		g_autofree gchar *tmp = xb_query_to_string (query);
 G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-		guint limit = (context != NULL) ? xb_query_context_get_limit (context) : xb_query_get_limit (query);
+		guint limit = first_result_only ? 1 : (context != NULL) ? xb_query_context_get_limit (context) : xb_query_get_limit (query);
 G_GNUC_END_IGNORE_DEPRECATIONS
 
 		xb_silo_add_profile (self, timer,
@@ -553,7 +556,7 @@ xb_silo_query_with_context (XbSilo *self, XbQuery *query, XbQueryContext *contex
 	g_return_val_if_fail (XB_IS_SILO (self), NULL);
 	g_return_val_if_fail (XB_IS_QUERY (query), NULL);
 	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
-	return xb_silo_query_with_root_full (self, NULL, query, context, error);
+	return xb_silo_query_with_root_full (self, NULL, query, context, FALSE, error);
 }
 
 /**
@@ -603,17 +606,8 @@ XbNode *
 xb_silo_query_first_with_context (XbSilo *self, XbQuery *query, XbQueryContext *context, GError **error)
 {
 	g_autoptr(GPtrArray) results = NULL;
-	guint old_limit;
 
-	if (context != NULL) {
-		old_limit = xb_query_context_get_limit (context);
-		xb_query_context_set_limit (context, 1);
-	}
-
-	results = xb_silo_query_with_context (self, query, context, error);
-
-	if (context != NULL)
-		xb_query_context_set_limit (context, old_limit);
+	results = xb_silo_query_with_root_full (self, NULL, query, context, TRUE, error);
 
 	if (results == NULL)
 		return NULL;
