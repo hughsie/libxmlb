@@ -18,7 +18,6 @@
 
 typedef struct {
 	GPtrArray		*sections;		/* of XbQuerySection */
-	XbSilo			*silo;			/* (unowned) */
 	XbQueryFlags		 flags;
 	gchar			*xpath;
 	guint			 limit;
@@ -26,6 +25,10 @@ typedef struct {
 
 G_DEFINE_TYPE_WITH_PRIVATE (XbQuery, xb_query, G_TYPE_OBJECT)
 #define GET_PRIVATE(o) (xb_query_get_instance_private (o))
+
+typedef struct {
+	XbSilo			*silo;
+} XbQueryParseContext;
 
 /**
  * xb_query_get_sections:
@@ -302,12 +305,11 @@ xb_query_section_free (XbQuerySection *section)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(XbQuerySection, xb_query_section_free)
 
 static gboolean
-xb_query_repair_opcode_texi (XbQuery *self, XbOpcode *op, GError **error)
+xb_query_repair_opcode_texi (XbQuery *self, XbQueryParseContext *context, XbOpcode *op, GError **error)
 {
-	XbQueryPrivate *priv = GET_PRIVATE (self);
 	if (xb_opcode_get_val (op) == XB_SILO_UNSET) {
 		const gchar *tmp = xb_opcode_get_str (op);
-		guint32 val = xb_silo_strtab_index_lookup (priv->silo, tmp);
+		guint32 val = xb_silo_strtab_index_lookup (context->silo, tmp);
 		if (val == XB_SILO_UNSET) {
 			g_set_error (error,
 				     G_IO_ERROR,
@@ -324,6 +326,7 @@ xb_query_repair_opcode_texi (XbQuery *self, XbOpcode *op, GError **error)
 /* Returns an error if the XPath is invalid. */
 static gboolean
 xb_query_parse_predicate (XbQuery *self,
+			  XbQueryParseContext *context,
 			  XbQuerySection *section,
 			  const gchar *text,
 			  gssize text_len,
@@ -338,7 +341,7 @@ xb_query_parse_predicate (XbQuery *self,
 		machine_flags |= XB_MACHINE_PARSE_FLAG_OPTIMIZE;
 
 	/* parse */
-	opcodes = xb_machine_parse_full (xb_silo_get_machine (priv->silo),
+	opcodes = xb_machine_parse_full (xb_silo_get_machine (context->silo),
 					 text, text_len,
 					 machine_flags,
 					 error);
@@ -351,7 +354,7 @@ xb_query_parse_predicate (XbQuery *self,
 			XbOpcode *op = xb_stack_peek (opcodes, i);
 			if (xb_opcode_get_kind (op) != XB_OPCODE_KIND_INDEXED_TEXT)
 				continue;
-			if (!xb_query_repair_opcode_texi (self, op, error))
+			if (!xb_query_repair_opcode_texi (self, context, op, error))
 				return FALSE;
 		}
 	} else {
@@ -371,9 +374,8 @@ xb_query_parse_predicate (XbQuery *self,
 
 /* Returns an error if the XPath is invalid. */
 static XbQuerySection *
-xb_query_parse_section (XbQuery *self, const gchar *xpath, GError **error)
+xb_query_parse_section (XbQuery *self, XbQueryParseContext *context, const gchar *xpath, GError **error)
 {
-	XbQueryPrivate *priv = GET_PRIVATE (self);
 	g_autoptr(XbQuerySection) section = g_slice_new0 (XbQuerySection);
 	guint start = 0;
 
@@ -394,6 +396,7 @@ xb_query_parse_section (XbQuery *self, const gchar *xpath, GError **error)
 		}
 		if (start > 0 && xpath[i] == ']') {
 			if (!xb_query_parse_predicate (self,
+						       context,
 						       section,
 						       xpath + start + 1,
 						       i - start - 1,
@@ -426,14 +429,14 @@ xb_query_parse_section (XbQuery *self, const gchar *xpath, GError **error)
 	/* This may result in @element_idx being set to %XB_SILO_UNSET if the
 	 * given element (`section->element`) is not in the silo at all. Ignore
 	 * that for now, and return no matches when the query is actually run. */
-	section->element_idx = xb_silo_get_strtab_idx (priv->silo, section->element);
+	section->element_idx = xb_silo_get_strtab_idx (context->silo, section->element);
 
 	return g_steal_pointer (&section);
 }
 
 /* Returns an error if the XPath is invalid. */
 static gboolean
-xb_query_parse (XbQuery *self, const gchar *xpath, GError **error)
+xb_query_parse (XbQuery *self, XbQueryParseContext *context, const gchar *xpath, GError **error)
 {
 	XbQueryPrivate *priv = GET_PRIVATE (self);
 	XbQuerySection *section;
@@ -462,7 +465,7 @@ xb_query_parse (XbQuery *self, const gchar *xpath, GError **error)
 						     "xpath section empty");
 				return FALSE;
 			}
-			section = xb_query_parse_section (self, acc->str, error);
+			section = xb_query_parse_section (self, context, acc->str, error);
 			if (section == NULL)
 				return FALSE;
 			g_ptr_array_add (priv->sections, section);
@@ -473,7 +476,7 @@ xb_query_parse (XbQuery *self, const gchar *xpath, GError **error)
 	}
 
 	/* add any remaining section */
-	section = xb_query_parse_section (self, acc->str, error);
+	section = xb_query_parse_section (self, context, acc->str, error);
 	if (section == NULL)
 		return FALSE;
 	g_ptr_array_add (priv->sections, section);
@@ -502,18 +505,21 @@ xb_query_new_full (XbSilo *silo, const gchar *xpath, XbQueryFlags flags, GError 
 {
 	g_autoptr(XbQuery) self = g_object_new (XB_TYPE_QUERY, NULL);
 	XbQueryPrivate *priv = GET_PRIVATE (self);
+	XbQueryParseContext parse_context = {
+		.silo = silo,
+	};
 
 	g_return_val_if_fail (XB_IS_SILO (silo), NULL);
 	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
-	/* create */
-	priv->silo = silo;  /* don’t take a reference, otherwise we get refcount loops with cached queries from xb_silo_lookup_query() */
+	/* create; don’t take a reference on @silo otherwise we get refcount
+	 * loops with cached queries from xb_silo_lookup_query() */
 	priv->xpath = g_strdup (xpath);
 	priv->flags = flags;
 	priv->sections = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_query_section_free);
 
 	/* add each section */
-	if (!xb_query_parse (self, xpath, error))
+	if (!xb_query_parse (self, &parse_context, xpath, error))
 		return NULL;
 
 	/* nothing here! */
