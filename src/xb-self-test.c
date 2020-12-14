@@ -1019,7 +1019,6 @@ xb_node_export_func (void)
 	g_autoptr(GError) error = NULL;
 	g_autoptr(XbNode) n = NULL;
 	g_autoptr(XbSilo) silo = NULL;
-	g_autoptr(GBytes) bytes = g_bytes_new ("foo", 4);
 	g_autofree gchar *xml_default = NULL;
 	g_autofree gchar *xml_collapsed = NULL;
 
