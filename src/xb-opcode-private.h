@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <string.h>
+
 #include "xb-opcode.h"
 
 G_BEGIN_DECLS
