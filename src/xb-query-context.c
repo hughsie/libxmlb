@@ -94,7 +94,7 @@ xb_query_context_copy (XbQueryContext *self)
 	RealQueryContext *_self = (RealQueryContext *) self;
 	g_autoptr(XbQueryContext) copy = g_new0 (XbQueryContext, 1);
 	RealQueryContext *_copy = (RealQueryContext *) copy;
-	gsize i;
+	gsize i = 0;
 
 	xb_query_context_init (copy);
 
