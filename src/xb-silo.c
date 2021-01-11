@@ -1557,20 +1557,20 @@ XbQuery *
 xb_silo_lookup_query (XbSilo *self, const gchar *xpath)
 {
 	XbSiloPrivate *priv = GET_PRIVATE (self);
-	g_autoptr(GRWLockReaderLocker) locker = g_rw_lock_reader_locker_new (&priv->query_cache_mutex);
 	XbQuery *result;
 
+	g_rw_lock_reader_lock (&priv->query_cache_mutex);
 	result = g_hash_table_lookup (priv->query_cache, xpath);
+	g_rw_lock_reader_unlock (&priv->query_cache_mutex);
+
 	if (result != NULL) {
 		g_object_ref (result);
 		g_debug ("Found cached query ‘%s’ (%p) in silo %p", xpath, result, self);
 	} else {
-		g_autoptr(GRWLockWriterLocker) write_locker = NULL;
 		g_autoptr(XbQuery) query = NULL;
 
 		/* check again with an exclusive lock */
-		g_clear_pointer (&locker, g_rw_lock_reader_locker_free);
-		write_locker = g_rw_lock_writer_locker_new (&priv->query_cache_mutex);
+		g_rw_lock_writer_lock (&priv->query_cache_mutex);
 		result = g_hash_table_lookup (priv->query_cache, xpath);
 		if (result != NULL) {
 			g_object_ref (result);
@@ -1584,6 +1584,7 @@ xb_silo_lookup_query (XbSilo *self, const gchar *xpath)
 				 * have written a valid query. */
 				g_error ("Invalid XPath query ‘%s’: %s",
 					 xpath, error_local->message);
+				g_rw_lock_writer_unlock (&priv->query_cache_mutex);
 				g_assert_not_reached ();
 				return NULL;
 			}
@@ -1594,6 +1595,7 @@ xb_silo_lookup_query (XbSilo *self, const gchar *xpath)
 			g_debug ("Caching query ‘%s’ (%p) in silo %p; query cache now has %u entries",
 				 xpath, query, self, g_hash_table_size (priv->query_cache));
 		}
+		g_rw_lock_writer_unlock (&priv->query_cache_mutex);
 	}
 
 	return result;
