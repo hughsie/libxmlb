@@ -120,6 +120,12 @@ if giounix.found()
   conf.set('HAVE_GIO_UNIX', '1')
 endif
 
+# Limit our use of GLib API to our minimum version requirement, and what’s
+# available in Debian Stable. Use of more modern API has to be optional and
+# protected by GLIB_CHECK_VERSION.
+add_project_arguments('-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_46', language: 'c')
+add_project_arguments('-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_58', language: 'c')
+
 libxmlb_deps = [
   gio,
 ]
