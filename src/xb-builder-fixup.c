@@ -92,7 +92,7 @@ xb_builder_fixup_get_guid (XbBuilderFixup *self)
 	GString *str = g_string_new ("func-id=");
 	XbBuilderFixupPrivate *priv = GET_PRIVATE (self);
 
-	g_return_val_if_fail (XB_IS_BUILDER_FIXUP (self), 0);
+	g_return_val_if_fail (XB_IS_BUILDER_FIXUP (self), NULL);
 
 	/* build GUID using ID and max-depth, if set */
 	g_string_append (str, priv->id);
