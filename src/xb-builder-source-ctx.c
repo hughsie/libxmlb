@@ -40,6 +40,43 @@ xb_builder_source_ctx_get_stream (XbBuilderSourceCtx *self)
 	return priv->istream;
 }
 
+static GBytes *
+_g_input_stream_read_bytes_in_chunks (GInputStream *stream,
+				      gsize count,
+				      gsize chunk_sz,
+				      GCancellable *cancellable,
+				      GError **error)
+{
+	g_autofree guint8 *tmp = NULL;
+	g_autoptr(GByteArray) buf = g_byte_array_new ();
+
+	g_return_val_if_fail (G_IS_INPUT_STREAM (stream), NULL);
+	g_return_val_if_fail (count > 0, NULL);
+	g_return_val_if_fail (chunk_sz > 0, NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+
+	/* read from stream in chunks */
+	tmp = g_malloc (chunk_sz);
+	while (TRUE) {
+		gssize sz;
+		sz = g_input_stream_read (stream, tmp, sizeof(tmp), NULL, error);
+		if (sz == 0)
+			break;
+		if (sz < 0)
+			return NULL;
+		g_byte_array_append (buf, tmp, sz);
+		if (buf->len > count) {
+			g_set_error (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_FAILED,
+				     "cannot read from fd: 0x%x > 0x%x",
+				     buf->len, (guint) count);
+			return NULL;
+		}
+	}
+	return g_byte_array_free_to_bytes (g_steal_pointer (&buf));
+}
+
 /**
  * xb_builder_source_ctx_get_bytes:
  * @self: a #XbBuilderSourceCtx
@@ -61,9 +98,10 @@ xb_builder_source_ctx_get_bytes (XbBuilderSourceCtx *self,
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE_CTX (self), NULL);
 	g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), NULL);
 	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
-	return g_input_stream_read_bytes (priv->istream,
-					  128 * 1024 * 1024, /* 128Mb */
-					  cancellable, error);
+	return _g_input_stream_read_bytes_in_chunks (priv->istream,
+						     128 * 1024 * 1024, /* 128Mb */
+						     32 * 1024, /* 32Kb */
+						     cancellable, error);
 }
 
 /**
