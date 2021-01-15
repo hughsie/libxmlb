@@ -86,6 +86,10 @@ _g_input_stream_read_bytes_in_chunks (GInputStream *stream,
  *
  * Returns the data currently being processed.
  *
+ * If the #XbBuilderSourceCtx is backed by a file, the returned #GBytes may be
+ * memory-mapped, and the backing file must not be modified until the #GBytes is
+ * destroyed.
+ *
  * Returns: (transfer full): a #GBytes
  *
  * Since: 0.1.7
@@ -99,6 +103,19 @@ xb_builder_source_ctx_get_bytes (XbBuilderSourceCtx *self,
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE_CTX (self), NULL);
 	g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), NULL);
 	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+
+	/* Try mmap()ing the file first, as that avoids buffer allocation.
+	 * Note that this imposes the restriction that the backing file must not
+	 * be modified during the lifetime of the returned #GBytes. */
+	if (priv->file != NULL) {
+		g_autoptr(GMappedFile) mapped_file = NULL;
+		const gchar *filename = g_file_peek_path (priv->file);
+
+		mapped_file = g_mapped_file_new (filename, FALSE, NULL);
+		if (mapped_file != NULL)
+			return g_mapped_file_get_bytes (mapped_file);
+	}
+
 	return _g_input_stream_read_bytes_in_chunks (priv->istream,
 						     128 * 1024 * 1024, /* 128Mb */
 						     32 * 1024, /* 32Kb */
