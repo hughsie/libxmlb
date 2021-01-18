@@ -109,7 +109,7 @@ xb_builder_source_ctx_get_bytes (XbBuilderSourceCtx *self,
 	 * be modified during the lifetime of the returned #GBytes. */
 	if (priv->file != NULL) {
 		g_autoptr(GMappedFile) mapped_file = NULL;
-		const gchar *filename = g_file_peek_path (priv->file);
+		g_autofree gchar *filename = g_file_get_path (priv->file);
 
 		mapped_file = g_mapped_file_new (filename, FALSE, NULL);
 		if (mapped_file != NULL)
