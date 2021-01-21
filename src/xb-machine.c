@@ -1796,7 +1796,7 @@ xb_machine_func_lower_cb (XbMachine *self,
 
 	/* TEXT */
 	return xb_machine_stack_push_text_steal (self, stack,
-						 g_ascii_strdown (xb_opcode_get_str (&op), -1),
+						 g_utf8_strdown (xb_opcode_get_str (&op), -1),
 						 error);
 }
 
@@ -1817,7 +1817,7 @@ xb_machine_func_upper_cb (XbMachine *self,
 
 	/* TEXT */
 	return xb_machine_stack_push_text_steal (self, stack,
-						 g_ascii_strup (xb_opcode_get_str (&op), -1),
+						 g_utf8_strup (xb_opcode_get_str (&op), -1),
 						 error);
 }
 

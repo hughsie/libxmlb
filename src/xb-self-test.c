@@ -293,6 +293,7 @@ xb_predicate_optimize_func (void)
 		{ "999>=123",		"True" },	/* success! */
 		{ "not(0)",		"True" },	/* success! */
 		{ "lower-case('Fire')",	"'fire'" },
+		{ "upper-case('Τάχιστη')", "'ΤΆΧΙΣΤΗ'" },
 		{ "upper-case(lower-case('Fire'))",
 					"'FIRE'" },	/* 2nd pass */
 		/* sentinel */
