@@ -137,8 +137,8 @@ xb_string_contains (const gchar *text, const gchar *search)
 
 /**
  * xb_string_search: (skip)
- * @text: The source string
- * @search: The text to search for
+ * @text: The ASCII source string
+ * @search: The ASCII text to search for
  *
  * Searches for a fuzzy search match, ignoring search matches that are not at
  * the start of the token.
@@ -176,6 +176,52 @@ xb_string_search (const gchar *text, const gchar *search)
 		is_sow = FALSE;
 	}
 	return FALSE;
+}
+
+/**
+ * xb_string_search: (skip)
+ * @text: The source string
+ * @search: The text to search for
+ *
+ * Searches for a fuzzy search match, ignoring search matches that are not at
+ * the start of the token.
+ *
+ * Returns: %TRUE if the string @search is contained in @text.
+ **/
+gboolean
+xb_string_searchv (const gchar **text, const gchar **search)
+{
+	if (text == NULL || text[0] == NULL || text[0][0] == '\0')
+		return FALSE;
+	if (search == NULL || search[0] == NULL || search[0][0] == '\0')
+		return FALSE;
+	for (guint j = 0; text[j] != NULL; j++) {
+		for (guint i = 0; search[i] != NULL; i++) {
+			if (g_str_has_prefix (text[j], search[i]))
+				return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+/**
+ * xb_string_token_valid: (skip)
+ * @text: The potential token
+ *
+ * Checks if the token is valid.
+ *
+ * Returns: %TRUE if the token should be used.
+ **/
+gboolean
+xb_string_token_valid (const gchar *text)
+{
+	if (text == NULL)
+		return FALSE;
+	if (text[0] == '\0' ||
+	    text[1] == '\0' ||
+	    text[2] == '\0')
+		return FALSE;
+	return TRUE;
 }
 
 /**

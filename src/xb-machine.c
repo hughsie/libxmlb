@@ -798,6 +798,8 @@ xb_machine_parse_full (XbMachine *self,
 
 	/* do any fixups */
 	opcodes_sig = xb_machine_get_opcodes_sig (self, opcodes);
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_OPTIMIZER)
+		g_debug ("opcodes_sig=%s", opcodes_sig);
 	item = g_hash_table_lookup (priv->opcode_fixup, opcodes_sig);
 	if (item != NULL) {
 		if (!item->fixup_cb (self, opcodes, item->user_data, error))

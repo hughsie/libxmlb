@@ -12,14 +12,17 @@
 
 G_BEGIN_DECLS
 
+#define XB_OPCODE_TOKEN_MAX		32
+
 struct _XbOpcode {
 	XbOpcodeKind	 kind;
 	guint32		 val;
 	gpointer	 ptr;
+	const gchar	*tokens[XB_OPCODE_TOKEN_MAX+1];
 	GDestroyNotify	 destroy_func;
 };
 
-#define XB_OPCODE_INIT() { 0, 0, NULL, NULL }
+#define XB_OPCODE_INIT() { 0, 0, NULL, {NULL}, NULL }
 
 /**
  * xb_opcode_steal:
@@ -58,9 +61,17 @@ void		 xb_opcode_set_kind		(XbOpcode	*self,
 						 XbOpcodeKind	 kind);
 void		 xb_opcode_set_val		(XbOpcode	*self,
 						 guint32	 val);
+void		 xb_opcode_set_token		(XbOpcode	*self,
+						 guint		 idx,
+						 const gchar	*val);
+const gchar	**xb_opcode_get_tokens		(XbOpcode	*self);
 gchar		*xb_opcode_get_sig		(XbOpcode	*self);
 void		 xb_opcode_bool_init		(XbOpcode	*opcode,
 						 gboolean	 val);
+gboolean	 xb_opcode_has_flag		(XbOpcode	*self,
+						 XbOpcodeFlags	 flag);
+void		 xb_opcode_add_flag		(XbOpcode	*self,
+						 XbOpcodeFlags	 flag);
 
 G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC (XbOpcode, xb_opcode_clear)
 

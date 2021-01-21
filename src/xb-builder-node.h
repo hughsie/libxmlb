@@ -34,6 +34,7 @@ struct _XbBuilderNodeClass {
  * @XB_BUILDER_NODE_FLAG_LITERAL_TEXT:		Assume the node CDATA is already valid
  * @XB_BUILDER_NODE_FLAG_HAS_TEXT:		If the node has leading text
  * @XB_BUILDER_NODE_FLAG_HAS_TAIL:		If the node has trailing text
+ * @XB_BUILDER_NODE_FLAG_TOKENIZE_TEXT:		Tokenize and fold text to ASCII
  *
  * The flags used when building a node.
  **/
@@ -43,6 +44,7 @@ typedef enum {
 	XB_BUILDER_NODE_FLAG_LITERAL_TEXT	= 1 << 1,	/* Since: 0.1.0 */
 	XB_BUILDER_NODE_FLAG_HAS_TEXT		= 1 << 2,	/* Since: 0.1.12 */
 	XB_BUILDER_NODE_FLAG_HAS_TAIL		= 1 << 3,	/* Since: 0.1.12 */
+	XB_BUILDER_NODE_FLAG_TOKENIZE_TEXT	= 1 << 4,	/* Since: 0.3.1 */
 	/*< private >*/
 	XB_BUILDER_NODE_FLAG_LAST
 } XbBuilderNodeFlags;
@@ -74,6 +76,7 @@ guint64		 xb_builder_node_get_text_as_uint(XbBuilderNode		*self);
 void		 xb_builder_node_set_text	(XbBuilderNode		*self,
 						 const gchar		*text,
 						 gssize			 text_len);
+void		 xb_builder_node_tokenize_text	(XbBuilderNode		*self);
 const gchar	*xb_builder_node_get_tail	(XbBuilderNode		*self);
 void		 xb_builder_node_set_tail	(XbBuilderNode		*self,
 						 const gchar		*tail,
@@ -112,5 +115,8 @@ void		 xb_builder_node_sort_children	(XbBuilderNode		*self,
 gchar		*xb_builder_node_export		(XbBuilderNode		*self,
 						 XbNodeExportFlags	 flags,
 						 GError			**error);
+GPtrArray	*xb_builder_node_get_tokens	(XbBuilderNode		*self);
+void		 xb_builder_node_add_token	(XbBuilderNode		*self,
+						 const gchar		*token);
 
 G_END_DECLS

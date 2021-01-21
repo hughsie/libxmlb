@@ -156,6 +156,23 @@ xb_common_func (void)
 	g_assert_false (xb_string_search ("gimp", ""));
 	g_assert_false (xb_string_search ("gimp", "imp"));
 	g_assert_false (xb_string_search ("the gimp editor", "imp"));
+	g_assert_true (xb_string_token_valid ("the"));
+	g_assert_false (xb_string_token_valid (NULL));
+	g_assert_false (xb_string_token_valid (""));
+	g_assert_false (xb_string_token_valid ("a"));
+	g_assert_false (xb_string_token_valid ("ab"));
+}
+
+static void
+xb_common_searchv_func (void)
+{
+	const gchar *haystack[] = { "these", "words", "ready", NULL };
+	const gchar *found[] = { "xxx", "wor", "yyy", NULL };
+	const gchar *unfound1[] = { "xxx", "yyy", NULL };
+	const gchar *unfound2[] = { "ords", NULL };
+	g_assert_true (xb_string_searchv (haystack, found));
+	g_assert_false (xb_string_searchv (haystack, unfound1));
+	g_assert_false (xb_string_searchv (haystack, unfound2));
 }
 
 static void
@@ -230,7 +247,7 @@ xb_predicate_func (void)
 		{ "last()",
 		  "last()" },
 		{ "text()~='beef'",
-		  "text(),'beef',search()" },
+		  "text(),'beef'[beef],search()" },
 		{ "@type~='dead'",
 		  "'type',attr(),'dead',search()" },
 		{ "2",
@@ -388,7 +405,7 @@ xb_builder_func (void)
 
 	/* check size */
 	bytes = xb_silo_get_bytes (silo);
-	g_assert_cmpint (g_bytes_get_size (bytes), ==, 607);
+	g_assert_cmpint (g_bytes_get_size (bytes), ==, 620);
 }
 
 static void
@@ -1210,11 +1227,23 @@ xb_xpath_incomplete_func (void)
 	g_assert_null (n);
 }
 
+static gboolean
+xb_builder_fixup_tokenize_cb (XbBuilderFixup *self,
+				XbBuilderNode *bn,
+				gpointer user_data,
+				GError **error)
+{
+	if (g_strcmp0 (xb_builder_node_get_element (bn), "name") == 0)
+		xb_builder_node_tokenize_text (bn);
+	return TRUE;
+}
+
 static void
 xb_xpath_func (void)
 {
 	XbNode *n;
 	XbNode *n2;
+	gboolean ret;
 	g_autofree gchar *str = NULL;
 	g_autofree gchar *xml_sub1 = NULL;
 	g_autofree gchar *xml_sub2 = NULL;
@@ -1222,6 +1251,9 @@ xb_xpath_func (void)
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GPtrArray) results = NULL;
 	g_autoptr(XbNode) n3 = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbBuilderFixup) fixup = NULL;
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
 	g_autoptr(XbSilo) silo = NULL;
 	const gchar *xml =
 	"<components origin=\"lvfs\">\n"
@@ -1241,8 +1273,16 @@ xb_xpath_func (void)
 	"  </component>\n"
 	"</components>\n";
 
+	/* tokenize specific fields */
+	fixup = xb_builder_fixup_new ("TextTokenize", xb_builder_fixup_tokenize_cb, NULL, NULL);
+	xb_builder_source_add_fixup (source, fixup);
+
 	/* import from XML */
-	silo = xb_silo_new_from_xml (xml, &error);
+	ret = xb_builder_source_load_xml (source, xml, XB_BUILDER_SOURCE_FLAG_NONE, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	xb_builder_import_source (builder, source);
+	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);
 
@@ -1952,6 +1992,7 @@ xb_builder_multiple_roots_func (void)
 static void
 xb_builder_node_func (void)
 {
+	g_autofree gchar *str = NULL;
 	g_autofree gchar *xml = NULL;
 	g_autofree gchar *xml_src = NULL;
 	g_autoptr(GError) error = NULL;
@@ -1976,6 +2017,8 @@ xb_builder_node_func (void)
 	g_assert_cmpstr (xb_builder_node_get_attr (component, "type"), ==, "desktop");
 	g_assert_cmpstr (xb_builder_node_get_attr (component, "dave"), ==, NULL);
 	id = xb_builder_node_new ("id");
+	xb_builder_node_add_flag (id, XB_BUILDER_NODE_FLAG_TOKENIZE_TEXT);
+	xb_builder_node_add_token (id, "foobarbaz");
 	xb_builder_node_add_child (component, id);
 	xb_builder_node_set_text (id, "gimp.desktop", -1);
 	xb_builder_node_insert_text (component, "icon", "dave", "type", "stock", NULL);
@@ -2008,6 +2051,12 @@ xb_builder_node_func (void)
 	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);
+
+	/* to console */
+	str = xb_silo_to_string (silo, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (str);
+	g_debug ("%s", str);
 
 	/* check the XML */
 	xml = xb_silo_export (silo, XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS, &error);
@@ -2503,6 +2552,7 @@ main (int argc, char **argv)
 
 	/* tests go here */
 	g_test_add_func ("/libxmlb/common", xb_common_func);
+	g_test_add_func ("/libxmlb/common{searchv}", xb_common_searchv_func);
 	g_test_add_func ("/libxmlb/common{union}", xb_common_union_func);
 	g_test_add_func ("/libxmlb/opcodes", xb_predicate_func);
 	g_test_add_func ("/libxmlb/opcodes{optimize}", xb_predicate_optimize_func);

@@ -26,6 +26,7 @@ typedef struct {
 	gboolean		 force;
 	gboolean		 wait;
 	gboolean		 profile;
+	gchar			**tokenize;
 } XbToolPrivate;
 
 static void
@@ -37,6 +38,7 @@ xb_tool_private_free (XbToolPrivate *priv)
 		g_ptr_array_unref (priv->cmd_array);
 	g_main_loop_unref (priv->loop);
 	g_object_unref (priv->cancellable);
+	g_strfreev (priv->tokenize);
 	g_free (priv);
 }
 
@@ -366,6 +368,22 @@ xb_tool_silo_invalidated_cb (XbSilo *silo, GParamSpec *pspec, gpointer user_data
 }
 
 static gboolean
+xb_tool_builder_tokenize_cb (XbBuilderFixup *self,
+			     XbBuilderNode *bn,
+			     gpointer user_data,
+			     GError **error)
+{
+	XbToolPrivate *priv = (XbToolPrivate *) user_data;
+	for (guint i = 0; priv->tokenize != NULL && priv->tokenize[i] != NULL; i++) {
+		if (g_strcmp0 (xb_builder_node_get_element (bn), priv->tokenize[i]) == 0) {
+			xb_builder_node_tokenize_text (bn);
+			break;
+		}
+	}
+	return TRUE;
+}
+
+static gboolean
 xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 {
 	const gchar *const *locales = g_get_language_names ();
@@ -391,6 +409,13 @@ xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 	for (guint i = 1; values[i] != NULL; i++) {
 		g_autoptr(GFile) file = g_file_new_for_path (values[i]);
 		g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
+		if (priv->tokenize != NULL) {
+			g_autoptr(XbBuilderFixup) fixup = NULL;
+			fixup = xb_builder_fixup_new ("TextTokenize",
+						      xb_tool_builder_tokenize_cb,
+						      priv, NULL);
+			xb_builder_source_add_fixup (source, fixup);
+		}
 		if (!xb_builder_source_load_file (source, file,
 						  XB_BUILDER_SOURCE_FLAG_WATCH_FILE |
 						  XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT,
@@ -456,6 +481,8 @@ main (int argc, char *argv[])
 			"Return only when the silo is no longer valid", NULL },
 		{ "profile", 'p', 0, G_OPTION_ARG_NONE, &priv->profile,
 			"Show profiling information", NULL },
+		{ "tokenize", 'p', 0, G_OPTION_ARG_STRING_ARRAY, &priv->tokenize,
+			"Tokenize elements for faster search", NULL },
 		{ NULL}
 	};
 

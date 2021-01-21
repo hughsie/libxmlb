@@ -34,6 +34,11 @@ typedef struct {
 	/* Around 80% of all XML nodes have zero attributes, so this array is only
 	 * allocated if it’s non-empty. %NULL means an empty array. */
 	GPtrArray		*attrs;		/* (element-type XbBuilderNodeAttr) (nullable) */
+
+	/* Most nodes will have no tokens */
+	GPtrArray		*tokens;	/* (element-type utf8) (nullable) */
+	GArray			*token_idxs;	/* (element-type guint32) (nullable) */
+
 } XbBuilderNodePrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (XbBuilderNode, xb_builder_node, G_TYPE_OBJECT)
@@ -298,6 +303,41 @@ xb_builder_node_parse_literal_text (XbBuilderNode *self, const gchar *text, gssi
 }
 
 /**
+ * xb_builder_node_tokenize_text:
+ * @self: a #XbBuilderNode
+ *
+ * Tokenize text added with xb_builder_node_set_text().
+ *
+ * Since: 0.3.1
+ **/
+void
+xb_builder_node_tokenize_text (XbBuilderNode *self)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+	g_auto(GStrv) tokens = NULL;
+	g_auto(GStrv) ascii_tokens = NULL;
+
+	g_return_if_fail (XB_IS_BUILDER_NODE (self));
+
+	if (priv->text == NULL)
+		return;
+	tokens = g_str_tokenize_and_fold (priv->text, NULL, &ascii_tokens);
+	for (guint i = 0; tokens[i] != NULL; i++) {
+		if (!xb_string_token_valid (tokens[i]))
+			continue;
+		xb_builder_node_add_token (self, tokens[i]);
+	}
+	for (guint i = 0; ascii_tokens[i] != NULL; i++) {
+		if (!xb_string_token_valid (ascii_tokens[i]))
+			continue;
+		xb_builder_node_add_token (self, ascii_tokens[i]);
+	}
+
+	/* add this so we can set XbSiloNode.is_tokenized */
+	xb_builder_node_add_flag (self, XB_BUILDER_NODE_FLAG_TOKENIZE_TEXT);
+}
+
+/**
  * xb_builder_node_set_text:
  * @self: a #XbBuilderNode
  * @text: a string
@@ -319,6 +359,10 @@ xb_builder_node_set_text (XbBuilderNode *self, const gchar *text, gssize text_le
 	g_free (priv->text);
 	priv->text = xb_builder_node_parse_literal_text (self, text, text_len);
 	priv->flags |= XB_BUILDER_NODE_FLAG_HAS_TEXT;
+
+	/* tokenize */
+	if (priv->flags & XB_BUILDER_NODE_FLAG_TOKENIZE_TEXT)
+		xb_builder_node_tokenize_text (self);
 }
 
 /**
@@ -847,8 +891,9 @@ xb_builder_node_size (XbBuilderNode *self)
 {
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 	guint32 sz = sizeof(XbSiloNode);
-	gsize n_attrs = (priv->attrs != NULL) ? priv->attrs->len : 0;
-	return sz + n_attrs * sizeof(XbSiloNodeAttr);
+	gsize attr_len = (priv->attrs != NULL) ? priv->attrs->len : 0;
+	gsize token_len = (priv->tokens != NULL) ? priv->tokens->len : 0;
+	return sz + attr_len * sizeof(XbSiloNodeAttr) + token_len * sizeof(guint32);
 }
 
 static void
@@ -898,6 +943,8 @@ xb_builder_node_finalize (GObject *obj)
 	g_free (priv->tail);
 	g_clear_pointer (&priv->attrs, g_ptr_array_unref);
 	g_clear_pointer (&priv->children, g_ptr_array_unref);
+	g_clear_pointer (&priv->tokens, g_ptr_array_unref);
+	g_clear_pointer (&priv->token_idxs, g_array_unref);
 	G_OBJECT_CLASS (xb_builder_node_parent_class)->finalize (obj);
 }
 
@@ -1106,4 +1153,67 @@ xb_builder_node_export (XbBuilderNode *self, XbNodeExportFlags flags, GError **e
 	if (!xb_builder_node_export_helper (self, &helper, error))
 		return NULL;
 	return g_string_free (g_steal_pointer (&xml), FALSE);
+}
+
+/**
+ * xb_builder_node_add_token:
+ * @self: a #XbBuilderNode
+ * @token: a new token
+ *
+ * Adds a token to the builder node.
+ *
+ * Since: 0.3.1
+ **/
+void
+xb_builder_node_add_token (XbBuilderNode *self, const gchar *token)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+
+	g_return_if_fail (self != NULL);
+	g_return_if_fail (token != NULL);
+
+	if (priv->tokens == NULL)
+		priv->tokens = g_ptr_array_new_with_free_func (g_free);
+	g_ptr_array_add (priv->tokens, g_strdup (token));
+}
+
+/**
+ * xb_builder_node_get_tokens:
+ * @self: a #XbBuilderNode
+ *
+ * Gets the tokens of the builder node.
+ *
+ * Returns: (transfer none) (element-type utf8) (nullable): tokens
+ *
+ * Since: 0.3.1
+ **/
+GPtrArray *
+xb_builder_node_get_tokens (XbBuilderNode *self)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+	g_return_val_if_fail (self != NULL, NULL);
+	return priv->tokens;
+}
+
+/* private */
+void
+xb_builder_node_add_token_idx (XbBuilderNode *self, guint32 tail_idx)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+
+	g_return_if_fail (self != NULL);
+	g_return_if_fail (tail_idx != XB_SILO_UNSET);
+
+	if (priv->token_idxs == NULL)
+		priv->token_idxs = g_array_new (FALSE, FALSE, sizeof(guint32));
+	g_array_append_val (priv->token_idxs, tail_idx);
+}
+
+/* private */
+GArray *
+xb_builder_node_get_token_idxs (XbBuilderNode *self)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+	g_return_val_if_fail (self != NULL, NULL);
+	return priv->token_idxs;
 }

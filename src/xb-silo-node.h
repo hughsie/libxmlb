@@ -13,16 +13,23 @@
 typedef enum {
 	XB_SILO_NODE_FLAG_NONE		=	0,
 	XB_SILO_NODE_FLAG_IS_ELEMENT	=	1 << 0,
+	XB_SILO_NODE_FLAG_IS_TOKENIZED	=	1 << 1,
 } XbSiloNodeFlag;
 
 typedef struct __attribute__ ((packed)) {
-	guint8		flags:1;
-	guint8		attr_cnt:7;
+	guint8		flags;
+	guint8		attr_cnt;
+	guint8		token_cnt;	/* ONLY when is_node */
+	guint8		padding;	/* to align elements to 32 bits */
 	guint32		element_name;	/* ONLY when is_node: from strtab */
 	guint32		parent;		/* ONLY when is_node: from 0 */
 	guint32		next;		/* ONLY when is_node: from 0 */
 	guint32		text;		/* ONLY when is_node: from strtab */
 	guint32		tail;		/* ONLY when is_node: from strtab */
+	/*
+	guint32		attrs[attr_cnt];
+	guint32		tokens[token_cnt];
+	*/
 } XbSiloNode;
 
 typedef struct __attribute__ ((packed)) {

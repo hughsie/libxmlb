@@ -33,6 +33,7 @@ typedef struct {
 	guint32			 datasz;
 	guint32			 strtab;
 	GHashTable		*strtab_tags;
+	GHashTable		*opcode_token_cache;
 	GHashTable		*strindex;
 	gboolean		 enable_node_cache;
 	GHashTable		*nodes;	/* (mutex nodes_mutex) */
@@ -200,6 +201,30 @@ xb_silo_get_node (XbSilo *self, guint32 off)
 }
 
 /* private */
+XbSiloNodeAttr *
+xb_silo_get_attr (XbSilo *self, guint32 off, guint8 idx)
+{
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	off += sizeof(XbSiloNode);
+	off += sizeof(XbSiloNodeAttr) * idx;
+	return (XbSiloNodeAttr *) (priv->data + off);
+}
+
+/* private */
+guint32
+xb_silo_node_get_size (XbSiloNode *n)
+{
+	if (n->is_node) {
+		guint8 sz = sizeof(XbSiloNode);
+		sz += n->attr_cnt * sizeof(XbSiloNodeAttr);
+		sz += n->token_cnt * sizeof(guint32);
+		return sz;
+	}
+	/* sentinel */
+	return 1;
+}
+
+/* private */
 guint32
 xb_silo_get_offset_for_node (XbSilo *self, XbSiloNode *n)
 {
@@ -288,6 +313,29 @@ xb_silo_get_strtab_idx (XbSilo *self, const gchar *element)
 	return GPOINTER_TO_UINT (value);
 }
 
+static guint32
+xb_silo_node_get_token_by_idx (XbSilo *self, XbSiloNode *n, guint idx)
+{
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	guint32 off = 0;
+	guint32 stridx;
+
+	/* not valid */
+	if (!n->is_node)
+		return XB_SILO_UNSET;
+
+	/* calculate offset to token */
+	off += sizeof(XbSiloNode);
+	off += n->attr_cnt * sizeof(XbSiloNodeAttr);
+	off += idx * sizeof(guint32);
+	if (off + sizeof(stridx) > priv->datasz) {
+		g_critical ("cannot get token @0x%x", off);
+		return XB_SILO_UNSET;
+	}
+	memcpy (&stridx, (guint8 *) n + off, sizeof(stridx));
+	return stridx;
+}
+
 /**
  * xb_silo_to_string:
  * @self: a #XbSilo
@@ -345,6 +393,12 @@ xb_silo_to_string (XbSilo *self, GError **error)
 				g_string_append_printf (str, "attr_value:   %s [%03u]\n",
 							xb_silo_from_strtab (self, a->attr_value),
 							a->attr_value);
+			}
+			for (guint8 i = 0; i < n->token_cnt; i++) {
+				guint32 idx_tmp = xb_silo_node_get_token_by_idx (self, n, i);
+				g_string_append_printf (str, "token:        %s [%03u]\n",
+							xb_silo_from_strtab (self, idx_tmp),
+							idx_tmp);
 			}
 		} else {
 			g_string_append_printf (str, "SENT @%" G_GUINT32_FORMAT "\n", off);
@@ -1071,6 +1125,95 @@ xb_silo_machine_fixup_attr_exists_cb (XbMachine *self,
 	return TRUE;
 }
 
+static const gchar *
+xb_silo_intern_string (XbSilo *self, const gchar *str)
+{
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	const gchar *tmp;
+	gchar *newstr;
+
+	/* existing value */
+	tmp = g_hash_table_lookup (priv->opcode_token_cache, str);
+	if (tmp != NULL)
+		return tmp;
+
+	/* add as both key and value */
+	newstr = g_strdup (str);
+	g_hash_table_add (priv->opcode_token_cache, newstr);
+	return newstr;
+}
+
+static void
+xb_silo_opcode_tokenize (XbSilo *self, XbOpcode *op)
+{
+	const gchar *str;
+	guint token_cnt = 0;
+	g_auto(GStrv) tokens = NULL;
+	g_auto(GStrv) ascii_tokens = NULL;
+
+	/* use the fast token path even if there are no valid tokens */
+	xb_opcode_add_flag (op, XB_OPCODE_FLAG_TOKENIZED);
+
+	str = xb_opcode_get_str (op);
+	tokens = g_str_tokenize_and_fold (str, NULL, &ascii_tokens);
+	for (guint i = 0; tokens[i] != NULL; i++) {
+		if (!xb_string_token_valid (tokens[i]))
+			continue;
+		xb_opcode_set_token (op, token_cnt, xb_silo_intern_string (self, tokens[i]));
+		if (token_cnt++ > XB_OPCODE_TOKEN_MAX)
+			return;
+	}
+	for (guint i = 0; ascii_tokens[i] != NULL; i++) {
+		if (!xb_string_token_valid (ascii_tokens[i]))
+			continue;
+		xb_opcode_set_token (op, token_cnt, xb_silo_intern_string (self, ascii_tokens[i]));
+		if (token_cnt++ > XB_OPCODE_TOKEN_MAX)
+			return;
+	}
+}
+
+static gboolean
+xb_silo_machine_fixup_attr_search_tokn_cb (XbMachine *self,
+					   XbStack *opcodes,
+					   gpointer user_data,
+					   GError **error)
+{
+	XbOpcode op_func;
+	XbOpcode op_text;
+	XbOpcode op_search;
+	XbOpcode *op_tmp;
+	XbSilo *silo = XB_SILO (user_data);
+
+	/* text() */
+	if (!xb_machine_stack_pop (self, opcodes, &op_func, error))
+		return FALSE;
+
+	/* TEXT */
+	if (!xb_machine_stack_pop (self, opcodes, &op_text, error))
+		return FALSE;
+	xb_silo_opcode_tokenize (silo, &op_text);
+
+	/* search() */
+	if (!xb_machine_stack_pop (self, opcodes, &op_search, error))
+		return FALSE;
+
+	/* text() */
+	if (!xb_machine_stack_push (self, opcodes, &op_tmp, error))
+		return FALSE;
+	*op_tmp = op_search;
+
+	/* TEXT */
+	if (!xb_machine_stack_push (self, opcodes, &op_tmp, error))
+		return FALSE;
+	*op_tmp = op_text;
+
+	/* search() */
+	if (!xb_machine_stack_push (self, opcodes, &op_tmp, error))
+		return FALSE;
+	*op_tmp = op_func;
+	return TRUE;
+}
+
 static gboolean
 xb_silo_machine_func_attr_cb (XbMachine *self,
 			      XbStack *stack,
@@ -1171,6 +1314,17 @@ xb_silo_machine_func_text_cb (XbMachine *self,
 			xb_silo_get_node_text (silo, query_data->sn),
 			xb_silo_node_get_text_idx (query_data->sn),
 			NULL);
+
+	/* use the fast token path even if there are no valid tokens */
+	if (query_data->sn->is_tokenized)
+		xb_opcode_add_flag (op, XB_OPCODE_FLAG_TOKENIZED);
+
+	/* add tokens */
+	for (guint i = 0; i < query_data->sn->token_cnt && i < XB_OPCODE_TOKEN_MAX; i++) {
+		guint32 stridx = xb_silo_node_get_token_by_idx (silo, query_data->sn, i);
+		xb_opcode_set_token (op, i, xb_silo_from_strtab (silo, stridx));
+	}
+
 	return TRUE;
 }
 
@@ -1294,6 +1448,13 @@ xb_silo_machine_func_search_cb (XbMachine *self,
 	if (!xb_machine_stack_pop_two (self, stack, &op1, &op2, error))
 		return FALSE;
 
+	/* TOKN:TOKN */
+	if (xb_opcode_has_flag (&op1, XB_OPCODE_FLAG_TOKENIZED) &&
+	    xb_opcode_has_flag (&op2, XB_OPCODE_FLAG_TOKENIZED)) {
+		return xb_stack_push_bool (stack, xb_string_searchv (xb_opcode_get_tokens (&op2),
+								     xb_opcode_get_tokens (&op1)), error);
+	}
+
 	/* this is going to be slow, but correct */
 	text = xb_opcode_get_str (&op2);
 	search = xb_opcode_get_str (&op1);
@@ -1401,6 +1562,7 @@ xb_silo_init (XbSilo *self)
 	priv->file_monitors = g_hash_table_new_full (g_file_hash, (GEqualFunc) g_file_equal,
 						     g_object_unref, (GDestroyNotify) xb_silo_file_monitor_item_free);
 	priv->strtab_tags = g_hash_table_new (g_str_hash, g_str_equal);
+	priv->opcode_token_cache = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 	priv->strindex = g_hash_table_new (g_str_hash, g_str_equal);
 	priv->profile_str = g_string_new (NULL);
 	priv->query_cache = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_object_unref);
@@ -1435,6 +1597,8 @@ xb_silo_init (XbSilo *self)
 				     xb_silo_machine_fixup_position_cb, self, NULL);
 	xb_machine_add_opcode_fixup (priv->machine, "TEXT,FUNC:attr",
 				     xb_silo_machine_fixup_attr_exists_cb, self, NULL);
+	xb_machine_add_opcode_fixup (priv->machine, "FUNC:text,TEXT,FUNC:search",
+				     xb_silo_machine_fixup_attr_search_tokn_cb, self, NULL);
 	xb_machine_add_text_handler (priv->machine,
 				     xb_silo_machine_fixup_attr_text_cb, self, NULL);
 }
@@ -1462,6 +1626,7 @@ xb_silo_finalize (GObject *obj)
 	g_hash_table_unref (priv->strindex);
 	g_hash_table_unref (priv->file_monitors);
 	g_hash_table_unref (priv->strtab_tags);
+	g_hash_table_unref (priv->opcode_token_cache);
 	if (priv->mmap != NULL)
 		g_mapped_file_unref (priv->mmap);
 	if (priv->blob != NULL)

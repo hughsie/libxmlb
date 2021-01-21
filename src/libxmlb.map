@@ -241,3 +241,11 @@ LIBXMLB_0.3.0 {
     xb_value_bindings_lookup_opcode;
   local: *;
 } LIBXMLB_0.2.0;
+
+LIBXMLB_0.3.1 {
+  global:
+    xb_builder_node_add_token;
+    xb_builder_node_get_tokens;
+    xb_builder_node_tokenize_text;
+  local: *;
+} LIBXMLB_0.3.0;
