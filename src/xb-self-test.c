@@ -352,7 +352,7 @@ xb_builder_func (void)
 		"  </header>\n"
 		"  <component type=\"desktop\" attr=\"value\">\n"
 		"    <id>gimp.desktop</id>\n"
-		"    <name>GIMP &amp; Friends</name>\n"
+		"    <name>GIMP &amp; Friendẞ</name>\n"
 		"    <id>org.gnome.Gimp.desktop</id>\n"
 		"  </component>\n"
 		"  <component type=\"desktop\">\n"
@@ -388,7 +388,7 @@ xb_builder_func (void)
 
 	/* check size */
 	bytes = xb_silo_get_bytes (silo);
-	g_assert_cmpint (g_bytes_get_size (bytes), ==, 605);
+	g_assert_cmpint (g_bytes_get_size (bytes), ==, 607);
 }
 
 static void
@@ -576,7 +576,7 @@ xb_builder_ensure_func (void)
 		"  </header>\n"
 		"  <component type=\"desktop\" attr=\"value\">\n"
 		"    <id>gimp.desktop</id>\n"
-		"    <name>GIMP &amp; Friends</name>\n"
+		"    <name>GIMP &amp; Friendẞ</name>\n"
 		"    <id>org.gnome.Gimp.desktop</id>\n"
 		"  </component>\n"
 		"  <component type=\"desktop\">\n"
@@ -1231,6 +1231,7 @@ xb_xpath_func (void)
 	"  <component type=\"desktop\">\n"
 	"    <id>gimp.desktop</id>\n"
 	"    <id>org.gnome.Gimp.desktop</id>\n"
+	"    <name>Mêẞ</name>\n"
 	"    <custom>\n"
 	"      <value key=\"KEY\">TRUE</value>\n"
 	"    </custom>\n"
@@ -1381,6 +1382,13 @@ xb_xpath_func (void)
 	g_assert_no_error (error);
 	g_assert_nonnull (n);
 	g_assert_cmpstr (xb_node_get_text (n), ==, "gimp.desktop");
+	g_clear_object (&n);
+
+	/* query no normalize */
+	n = xb_silo_query_first (silo, "components/component/name", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "Mêẞ");
 	g_clear_object (&n);
 
 	/* query with stem */
