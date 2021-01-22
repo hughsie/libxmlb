@@ -1391,6 +1391,13 @@ xb_xpath_func (void)
 	g_assert_cmpstr (xb_node_get_text (n), ==, "Mêẞ");
 	g_clear_object (&n);
 
+	/* query name not UTF-8 */
+	n = xb_silo_query_first (silo, "components/component/name[text()~='mEss']/../id", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (n);
+	g_assert_cmpstr (xb_node_get_text (n), ==, "gimp.desktop");
+	g_clear_object (&n);
+
 	/* query with stem */
 #ifdef HAVE_LIBSTEMMER
 	xb_machine_set_debug_flags (xb_silo_get_machine (silo),

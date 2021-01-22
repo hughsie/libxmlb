@@ -1283,6 +1283,10 @@ xb_silo_machine_func_search_cb (XbMachine *self,
 				gpointer exec_data,
 				GError **error)
 {
+	XbSilo *silo = XB_SILO (user_data);
+	XbSiloPrivate *priv = GET_PRIVATE (silo);
+	const gchar *text;
+	const gchar *search;
 	XbOpcode *head1 = NULL;
 	XbOpcode *head2 = NULL;
 	g_auto(XbOpcode) op1 = XB_OPCODE_INIT ();
@@ -1306,9 +1310,21 @@ xb_silo_machine_func_search_cb (XbMachine *self,
 	if (!xb_machine_stack_pop_two (self, stack, &op1, &op2, error))
 		return FALSE;
 
+	/* this is going to be slow, but correct */
+	text = xb_opcode_get_str (&op2);
+	search = xb_opcode_get_str (&op1);
+	if (!g_str_is_ascii (text) || !g_str_is_ascii (search)) {
+		if (search == NULL || search[0] == '\0')
+			return xb_stack_push_bool (stack, FALSE, error);
+		if (priv->profile_flags & XB_SILO_PROFILE_FLAG_DEBUG) {
+			g_debug ("tokenization for [%s:%s] may be slow!",
+				 text, search);
+		}
+		return xb_stack_push_bool (stack, g_str_match_string (search, text, TRUE), error);
+	}
+
 	/* TEXT:TEXT */
-	return xb_stack_push_bool (stack, xb_string_search (xb_opcode_get_str (&op2),
-							    xb_opcode_get_str (&op1)), error);
+	return xb_stack_push_bool (stack, xb_string_search (text, search), error);
 }
 
 static gboolean
