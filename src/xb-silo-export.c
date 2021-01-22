@@ -12,7 +12,7 @@
 
 #include "xb-node-private.h"
 #include "xb-silo-export-private.h"
-#include "xb-silo-private.h"
+#include "xb-silo-node.h"
 #include "xb-string-private.h"
 
 typedef struct {
@@ -38,8 +38,8 @@ xb_silo_export_node (XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, G
 				xb_silo_from_strtab (self, sn->element_name));
 
 	/* add any attributes */
-	for (guint8 i = 0; i < sn->nr_attrs; i++) {
-		XbSiloNodeAttr *a = xb_silo_get_attr (self, helper->off, i);
+	for (guint8 i = 0; i < xb_silo_node_get_attr_count (sn); i++) {
+		XbSiloNodeAttr *a = xb_silo_node_get_attr (sn, i);
 		g_autofree gchar *key = xb_string_xml_escape (xb_silo_from_strtab (self, a->attr_name));
 		g_autofree gchar *val = xb_string_xml_escape (xb_silo_from_strtab (self, a->attr_value));
 		g_string_append_printf (helper->xml, " %s=\"%s\"", key, val);
@@ -47,13 +47,13 @@ xb_silo_export_node (XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, G
 
 	/* collapse open/close tags together if no text or children */
 	if (helper->flags & XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY &&
-	    sn->text == XB_SILO_UNSET &&
-	    xb_silo_node_get_child (self, sn) == NULL) {
+	    xb_silo_node_get_text_idx (sn) == XB_SILO_UNSET &&
+	    xb_silo_get_child_node (self, sn) == NULL) {
 		g_string_append (helper->xml, " />");
 	} else {
 		/* finish the opening tag and add any text if it exists */
-		if (sn->text != XB_SILO_UNSET) {
-			g_autofree gchar *text = xb_string_xml_escape (xb_silo_from_strtab (self, sn->text));
+		if (xb_silo_node_get_text_idx (sn) != XB_SILO_UNSET) {
+			g_autofree gchar *text = xb_string_xml_escape (xb_silo_get_node_text (self, sn));
 			g_string_append (helper->xml, ">");
 			g_string_append (helper->xml, text);
 		} else {
@@ -64,7 +64,8 @@ xb_silo_export_node (XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, G
 		helper->off += xb_silo_node_get_size (sn);
 
 		/* recurse deeper */
-		while (xb_silo_get_node(self, helper->off)->is_node) {
+		while (xb_silo_node_has_flag (xb_silo_get_node (self, helper->off),
+					      XB_SILO_NODE_FLAG_IS_ELEMENT)) {
 			XbSiloNode *child = xb_silo_get_node (self, helper->off);
 			helper->level++;
 			if (!xb_silo_export_node (self, helper, child, error))
@@ -74,7 +75,7 @@ xb_silo_export_node (XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, G
 
 		/* check for the single byte sentinel */
 		sn2 = xb_silo_get_node (self, helper->off);
-		if (sn2->is_node) {
+		if (xb_silo_node_has_flag (sn2, XB_SILO_NODE_FLAG_IS_ELEMENT)) {
 			g_set_error (error,
 				     G_IO_ERROR,
 				     G_IO_ERROR_INVALID_DATA,
@@ -86,7 +87,7 @@ xb_silo_export_node (XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, G
 
 		/* add closing tag */
 		if ((helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_INDENT) > 0 &&
-		    sn->text == XB_SILO_UNSET) {
+		    xb_silo_node_get_text_idx (sn) == XB_SILO_UNSET) {
 			for (guint i = 0; i < helper->level; i++)
 				g_string_append (helper->xml, "  ");
 		}
@@ -95,8 +96,8 @@ xb_silo_export_node (XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, G
 	}
 
 	/* add any optional tail */
-	if (sn->tail != XB_SILO_UNSET) {
-		g_autofree gchar *tail = xb_string_xml_escape (xb_silo_from_strtab (self, sn->tail));
+	if (xb_silo_node_get_tail_idx (sn) != XB_SILO_UNSET) {
+		g_autofree gchar *tail = xb_string_xml_escape (xb_silo_get_node_tail (self, sn));
 		g_string_append (helper->xml, tail);
 	}
 
@@ -127,9 +128,9 @@ xb_silo_export_with_root (XbSilo *self, XbSiloNode *sroot, XbNodeExportFlags fla
 	if (sroot != NULL) {
 		sn = sroot;
 		if (sn != NULL && flags & XB_NODE_EXPORT_FLAG_ONLY_CHILDREN)
-			sn = xb_silo_node_get_child (self, sn);
+			sn = xb_silo_get_child_node (self, sn);
 	} else {
-		sn = xb_silo_get_sroot (self);
+		sn = xb_silo_get_root_node (self);
 	}
 
 	/* no root */
@@ -152,7 +153,7 @@ xb_silo_export_with_root (XbSilo *self, XbSiloNode *sroot, XbNodeExportFlags fla
 		}
 		if ((flags & XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS) == 0)
 			break;
-		sn = xb_silo_node_get_next (self, sn);
+		sn = xb_silo_get_next_node (self, sn);
 	} while (sn != NULL);
 
 	/* success */

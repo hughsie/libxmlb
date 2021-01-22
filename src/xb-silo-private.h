@@ -9,6 +9,7 @@
 #include "xb-machine.h"
 #include "xb-node.h"
 #include "xb-silo.h"
+#include "xb-silo-node.h"
 #include "xb-query.h"
 
 #include "xb-string-private.h"
@@ -27,22 +28,6 @@ typedef struct __attribute__ ((packed)) {
 
 #define XB_SILO_MAGIC_BYTES		0x624c4d58
 #define XB_SILO_VERSION			0x00000007
-#define XB_SILO_UNSET			0xffffffff
-
-typedef struct __attribute__ ((packed)) {
-	guint8		is_node:1;
-	guint8		nr_attrs:7;
-	guint32		element_name;	/* ONLY when is_node: from strtab */
-	guint32		parent;		/* ONLY when is_node: from 0 */
-	guint32		next;		/* ONLY when is_node: from 0 */
-	guint32		text;		/* ONLY when is_node: from strtab */
-	guint32		tail;		/* ONLY when is_node: from strtab */
-} XbSiloNode;
-
-typedef struct __attribute__ ((packed)) {
-	guint32		attr_name;	/* from strtab */
-	guint32		attr_value;	/* from strtab */
-} XbSiloNodeAttr;
 
 typedef struct {
 	/*< private >*/
@@ -58,35 +43,31 @@ guint32		 xb_silo_strtab_index_lookup	(XbSilo		*self,
 						 const gchar	*str);
 XbSiloNode	*xb_silo_get_node		(XbSilo		*self,
 						 guint32	 off);
-XbSiloNodeAttr	*xb_silo_get_attr		(XbSilo		*self,
-						 guint32	 off,
-						 guint8		 idx);
 XbMachine	*xb_silo_get_machine		(XbSilo		*self);
 guint32		 xb_silo_get_strtab		(XbSilo		*self);
 guint32		 xb_silo_get_strtab_idx		(XbSilo		*self,
 						 const gchar	*element);
 guint32		 xb_silo_get_offset_for_node	(XbSilo		*self,
 						 XbSiloNode	*n);
-guint32		 xb_silo_node_get_size		(XbSiloNode	*n);
-XbSiloNode	*xb_silo_get_sroot		(XbSilo		*self);
-XbSiloNode	*xb_silo_node_get_parent	(XbSilo		*self,
+XbSiloNode	*xb_silo_get_root_node		(XbSilo		*self);
+XbSiloNode	*xb_silo_get_parent_node	(XbSilo		*self,
 						 XbSiloNode	*n);
-XbSiloNode	*xb_silo_node_get_next		(XbSilo		*self,
+XbSiloNode	*xb_silo_get_next_node		(XbSilo		*self,
 						 XbSiloNode	*n);
-XbSiloNode	*xb_silo_node_get_child		(XbSilo		*self,
+XbSiloNode	*xb_silo_get_child_node		(XbSilo		*self,
 						 XbSiloNode	*n);
-const gchar	*xb_silo_node_get_element	(XbSilo		*self,
+const gchar	*xb_silo_get_node_element	(XbSilo		*self,
 						 XbSiloNode	*n);
-const gchar	*xb_silo_node_get_text		(XbSilo		*self,
+const gchar	*xb_silo_get_node_text		(XbSilo		*self,
 						 XbSiloNode	*n);
-const gchar	*xb_silo_node_get_tail		(XbSilo		*self,
+const gchar	*xb_silo_get_node_tail		(XbSilo		*self,
 						 XbSiloNode	*n);
-XbSiloNodeAttr	*xb_silo_node_get_attr_by_str	(XbSilo		*self,
+XbSiloNodeAttr	*xb_silo_get_node_attr_by_str	(XbSilo		*self,
 						 XbSiloNode	*n,
 						 const gchar	*name);
-guint		 xb_silo_node_get_depth		(XbSilo		*self,
+guint		 xb_silo_get_node_depth		(XbSilo		*self,
 						 XbSiloNode	*n);
-XbNode		*xb_silo_node_create		(XbSilo		*self,
+XbNode		*xb_silo_create_node		(XbSilo		*self,
 						 XbSiloNode	*sn,
 						 gboolean	 force_node_cache);
 GTimer		*xb_silo_start_profile		(XbSilo		*self);
