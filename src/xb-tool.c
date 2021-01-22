@@ -405,7 +405,7 @@ xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 	silo = xb_builder_ensure (builder, file_dst,
 				  XB_BUILDER_COMPILE_FLAG_WATCH_BLOB |
 				  XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID |
-				  XB_BUILDER_COMPILE_FLAG_SINGLE_LANG,
+				  XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS,
 				  NULL, error);
 	if (silo == NULL)
 		return FALSE;
