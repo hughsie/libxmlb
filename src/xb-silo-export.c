@@ -39,7 +39,7 @@ xb_silo_export_node (XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, G
 
 	/* add any attributes */
 	for (guint8 i = 0; i < sn->nr_attrs; i++) {
-		XbSiloAttr *a = xb_silo_get_attr (self, helper->off, i);
+		XbSiloNodeAttr *a = xb_silo_get_attr (self, helper->off, i);
 		g_autofree gchar *key = xb_string_xml_escape (xb_silo_from_strtab (self, a->attr_name));
 		g_autofree gchar *val = xb_string_xml_escape (xb_silo_from_strtab (self, a->attr_value));
 		g_string_append_printf (helper->xml, " %s=\"%s\"", key, val);

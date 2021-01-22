@@ -848,7 +848,7 @@ xb_builder_node_size (XbBuilderNode *self)
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 	guint32 sz = sizeof(XbSiloNode);
 	gsize n_attrs = (priv->attrs != NULL) ? priv->attrs->len : 0;
-	return sz + n_attrs * sizeof(XbSiloAttr);
+	return sz + n_attrs * sizeof(XbSiloNodeAttr);
 }
 
 static void

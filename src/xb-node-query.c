@@ -259,7 +259,7 @@ xb_node_query_text (XbNode *self, const gchar *xpath, GError **error)
 const gchar *
 xb_node_query_attr (XbNode *self, const gchar *xpath, const gchar *name, GError **error)
 {
-	XbSiloAttr *a;
+	XbSiloNodeAttr *a;
 	XbSilo *silo;
 	g_autoptr(GPtrArray) results = NULL;
 	XbSiloNode *sn;

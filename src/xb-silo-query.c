@@ -718,7 +718,7 @@ xb_silo_query_build_index (XbSilo *self,
 		if (attr != NULL) {
 			guint32 off = xb_silo_get_offset_for_node (self, sn);
 			for (guint8 j = 0; j < sn->nr_attrs; j++) {
-				XbSiloAttr *a = xb_silo_get_attr (self, off, j);
+				XbSiloNodeAttr *a = xb_silo_get_attr (self, off, j);
 				xb_silo_strtab_index_insert (self, a->attr_name);
 				xb_silo_strtab_index_insert (self, a->attr_value);
 			}

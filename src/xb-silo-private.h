@@ -42,7 +42,7 @@ typedef struct __attribute__ ((packed)) {
 typedef struct __attribute__ ((packed)) {
 	guint32		attr_name;	/* from strtab */
 	guint32		attr_value;	/* from strtab */
-} XbSiloAttr;
+} XbSiloNodeAttr;
 
 typedef struct {
 	/*< private >*/
@@ -58,7 +58,7 @@ guint32		 xb_silo_strtab_index_lookup	(XbSilo		*self,
 						 const gchar	*str);
 XbSiloNode	*xb_silo_get_node		(XbSilo		*self,
 						 guint32	 off);
-XbSiloAttr	*xb_silo_get_attr		(XbSilo		*self,
+XbSiloNodeAttr	*xb_silo_get_attr		(XbSilo		*self,
 						 guint32	 off,
 						 guint8		 idx);
 XbMachine	*xb_silo_get_machine		(XbSilo		*self);
@@ -81,7 +81,7 @@ const gchar	*xb_silo_node_get_text		(XbSilo		*self,
 						 XbSiloNode	*n);
 const gchar	*xb_silo_node_get_tail		(XbSilo		*self,
 						 XbSiloNode	*n);
-XbSiloAttr	*xb_silo_node_get_attr_by_str	(XbSilo		*self,
+XbSiloNodeAttr	*xb_silo_node_get_attr_by_str	(XbSilo		*self,
 						 XbSiloNode	*n,
 						 const gchar	*name);
 guint		 xb_silo_node_get_depth		(XbSilo		*self,

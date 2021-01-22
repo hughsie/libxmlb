@@ -327,7 +327,7 @@ const gchar *
 xb_node_get_attr (XbNode *self, const gchar *name)
 {
 	XbNodePrivate *priv = GET_PRIVATE (self);
-	XbSiloAttr *a;
+	XbSiloNodeAttr *a;
 
 	g_return_val_if_fail (XB_IS_NODE (self), NULL);
 	g_return_val_if_fail (name != NULL, NULL);

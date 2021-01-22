@@ -476,7 +476,7 @@ xb_builder_nodetab_write_node (XbBuilderNodetabHelper *helper, XbBuilderNode *bn
 	/* add to the buf */
 	for (guint i = 0; attrs != NULL && i < attrs->len; i++) {
 		XbBuilderNodeAttr *ba = g_ptr_array_index (attrs, i);
-		XbSiloAttr attr = {
+		XbSiloNodeAttr attr = {
 			.attr_name	= ba->name_idx,
 			.attr_value	= ba->value_idx,
 		};
