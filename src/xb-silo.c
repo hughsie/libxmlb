@@ -200,13 +200,13 @@ xb_silo_get_node (XbSilo *self, guint32 off)
 }
 
 /* private */
-XbSiloAttr *
+XbSiloNodeAttr *
 xb_silo_get_attr (XbSilo *self, guint32 off, guint8 idx)
 {
 	XbSiloPrivate *priv = GET_PRIVATE (self);
 	off += sizeof(XbSiloNode);
-	off += sizeof(XbSiloAttr) * idx;
-	return (XbSiloAttr *) (priv->data + off);
+	off += sizeof(XbSiloNodeAttr) * idx;
+	return (XbSiloNodeAttr *) (priv->data + off);
 }
 
 /* private */
@@ -215,7 +215,7 @@ xb_silo_node_get_size (XbSiloNode *n)
 {
 	if (n->is_node) {
 		guint8 sz = sizeof(XbSiloNode);
-		sz += n->nr_attrs * sizeof(XbSiloAttr);
+		sz += n->nr_attrs * sizeof(XbSiloNodeAttr);
 		return sz;
 	}
 	/* sentinel */
@@ -356,7 +356,7 @@ xb_silo_to_string (XbSilo *self, GError **error)
 							xb_silo_from_strtab (self, n->tail));
 			}
 			for (guint8 i = 0; i < n->nr_attrs; i++) {
-				XbSiloAttr *a = xb_silo_get_attr (self, off, i);
+				XbSiloNodeAttr *a = xb_silo_get_attr (self, off, i);
 				g_string_append_printf (str, "attr_name:    %s [%03u]\n",
 							xb_silo_from_strtab (self, a->attr_name),
 							a->attr_name);
@@ -410,7 +410,7 @@ xb_silo_node_get_element (XbSilo *self, XbSiloNode *n)
 }
 
 /* private */
-XbSiloAttr *
+XbSiloNodeAttr *
 xb_silo_node_get_attr_by_str (XbSilo *self, XbSiloNode *n, const gchar *name)
 {
 	guint32 off;
@@ -418,7 +418,7 @@ xb_silo_node_get_attr_by_str (XbSilo *self, XbSiloNode *n, const gchar *name)
 	/* calculate offset to first attribute */
 	off = xb_silo_get_offset_for_node (self, n);
 	for (guint8 i = 0; i < n->nr_attrs; i++) {
-		XbSiloAttr *a = xb_silo_get_attr (self, off, i);
+		XbSiloNodeAttr *a = xb_silo_get_attr (self, off, i);
 		if (g_strcmp0 (xb_silo_from_strtab (self, a->attr_name), name) == 0)
 			return a;
 	}
@@ -427,7 +427,7 @@ xb_silo_node_get_attr_by_str (XbSilo *self, XbSiloNode *n, const gchar *name)
 	return NULL;
 }
 
-static XbSiloAttr *
+static XbSiloNodeAttr *
 xb_silo_node_get_attr_by_val (XbSilo *self, XbSiloNode *n, guint32 name)
 {
 	guint32 off;
@@ -435,7 +435,7 @@ xb_silo_node_get_attr_by_val (XbSilo *self, XbSiloNode *n, guint32 name)
 	/* calculate offset to first attribute */
 	off = xb_silo_get_offset_for_node (self, n);
 	for (guint8 i = 0; i < n->nr_attrs; i++) {
-		XbSiloAttr *a = xb_silo_get_attr (self, off, i);
+		XbSiloNodeAttr *a = xb_silo_get_attr (self, off, i);
 		if (a->attr_name == name)
 			return a;
 	}
@@ -1096,7 +1096,7 @@ xb_silo_machine_func_attr_cb (XbMachine *self,
 			      GError **error)
 {
 	XbOpcode *op2;
-	XbSiloAttr *a;
+	XbSiloNodeAttr *a;
 	XbSilo *silo = XB_SILO (user_data);
 	XbSiloQueryData *query_data = (XbSiloQueryData *) exec_data;
 	g_auto(XbOpcode) op = XB_OPCODE_INIT ();
