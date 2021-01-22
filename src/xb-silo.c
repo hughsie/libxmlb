@@ -210,7 +210,7 @@ xb_silo_get_attr (XbSilo *self, guint32 off, guint8 idx)
 }
 
 /* private */
-guint8
+guint32
 xb_silo_node_get_size (XbSiloNode *n)
 {
 	if (n->is_node) {
