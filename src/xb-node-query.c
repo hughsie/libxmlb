@@ -227,7 +227,7 @@ xb_node_query_text (XbNode *self, const gchar *xpath, GError **error)
 		return NULL;
 	sn = g_ptr_array_index (results, 0);
 
-	tmp = xb_silo_node_get_text (silo, sn);
+	tmp = xb_silo_get_node_text (silo, sn);
 	if (tmp == NULL) {
 		g_set_error_literal (error,
 				     G_IO_ERROR,
@@ -274,7 +274,7 @@ xb_node_query_attr (XbNode *self, const gchar *xpath, const gchar *name, GError 
 		return NULL;
 	sn = g_ptr_array_index (results, 0);
 
-	a = xb_silo_node_get_attr_by_str (silo, sn, name);
+	a = xb_silo_get_node_attr_by_str (silo, sn, name);
 	if (a == NULL) {
 		g_set_error_literal (error,
 				     G_IO_ERROR,

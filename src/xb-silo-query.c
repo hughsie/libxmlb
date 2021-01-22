@@ -14,7 +14,7 @@
 #include "xb-node-private.h"
 #include "xb-opcode.h"
 #include "xb-opcode-private.h"
-#include "xb-silo-private.h"
+#include "xb-silo-node.h"
 #include "xb-silo-query-private.h"
 #include "xb-stack-private.h"
 #include "xb-query-private.h"
@@ -123,7 +123,7 @@ xb_silo_query_section_add_result (XbSilo *self, XbSiloQueryHelper *helper, XbSil
 	} else {
 		gboolean force_node_cache = (helper->flags & XB_SILO_QUERY_HELPER_FORCE_NODE_CACHE) > 0;
 		g_ptr_array_add (helper->results,
-				 xb_silo_node_create (self, sn, force_node_cache));
+				 xb_silo_create_node (self, sn, force_node_cache));
 	}
 	g_hash_table_add (helper->results_hash, sn);
 	return helper->results->len == helper->limit;
@@ -154,13 +154,13 @@ xb_silo_query_section_root (XbSilo *self,
 					     "cannot obtain parent for root");
 			return FALSE;
 		}
-		parent = xb_silo_node_get_parent (self, sn);
+		parent = xb_silo_get_parent_node (self, sn);
 		if (parent == NULL) {
 			g_set_error (error,
 				     G_IO_ERROR,
 				     G_IO_ERROR_INVALID_ARGUMENT,
 				     "no parent set for %s",
-				     xb_silo_node_get_element (self, sn));
+				     xb_silo_get_node_element (self, sn));
 			return FALSE;
 		}
 		if (i == helper->sections->len - 1) {
@@ -174,7 +174,7 @@ xb_silo_query_section_root (XbSilo *self,
 
 	/* no node means root */
 	if (sn == NULL) {
-		sn = xb_silo_get_sroot (self);
+		sn = xb_silo_get_root_node (self);
 		if (sn == NULL) {
 			g_set_error_literal (error,
 					     G_IO_ERROR,
@@ -183,7 +183,7 @@ xb_silo_query_section_root (XbSilo *self,
 			return FALSE;
 		}
 	} else {
-		sn = xb_silo_node_get_child (self, sn);
+		sn = xb_silo_get_child_node (self, sn);
 		if (sn == NULL)
 			return TRUE;
 	}
@@ -209,7 +209,7 @@ xb_silo_query_section_root (XbSilo *self,
 					break;
 			} else {
 //				g_debug ("MATCH %s at @%u, deeper",
-//					 xb_silo_node_get_element (self, sn),
+//					 xb_silo_get_node_element (self, sn),
 //					 xb_silo_get_offset_for_node (self, sn));
 				if (!xb_silo_query_section_root (self, sn, i + 1,
 								 bindings_offset_end, helper, error))
@@ -716,14 +716,14 @@ xb_silo_query_build_index (XbSilo *self,
 	for (guint i = 0; i < array->len; i++) {
 		XbSiloNode *sn = g_ptr_array_index (array, i);
 		if (attr != NULL) {
-			guint32 off = xb_silo_get_offset_for_node (self, sn);
-			for (guint8 j = 0; j < sn->nr_attrs; j++) {
-				XbSiloNodeAttr *a = xb_silo_get_attr (self, off, j);
+			guint8 attr_count = xb_silo_node_get_attr_count (sn);
+			for (guint8 j = 0; j < attr_count; j++) {
+				XbSiloNodeAttr *a = xb_silo_node_get_attr (sn, j);
 				xb_silo_strtab_index_insert (self, a->attr_name);
 				xb_silo_strtab_index_insert (self, a->attr_value);
 			}
 		} else {
-			xb_silo_strtab_index_insert (self, sn->text);
+			xb_silo_strtab_index_insert (self, xb_silo_node_get_text_idx (sn));
 		}
 	}
 
