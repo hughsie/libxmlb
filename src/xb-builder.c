@@ -435,8 +435,8 @@ static void
 xb_builder_nodetab_write_sentinel (XbBuilderNodetabHelper *helper)
 {
 	XbSiloNode sn = {
-		.is_node	= FALSE,
-		.nr_attrs	= 0,
+		.flags		= XB_SILO_NODE_FLAG_NONE,
+		.attr_count	= 0,
 	};
 //	g_debug ("SENT @%u", (guint) helper->buf->len);
 	XB_SILO_APPENDBUF (helper->buf, &sn, xb_silo_node_get_size (&sn));
@@ -447,8 +447,8 @@ xb_builder_nodetab_write_node (XbBuilderNodetabHelper *helper, XbBuilderNode *bn
 {
 	GPtrArray *attrs = xb_builder_node_get_attrs (bn);
 	XbSiloNode sn = {
-		.is_node	= TRUE,
-		.nr_attrs	= (attrs != NULL) ? attrs->len : 0,
+		.flags		= XB_SILO_NODE_FLAG_IS_ELEMENT,
+		.attr_count	= (attrs != NULL) ? attrs->len : 0,
 		.element_name	= xb_builder_node_get_element_idx (bn),
 		.next		= 0x0,
 		.parent		= 0x0,
