@@ -16,8 +16,8 @@ xb_silo_node_get_size (XbSiloNode *self)
 {
 	if (xb_silo_node_has_flag (self, XB_SILO_NODE_FLAG_IS_ELEMENT)) {
 		guint8 sz = sizeof(XbSiloNode);
-		sz += self->attr_cnt * sizeof(XbSiloNodeAttr);
-		sz += self->token_cnt * sizeof(guint32);
+		sz += self->attr_count * sizeof(XbSiloNodeAttr);
+		sz += self->token_count * sizeof(guint32);
 		return sz;
 	}
 
@@ -57,7 +57,7 @@ xb_silo_node_get_tail_idx (XbSiloNode *self)
 guint8
 xb_silo_node_get_attr_count (XbSiloNode *self)
 {
-	return self->attr_cnt;
+	return self->attr_count;
 }
 
 /* private */

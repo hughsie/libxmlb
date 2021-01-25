@@ -304,7 +304,7 @@ xb_silo_node_get_token_by_idx (XbSilo *self, XbSiloNode *n, guint idx)
 
 	/* calculate offset to token */
 	off += sizeof(XbSiloNode);
-	off += n->attr_cnt * sizeof(XbSiloNodeAttr);
+	off += n->attr_count * sizeof(XbSiloNodeAttr);
 	off += idx * sizeof(guint32);
 	if (off + sizeof(stridx) > priv->datasz) {
 		g_critical ("cannot get token @0x%x", off);
@@ -372,7 +372,7 @@ xb_silo_to_string (XbSilo *self, GError **error)
 							xb_silo_from_strtab (self, a->attr_value),
 							a->attr_value);
 			}
-			for (guint8 i = 0; i < n->token_cnt; i++) {
+			for (guint8 i = 0; i < n->token_count; i++) {
 				guint32 idx_tmp = xb_silo_node_get_token_by_idx (self, n, i);
 				g_string_append_printf (str, "token:        %s [%03u]\n",
 							xb_silo_from_strtab (self, idx_tmp),
@@ -429,11 +429,11 @@ xb_silo_get_node_element (XbSilo *self, XbSiloNode *n)
 XbSiloNodeAttr *
 xb_silo_get_node_attr_by_str (XbSilo *self, XbSiloNode *n, const gchar *name)
 {
-	guint8 attr_cnt;
+	guint8 attr_count;
 
 	/* calculate offset to first attribute */
-	attr_cnt = xb_silo_node_get_attr_count (n);
-	for (guint8 i = 0; i < attr_cnt; i++) {
+	attr_count = xb_silo_node_get_attr_count (n);
+	for (guint8 i = 0; i < attr_count; i++) {
 		XbSiloNodeAttr *a = xb_silo_node_get_attr (n, i);
 		if (g_strcmp0 (xb_silo_from_strtab (self, a->attr_name), name) == 0)
 			return a;
@@ -446,11 +446,11 @@ xb_silo_get_node_attr_by_str (XbSilo *self, XbSiloNode *n, const gchar *name)
 static XbSiloNodeAttr *
 xb_silo_node_get_attr_by_val (XbSilo *self, XbSiloNode *n, guint32 name)
 {
-	guint8 attr_cnt;
+	guint8 attr_count;
 
 	/* calculate offset to first attribute */
-	attr_cnt = xb_silo_node_get_attr_count (n);
-	for (guint8 i = 0; i < attr_cnt; i++) {
+	attr_count = xb_silo_node_get_attr_count (n);
+	for (guint8 i = 0; i < attr_count; i++) {
 		XbSiloNodeAttr *a = xb_silo_node_get_attr (n, i);
 		if (a->attr_name == name)
 			return a;
@@ -1125,7 +1125,7 @@ static void
 xb_silo_opcode_tokenize (XbSilo *self, XbOpcode *op)
 {
 	const gchar *str;
-	guint token_cnt = 0;
+	guint token_count = 0;
 	g_auto(GStrv) tokens = NULL;
 	g_auto(GStrv) ascii_tokens = NULL;
 
@@ -1137,15 +1137,15 @@ xb_silo_opcode_tokenize (XbSilo *self, XbOpcode *op)
 	for (guint i = 0; tokens[i] != NULL; i++) {
 		if (!xb_string_token_valid (tokens[i]))
 			continue;
-		xb_opcode_set_token (op, token_cnt, xb_silo_intern_string (self, tokens[i]));
-		if (token_cnt++ > XB_OPCODE_TOKEN_MAX)
+		xb_opcode_set_token (op, token_count, xb_silo_intern_string (self, tokens[i]));
+		if (token_count++ > XB_OPCODE_TOKEN_MAX)
 			return;
 	}
 	for (guint i = 0; ascii_tokens[i] != NULL; i++) {
 		if (!xb_string_token_valid (ascii_tokens[i]))
 			continue;
-		xb_opcode_set_token (op, token_cnt, xb_silo_intern_string (self, ascii_tokens[i]));
-		if (token_cnt++ > XB_OPCODE_TOKEN_MAX)
+		xb_opcode_set_token (op, token_count, xb_silo_intern_string (self, ascii_tokens[i]));
+		if (token_count++ > XB_OPCODE_TOKEN_MAX)
 			return;
 	}
 }
@@ -1298,7 +1298,7 @@ xb_silo_machine_func_text_cb (XbMachine *self,
 		xb_opcode_add_flag (op, XB_OPCODE_FLAG_TOKENIZED);
 
 	/* add tokens */
-	for (guint i = 0; i < query_data->sn->token_cnt && i < XB_OPCODE_TOKEN_MAX; i++) {
+	for (guint i = 0; i < query_data->sn->token_count && i < XB_OPCODE_TOKEN_MAX; i++) {
 		guint32 stridx = xb_silo_node_get_token_by_idx (silo, query_data->sn, i);
 		xb_opcode_set_token (op, i, xb_silo_from_strtab (silo, stridx));
 	}

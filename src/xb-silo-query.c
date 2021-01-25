@@ -716,8 +716,8 @@ xb_silo_query_build_index (XbSilo *self,
 	for (guint i = 0; i < array->len; i++) {
 		XbSiloNode *sn = g_ptr_array_index (array, i);
 		if (attr != NULL) {
-			guint8 attr_cnt = xb_silo_node_get_attr_count (sn);
-			for (guint8 j = 0; j < attr_cnt; j++) {
+			guint8 attr_count = xb_silo_node_get_attr_count (sn);
+			for (guint8 j = 0; j < attr_count; j++) {
 				XbSiloNodeAttr *a = xb_silo_node_get_attr (sn, j);
 				xb_silo_strtab_index_insert (self, a->attr_name);
 				xb_silo_strtab_index_insert (self, a->attr_value);

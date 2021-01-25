@@ -457,7 +457,7 @@ xb_builder_nodetab_write_sentinel (XbBuilderNodetabHelper *helper)
 {
 	XbSiloNode sn = {
 		.flags		= XB_SILO_NODE_FLAG_NONE,
-		.attr_cnt	= 0,
+		.attr_count	= 0,
 	};
 //	g_debug ("SENT @%u", (guint) helper->buf->len);
 	XB_SILO_APPENDBUF (helper->buf, &sn, xb_silo_node_get_size (&sn));
@@ -470,13 +470,13 @@ xb_builder_nodetab_write_node (XbBuilderNodetabHelper *helper, XbBuilderNode *bn
 	GArray *token_idxs = xb_builder_node_get_token_idxs (bn);
 	XbSiloNode sn = {
 		.flags		= XB_SILO_NODE_FLAG_IS_ELEMENT,
-		.attr_cnt	= (attrs != NULL) ? attrs->len : 0,
+		.attr_count	= (attrs != NULL) ? attrs->len : 0,
 		.element_name	= xb_builder_node_get_element_idx (bn),
 		.next		= 0x0,
 		.parent		= 0x0,
 		.text		= xb_builder_node_get_text_idx (bn),
 		.tail		= xb_builder_node_get_tail_idx (bn),
-		.token_cnt	= 0,
+		.token_count	= 0,
 	};
 
 	/* add tokens */
@@ -499,7 +499,7 @@ xb_builder_nodetab_write_node (XbBuilderNodetabHelper *helper, XbBuilderNode *bn
 
 	/* there is no point adding more tokens than we can match */
 	if (token_idxs != NULL)
-		sn.token_cnt = MIN (token_idxs->len, XB_OPCODE_TOKEN_MAX);
+		sn.token_count = MIN (token_idxs->len, XB_OPCODE_TOKEN_MAX);
 
 	/* add to the buf */
 	XB_SILO_APPENDBUF (helper->buf, &sn, sizeof(XbSiloNode));
@@ -515,7 +515,7 @@ xb_builder_nodetab_write_node (XbBuilderNodetabHelper *helper, XbBuilderNode *bn
 	}
 
 	/* add tokens */
-	for (guint i = 0; i < sn.token_cnt; i++) {
+	for (guint i = 0; i < sn.token_count; i++) {
 		guint32 idx = g_array_index (token_idxs, guint32, i);
 		XB_SILO_APPENDBUF (helper->buf, &idx, sizeof(idx));
 	}

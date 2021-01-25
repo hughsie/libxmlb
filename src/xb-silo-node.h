@@ -18,8 +18,8 @@ typedef enum {
 
 typedef struct __attribute__ ((packed)) {
 	guint8		flags;
-	guint8		attr_cnt;
-	guint8		token_cnt;	/* ONLY when is_node */
+	guint8		attr_count;
+	guint8		token_count;	/* ONLY when is_node */
 	guint8		padding;	/* to align elements to 32 bits */
 	guint32		element_name;	/* ONLY when is_node: from strtab */
 	guint32		parent;		/* ONLY when is_node: from 0 */
@@ -27,8 +27,8 @@ typedef struct __attribute__ ((packed)) {
 	guint32		text;		/* ONLY when is_node: from strtab */
 	guint32		tail;		/* ONLY when is_node: from strtab */
 	/*
-	guint32		attrs[attr_cnt];
-	guint32		tokens[token_cnt];
+	guint32		attrs[attr_count];
+	guint32		tokens[token_count];
 	*/
 } XbSiloNode;
 
