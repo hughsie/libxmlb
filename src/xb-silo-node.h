@@ -40,9 +40,9 @@ typedef struct __attribute__ ((packed)) {
 guint32		 xb_silo_node_get_size		(XbSiloNode	*self);
 guint32		 xb_silo_node_get_text_idx	(XbSiloNode	*self);
 guint32		 xb_silo_node_get_tail_idx	(XbSiloNode	*self);
-guint8		 xb_silo_node_get_attr_count	(XbSiloNode	*self);
 guint8		 xb_silo_node_get_flags		(XbSiloNode	*self);
 gboolean	 xb_silo_node_has_flag		(XbSiloNode	*self,
 						 XbSiloNodeFlag	 flags);
+guint8		 xb_silo_node_get_attr_count	(XbSiloNode	*self);
 XbSiloNodeAttr	*xb_silo_node_get_attr		(XbSiloNode	*self,
 						 guint8		 idx);
