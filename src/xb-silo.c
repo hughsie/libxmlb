@@ -201,30 +201,6 @@ xb_silo_get_node (XbSilo *self, guint32 off)
 }
 
 /* private */
-XbSiloNodeAttr *
-xb_silo_get_attr (XbSilo *self, guint32 off, guint8 idx)
-{
-	XbSiloPrivate *priv = GET_PRIVATE (self);
-	off += sizeof(XbSiloNode);
-	off += sizeof(XbSiloNodeAttr) * idx;
-	return (XbSiloNodeAttr *) (priv->data + off);
-}
-
-/* private */
-guint32
-xb_silo_node_get_size (XbSiloNode *n)
-{
-	if (n->is_node) {
-		guint8 sz = sizeof(XbSiloNode);
-		sz += n->attr_cnt * sizeof(XbSiloNodeAttr);
-		sz += n->token_cnt * sizeof(guint32);
-		return sz;
-	}
-	/* sentinel */
-	return 1;
-}
-
-/* private */
 guint32
 xb_silo_get_offset_for_node (XbSilo *self, XbSiloNode *n)
 {
@@ -321,7 +297,9 @@ xb_silo_node_get_token_by_idx (XbSilo *self, XbSiloNode *n, guint idx)
 	guint32 stridx;
 
 	/* not valid */
-	if (!n->is_node)
+	if (!xb_silo_node_has_flag (n, XB_SILO_NODE_FLAG_IS_ELEMENT))
+		return XB_SILO_UNSET;
+	if (!xb_silo_node_has_flag (n, XB_SILO_NODE_FLAG_IS_TOKENIZED))
 		return XB_SILO_UNSET;
 
 	/* calculate offset to token */
@@ -1316,7 +1294,7 @@ xb_silo_machine_func_text_cb (XbMachine *self,
 			NULL);
 
 	/* use the fast token path even if there are no valid tokens */
-	if (query_data->sn->is_tokenized)
+	if (xb_silo_node_has_flag (query_data->sn, XB_SILO_NODE_FLAG_IS_TOKENIZED))
 		xb_opcode_add_flag (op, XB_OPCODE_FLAG_TOKENIZED);
 
 	/* add tokens */

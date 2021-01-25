@@ -14,12 +14,15 @@
 guint32
 xb_silo_node_get_size (XbSiloNode *self)
 {
-	/* sentinel */
-	if ((self->flags & XB_SILO_NODE_FLAG_IS_ELEMENT) == 0)
-		return sizeof(guint8);
+	if (xb_silo_node_has_flag (self, XB_SILO_NODE_FLAG_IS_ELEMENT)) {
+		guint8 sz = sizeof(XbSiloNode);
+		sz += self->attr_cnt * sizeof(XbSiloNodeAttr);
+		sz += self->token_cnt * sizeof(guint32);
+		return sz;
+	}
 
-	/* element */
-	return sizeof(XbSiloNode) + sizeof(XbSiloNodeAttr) * self->attr_cnt;
+	/* sentinel */
+	return 1;
 }
 
 /* private */

@@ -30,22 +30,6 @@ typedef struct __attribute__ ((packed)) {
 #define XB_SILO_VERSION			0x00000008
 #define XB_SILO_UNSET			0xffffffff
 
-typedef struct __attribute__ ((packed)) {
-	guint8		is_node:1;
-	guint8		is_tokenized:1;
-	guint8		attr_cnt:6;
-	guint32		element_name;	/* ONLY when is_node: from strtab */
-	guint32		parent;		/* ONLY when is_node: from 0 */
-	guint32		next;		/* ONLY when is_node: from 0 */
-	guint32		text;		/* ONLY when is_node: from strtab */
-	guint32		tail;		/* ONLY when is_node: from strtab */
-	guint8		token_cnt;	/* ONLY when is_node */
-	/*
-	guint32		attrs[attr_cnt];
-	guint32		tokens[token_cnt];
-	*/
-} XbSiloNode;
-
 typedef struct {
 	/*< private >*/
 	XbSiloNode	*sn;
