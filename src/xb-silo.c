@@ -1365,6 +1365,7 @@ xb_silo_machine_fixup_attr_text_cb (XbMachine *self,
 static void
 xb_silo_file_monitor_item_free (XbSiloFileMonitorItem *item)
 {
+	g_file_monitor_cancel (item->file_monitor);
 	g_signal_handler_disconnect (item->file_monitor, item->file_monitor_id);
 	g_object_unref (item->file_monitor);
 	g_slice_free (XbSiloFileMonitorItem, item);
