@@ -61,6 +61,10 @@ void		 xb_opcode_set_val		(XbOpcode	*self,
 gchar		*xb_opcode_get_sig		(XbOpcode	*self);
 void		 xb_opcode_bool_init		(XbOpcode	*opcode,
 						 gboolean	 val);
+gboolean	 xb_opcode_has_flag		(XbOpcode	*self,
+						 XbOpcodeFlags	 flag);
+void		 xb_opcode_add_flag		(XbOpcode	*self,
+						 XbOpcodeFlags	 flag);
 
 G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC (XbOpcode, xb_opcode_clear)
 
