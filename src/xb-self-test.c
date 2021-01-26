@@ -156,6 +156,11 @@ xb_common_func (void)
 	g_assert_false (xb_string_search ("gimp", ""));
 	g_assert_false (xb_string_search ("gimp", "imp"));
 	g_assert_false (xb_string_search ("the gimp editor", "imp"));
+	g_assert_true (xb_string_token_valid ("the"));
+	g_assert_false (xb_string_token_valid (NULL));
+	g_assert_false (xb_string_token_valid (""));
+	g_assert_false (xb_string_token_valid ("a"));
+	g_assert_false (xb_string_token_valid ("ab"));
 }
 
 static void
@@ -1976,6 +1981,8 @@ xb_builder_node_func (void)
 	g_assert_cmpstr (xb_builder_node_get_attr (component, "type"), ==, "desktop");
 	g_assert_cmpstr (xb_builder_node_get_attr (component, "dave"), ==, NULL);
 	id = xb_builder_node_new ("id");
+	xb_builder_node_add_flag (id, XB_BUILDER_NODE_FLAG_TOKENIZE_TEXT);
+	xb_builder_node_add_token (id, "foobarbaz");
 	xb_builder_node_add_child (component, id);
 	xb_builder_node_set_text (id, "gimp.desktop", -1);
 	xb_builder_node_insert_text (component, "icon", "dave", "type", "stock", NULL);

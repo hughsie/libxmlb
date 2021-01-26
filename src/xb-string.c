@@ -179,6 +179,31 @@ xb_string_search (const gchar *text, const gchar *search)
 }
 
 /**
+ * xb_string_token_valid: (skip)
+ * @text: The potential token
+ * @see_also: xb_builder_node_tokenize_text(), xb_builder_node_get_tokens()
+ *
+ * This is typically used to eliminate tokens which are not useful for search
+ * matching.
+ *
+ * For instance, tokens like `in` and `at` are less than three characters in
+ * size and should be rejected.
+ *
+ * Returns: %TRUE if the token should be used for searching.
+ **/
+gboolean
+xb_string_token_valid (const gchar *text)
+{
+	if (text == NULL)
+		return FALSE;
+	if (text[0] == '\0' ||
+	    text[1] == '\0' ||
+	    text[2] == '\0')
+		return FALSE;
+	return TRUE;
+}
+
+/**
  * xb_string_escape:
  * @str: string, e.g. `app/org.gnome.ghex/x86_64/stable`
  *
