@@ -25,6 +25,7 @@
 const gchar *
 xb_opcode_kind_to_string (XbOpcodeKind kind)
 {
+	/* special cases */
 	if (kind == XB_OPCODE_KIND_BOUND_UNSET)
 		return "BIND";
 	if (kind == XB_OPCODE_KIND_BOUND_TEXT)
@@ -35,6 +36,8 @@ xb_opcode_kind_to_string (XbOpcodeKind kind)
 		return "TEXI";
 	if (kind == XB_OPCODE_KIND_BOOLEAN)
 		return "BOOL";
+
+	/* bitwise fallbacks */
 	if (kind & XB_OPCODE_FLAG_FUNCTION)
 		return "FUNC";
 	if (kind & XB_OPCODE_FLAG_TEXT)
@@ -102,8 +105,6 @@ xb_opcode_to_string_internal (XbOpcode *self)
 	/* special cases */
 	if (self->kind == XB_OPCODE_KIND_INDEXED_TEXT)
 		return g_strdup_printf ("$'%s'", xb_opcode_get_str_for_display (self));
-	if (self->kind == XB_OPCODE_KIND_INTEGER)
-		return g_strdup_printf ("%u", xb_opcode_get_val (self));
 	if (self->kind == XB_OPCODE_KIND_BOUND_INTEGER)
 		return g_strdup ("?");
 	if (self->kind == XB_OPCODE_KIND_BOUND_TEXT)
@@ -118,6 +119,8 @@ xb_opcode_to_string_internal (XbOpcode *self)
 		return g_strdup_printf ("%s()", xb_opcode_get_str_for_display (self));
 	if (self->kind & XB_OPCODE_KIND_TEXT)
 		return g_strdup_printf ("'%s'", xb_opcode_get_str_for_display (self));
+	if (self->kind & XB_OPCODE_KIND_INTEGER)
+		return g_strdup_printf ("%u", xb_opcode_get_val (self));
 	g_critical ("no to_string for kind 0x%x", self->kind);
 	return NULL;
 }

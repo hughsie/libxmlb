@@ -68,3 +68,31 @@ xb_silo_node_get_attr (XbSiloNode *self, guint8 idx)
 	off += sizeof(XbSiloNodeAttr) * idx;
 	return (XbSiloNodeAttr *) (((guint8 *) self) + off);
 }
+
+/* private */
+guint8
+xb_silo_node_get_token_count (XbSiloNode *self)
+{
+	return self->token_count;
+}
+
+/* private */
+guint32
+xb_silo_node_get_token_idx (XbSiloNode *self, guint idx)
+{
+	guint32 off = 0;
+	guint32 stridx;
+
+	/* not valid */
+	if (!xb_silo_node_has_flag (self, XB_SILO_NODE_FLAG_IS_ELEMENT))
+		return XB_SILO_UNSET;
+	if (!xb_silo_node_has_flag (self, XB_SILO_NODE_FLAG_IS_TOKENIZED))
+		return XB_SILO_UNSET;
+
+	/* calculate offset to token */
+	off += sizeof(XbSiloNode);
+	off += self->attr_count * sizeof(XbSiloNodeAttr);
+	off += idx * sizeof(guint32);
+	memcpy (&stridx, (guint8 *) self + off, sizeof(stridx));
+	return stridx;
+}

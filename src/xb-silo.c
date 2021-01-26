@@ -289,31 +289,6 @@ xb_silo_get_strtab_idx (XbSilo *self, const gchar *element)
 	return GPOINTER_TO_UINT (value);
 }
 
-static guint32
-xb_silo_node_get_token_by_idx (XbSilo *self, XbSiloNode *n, guint idx)
-{
-	XbSiloPrivate *priv = GET_PRIVATE (self);
-	guint32 off = 0;
-	guint32 stridx;
-
-	/* not valid */
-	if (!xb_silo_node_has_flag (n, XB_SILO_NODE_FLAG_IS_ELEMENT))
-		return XB_SILO_UNSET;
-	if (!xb_silo_node_has_flag (n, XB_SILO_NODE_FLAG_IS_TOKENIZED))
-		return XB_SILO_UNSET;
-
-	/* calculate offset to token */
-	off += sizeof(XbSiloNode);
-	off += n->attr_count * sizeof(XbSiloNodeAttr);
-	off += idx * sizeof(guint32);
-	if (off + sizeof(stridx) > priv->datasz) {
-		g_critical ("cannot get token @0x%x", off);
-		return XB_SILO_UNSET;
-	}
-	memcpy (&stridx, (guint8 *) n + off, sizeof(stridx));
-	return stridx;
-}
-
 /**
  * xb_silo_to_string:
  * @self: a #XbSilo
@@ -372,8 +347,8 @@ xb_silo_to_string (XbSilo *self, GError **error)
 							xb_silo_from_strtab (self, a->attr_value),
 							a->attr_value);
 			}
-			for (guint8 i = 0; i < n->token_count; i++) {
-				guint32 idx_tmp = xb_silo_node_get_token_by_idx (self, n, i);
+			for (guint8 i = 0; i < xb_silo_node_get_token_count (n); i++) {
+				guint32 idx_tmp = xb_silo_node_get_token_idx (n, i);
 				g_string_append_printf (str, "token:        %s [%03u]\n",
 							xb_silo_from_strtab (self, idx_tmp),
 							idx_tmp);
@@ -1278,6 +1253,7 @@ xb_silo_machine_func_text_cb (XbMachine *self,
 	XbSilo *silo = XB_SILO (user_data);
 	XbSiloQueryData *query_data = (XbSiloQueryData *) exec_data;
 	XbOpcode *op;
+	guint8 token_count = xb_silo_node_get_token_count (query_data->sn);
 
 	/* optimize pass */
 	if (query_data == NULL) {
@@ -1298,8 +1274,8 @@ xb_silo_machine_func_text_cb (XbMachine *self,
 		xb_opcode_add_flag (op, XB_OPCODE_FLAG_TOKENIZED);
 
 	/* add tokens */
-	for (guint i = 0; i < query_data->sn->token_count && i < XB_OPCODE_TOKEN_MAX; i++) {
-		guint32 stridx = xb_silo_node_get_token_by_idx (silo, query_data->sn, i);
+	for (guint i = 0; i < token_count && i < XB_OPCODE_TOKEN_MAX; i++) {
+		guint32 stridx = xb_silo_node_get_token_idx (query_data->sn, i);
 		xb_opcode_set_token (op, i, xb_silo_from_strtab (silo, stridx));
 	}
 

@@ -1992,7 +1992,6 @@ xb_builder_multiple_roots_func (void)
 static void
 xb_builder_node_func (void)
 {
-	g_autofree gchar *str = NULL;
 	g_autofree gchar *xml = NULL;
 	g_autofree gchar *xml_src = NULL;
 	g_autoptr(GError) error = NULL;
@@ -2051,12 +2050,6 @@ xb_builder_node_func (void)
 	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);
-
-	/* to console */
-	str = xb_silo_to_string (silo, &error);
-	g_assert_no_error (error);
-	g_assert_nonnull (str);
-	g_debug ("%s", str);
 
 	/* check the XML */
 	xml = xb_silo_export (silo, XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS, &error);
