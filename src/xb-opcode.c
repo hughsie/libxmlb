@@ -146,6 +146,38 @@ xb_opcode_get_kind (XbOpcode *self)
 }
 
 /**
+ * xb_opcode_has_flag:
+ * @self: a #XbOpcode
+ * @flag: a #XbOpcodeFlags, e.g. #XB_OPCODE_FLAG_TOKENIZED
+ *
+ * Finds out if an opcode has a flag set.
+ *
+ * Returns: %TRUE if the flag is set
+ *
+ * Since: 0.3.1
+ **/
+gboolean
+xb_opcode_has_flag (XbOpcode *self, XbOpcodeFlags flag)
+{
+	return (self->kind & flag) > 0;
+}
+
+/**
+ * xb_opcode_add_flag:
+ * @self: a #XbOpcode
+ * @flag: a #XbOpcodeFlags, e.g. #XB_OPCODE_FLAG_TOKENIZED
+ *
+ * Adds a flag to the opcode.
+ *
+ * Since: 0.3.1
+ **/
+void
+xb_opcode_add_flag (XbOpcode *self, XbOpcodeFlags flag)
+{
+	self->kind |= flag;
+}
+
+/**
  * xb_opcode_cmp_val:
  * @self: a #XbOpcode
  *
