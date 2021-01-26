@@ -25,10 +25,7 @@
 const gchar *
 xb_opcode_kind_to_string (XbOpcodeKind kind)
 {
-	if (kind == XB_OPCODE_KIND_FUNCTION)
-		return "FUNC";
-	if (kind == XB_OPCODE_KIND_TEXT)
-		return "TEXT";
+	/* special cases */
 	if (kind == XB_OPCODE_KIND_INTEGER)
 		return "INTE";
 	if (kind == XB_OPCODE_KIND_BOUND_UNSET)
@@ -41,6 +38,12 @@ xb_opcode_kind_to_string (XbOpcodeKind kind)
 		return "TEXI";
 	if (kind == XB_OPCODE_KIND_BOOLEAN)
 		return "BOOL";
+
+	/* bitwise fallbacks */
+	if (kind & XB_OPCODE_FLAG_FUNCTION)
+		return "FUNC";
+	if (kind & XB_OPCODE_FLAG_TEXT)
+		return "TEXT";
 	return NULL;
 }
 
@@ -109,10 +112,7 @@ xb_opcode_get_str_for_display (XbOpcode *self)
 gchar *
 xb_opcode_to_string (XbOpcode *self)
 {
-	if (self->kind == XB_OPCODE_KIND_FUNCTION)
-		return g_strdup_printf ("%s()", xb_opcode_get_str_for_display (self));
-	if (self->kind == XB_OPCODE_KIND_TEXT)
-		return g_strdup_printf ("'%s'", xb_opcode_get_str_for_display (self));
+	/* special cases */
 	if (self->kind == XB_OPCODE_KIND_INDEXED_TEXT)
 		return g_strdup_printf ("$'%s'", xb_opcode_get_str_for_display (self));
 	if (self->kind == XB_OPCODE_KIND_INTEGER)
@@ -125,7 +125,13 @@ xb_opcode_to_string (XbOpcode *self)
 		return g_strdup_printf ("?%u", xb_opcode_get_val (self));
 	if (self->kind == XB_OPCODE_KIND_BOOLEAN)
 		return g_strdup (xb_opcode_get_val (self) ? "True" : "False");
-	g_critical ("no to_string for kind %u", self->kind);
+
+	/* bitwise fallbacks */
+	if (self->kind & XB_OPCODE_FLAG_FUNCTION)
+		return g_strdup_printf ("%s()", xb_opcode_get_str_for_display (self));
+	if (self->kind & XB_OPCODE_FLAG_TEXT)
+		return g_strdup_printf ("'%s'", xb_opcode_get_str_for_display (self));
+	g_critical ("no to_string for kind 0x%x", self->kind);
 	return NULL;
 }
 
@@ -208,16 +214,14 @@ xb_opcode_cmp_val (XbOpcode *self)
 inline gboolean
 xb_opcode_cmp_str (XbOpcode *self)
 {
-	return self->kind == XB_OPCODE_KIND_TEXT ||
-		self->kind == XB_OPCODE_KIND_BOUND_TEXT ||
-		self->kind == XB_OPCODE_KIND_INDEXED_TEXT;
+	return xb_opcode_has_flag (self, XB_OPCODE_FLAG_TEXT);
 }
 
 /* private */
 gboolean
 xb_opcode_is_binding (XbOpcode *self)
 {
-	return (self->kind & XB_OPCODE_FLAG_BOUND) > 0;
+	return xb_opcode_has_flag (self, XB_OPCODE_FLAG_BOUND);
 }
 
 /**
