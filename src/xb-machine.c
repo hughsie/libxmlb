@@ -27,6 +27,7 @@ typedef struct {
 	GPtrArray		*operators;	/* of XbMachineOperator */
 	GPtrArray		*text_handlers;	/* of XbMachineTextHandlerItem */
 	GHashTable		*opcode_fixup;	/* of str[XbMachineOpcodeFixupItem] */
+	GHashTable		*opcode_tokens;	/* of utf8 */
 	guint			 stack_size;
 } XbMachinePrivate;
 
@@ -1336,6 +1337,54 @@ xb_machine_get_stack_size (XbMachine *self)
 	return priv->stack_size;
 }
 
+static const gchar *
+xb_machine_intern_token (XbMachine *self, const gchar *str)
+{
+	XbMachinePrivate *priv = GET_PRIVATE (self);
+	const gchar *tmp;
+	gchar *newstr;
+
+	/* existing value */
+	tmp = g_hash_table_lookup (priv->opcode_tokens, str);
+	if (tmp != NULL)
+		return tmp;
+
+	/* add as both key and value */
+	newstr = g_strdup (str);
+	g_hash_table_add (priv->opcode_tokens, newstr);
+	return newstr;
+}
+
+/* private */
+void
+xb_machine_opcode_tokenize (XbMachine *self, XbOpcode *op)
+{
+	const gchar *str;
+	guint token_count = 0;
+	g_auto(GStrv) tokens = NULL;
+	g_auto(GStrv) ascii_tokens = NULL;
+
+	/* use the fast token path even if there are no valid tokens */
+	xb_opcode_add_flag (op, XB_OPCODE_FLAG_TOKENIZED);
+
+	str = xb_opcode_get_str (op);
+	tokens = g_str_tokenize_and_fold (str, NULL, &ascii_tokens);
+	for (guint i = 0; tokens[i] != NULL; i++) {
+		if (!xb_string_token_valid (tokens[i]))
+			continue;
+		xb_opcode_set_token (op, token_count, xb_machine_intern_token (self, tokens[i]));
+		if (token_count++ > XB_OPCODE_TOKEN_MAX)
+			return;
+	}
+	for (guint i = 0; ascii_tokens[i] != NULL; i++) {
+		if (!xb_string_token_valid (ascii_tokens[i]))
+			continue;
+		xb_opcode_set_token (op, token_count, xb_machine_intern_token (self, ascii_tokens[i]));
+		if (token_count++ > XB_OPCODE_TOKEN_MAX)
+			return;
+	}
+}
+
 typedef gboolean (*OpcodeCheckFunc) (XbOpcode *op);
 
 static gboolean
@@ -2114,6 +2163,7 @@ xb_machine_init (XbMachine *self)
 	priv->text_handlers = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_machine_text_handler_free);
 	priv->opcode_fixup = g_hash_table_new_full (g_str_hash, g_str_equal,
 						     g_free, (GDestroyNotify) xb_machine_opcode_fixup_free);
+	priv->opcode_tokens = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 
 	/* built-in functions */
 	xb_machine_add_method (self, "and", 2, xb_machine_func_and_cb, NULL, NULL);
@@ -2157,6 +2207,7 @@ xb_machine_finalize (GObject *obj)
 	g_ptr_array_unref (priv->operators);
 	g_ptr_array_unref (priv->text_handlers);
 	g_hash_table_unref (priv->opcode_fixup);
+	g_hash_table_unref (priv->opcode_tokens);
 	G_OBJECT_CLASS (xb_machine_parent_class)->finalize (obj);
 }
 
