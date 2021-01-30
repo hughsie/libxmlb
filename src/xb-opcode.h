@@ -17,13 +17,14 @@ G_BEGIN_DECLS
  * @XB_OPCODE_FLAG_TEXT:			Text value set
  * @XB_OPCODE_FLAG_FUNCTION:			An operator
  * @XB_OPCODE_FLAG_BOUND:			A bound value, assigned later
+ * @XB_OPCODE_FLAG_TOKENIZED:			Tokenized text
  *
  * The opcode flags. The values have been carefully chosen so that a simple
  * bitmask can be done to know how to compare for equality.
  *
  * function─┐ ┌─string
  * bound──┐ │ │ ┌──integer
- *        │ │ │ │
+ * token┐ │ │ │ │
  *  X X X X X X X
  *        8 4 2 1
  **/
@@ -34,6 +35,7 @@ typedef enum {
 	XB_OPCODE_FLAG_FUNCTION		= 1 << 2,	/* Since: 0.1.4 */
 	XB_OPCODE_FLAG_BOUND		= 1 << 3,	/* Since: 0.1.4 */
 	XB_OPCODE_FLAG_BOOLEAN		= 1 << 4,	/* Since: 0.1.11 */
+	XB_OPCODE_FLAG_TOKENIZED	= 1 << 5,	/* Since: 0.3.1 */
 	/*< private >*/
 	XB_OPCODE_FLAG_LAST
 } XbOpcodeFlags;

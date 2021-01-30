@@ -1078,6 +1078,47 @@ xb_silo_machine_fixup_attr_exists_cb (XbMachine *self,
 }
 
 static gboolean
+xb_silo_machine_fixup_attr_search_token_cb (XbMachine *self,
+					    XbStack *opcodes,
+					    gpointer user_data,
+					    GError **error)
+{
+	XbOpcode op_func;
+	XbOpcode op_text;
+	XbOpcode op_search;
+	XbOpcode *op_tmp;
+
+	/* text() */
+	if (!xb_machine_stack_pop (self, opcodes, &op_func, error))
+		return FALSE;
+
+	/* TEXT */
+	if (!xb_machine_stack_pop (self, opcodes, &op_text, error))
+		return FALSE;
+	xb_machine_opcode_tokenize (self, &op_text);
+
+	/* search() */
+	if (!xb_machine_stack_pop (self, opcodes, &op_search, error))
+		return FALSE;
+
+	/* text() */
+	if (!xb_machine_stack_push (self, opcodes, &op_tmp, error))
+		return FALSE;
+	*op_tmp = op_search;
+
+	/* TEXT */
+	if (!xb_machine_stack_push (self, opcodes, &op_tmp, error))
+		return FALSE;
+	*op_tmp = op_text;
+
+	/* search() */
+	if (!xb_machine_stack_push (self, opcodes, &op_tmp, error))
+		return FALSE;
+	*op_tmp = op_func;
+	return TRUE;
+}
+
+static gboolean
 xb_silo_machine_func_attr_cb (XbMachine *self,
 			      XbStack *stack,
 			      gboolean *result,
@@ -1163,6 +1204,7 @@ xb_silo_machine_func_text_cb (XbMachine *self,
 	XbSilo *silo = XB_SILO (user_data);
 	XbSiloQueryData *query_data = (XbSiloQueryData *) exec_data;
 	XbOpcode *op;
+	guint8 token_count;
 
 	/* optimize pass */
 	if (query_data == NULL) {
@@ -1177,6 +1219,18 @@ xb_silo_machine_func_text_cb (XbMachine *self,
 			xb_silo_get_node_text (silo, query_data->sn),
 			xb_silo_node_get_text_idx (query_data->sn),
 			NULL);
+
+	/* use the fast token path even if there are no valid tokens */
+	if (xb_silo_node_has_flag (query_data->sn, XB_SILO_NODE_FLAG_IS_TOKENIZED))
+		xb_opcode_add_flag (op, XB_OPCODE_FLAG_TOKENIZED);
+
+	/* add tokens */
+	token_count = xb_silo_node_get_token_count (query_data->sn);
+	for (guint i = 0; i < token_count; i++) {
+		guint32 stridx = xb_silo_node_get_token_idx (query_data->sn, i);
+		xb_opcode_append_token (op, xb_silo_from_strtab (silo, stridx));
+	}
+
 	return TRUE;
 }
 
@@ -1299,6 +1353,13 @@ xb_silo_machine_func_search_cb (XbMachine *self,
 
 	if (!xb_machine_stack_pop_two (self, stack, &op1, &op2, error))
 		return FALSE;
+
+	/* TOKN:TOKN */
+	if (xb_opcode_has_flag (&op1, XB_OPCODE_FLAG_TOKENIZED) &&
+	    xb_opcode_has_flag (&op2, XB_OPCODE_FLAG_TOKENIZED)) {
+		return xb_stack_push_bool (stack, xb_string_searchv (xb_opcode_get_tokens (&op2),
+								     xb_opcode_get_tokens (&op1)), error);
+	}
 
 	/* this is going to be slow, but correct */
 	text = xb_opcode_get_str (&op2);
@@ -1442,6 +1503,8 @@ xb_silo_init (XbSilo *self)
 				     xb_silo_machine_fixup_position_cb, self, NULL);
 	xb_machine_add_opcode_fixup (priv->machine, "TEXT,FUNC:attr",
 				     xb_silo_machine_fixup_attr_exists_cb, self, NULL);
+	xb_machine_add_opcode_fixup (priv->machine, "FUNC:text,TEXT,FUNC:search",
+				     xb_silo_machine_fixup_attr_search_token_cb, self, NULL);
 	xb_machine_add_text_handler (priv->machine,
 				     xb_silo_machine_fixup_attr_text_cb, self, NULL);
 }

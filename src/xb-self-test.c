@@ -164,6 +164,18 @@ xb_common_func (void)
 }
 
 static void
+xb_common_searchv_func (void)
+{
+	const gchar *haystack[] = { "these", "words", "ready", NULL };
+	const gchar *found[] = { "xxx", "wor", "yyy", NULL };
+	const gchar *unfound1[] = { "xxx", "yyy", NULL };
+	const gchar *unfound2[] = { "ords", NULL };
+	g_assert_true (xb_string_searchv (haystack, found));
+	g_assert_false (xb_string_searchv (haystack, unfound1));
+	g_assert_false (xb_string_searchv (haystack, unfound2));
+}
+
+static void
 xb_opcodes_kind_func (void)
 {
 	g_auto(XbOpcode) op1 = XB_OPCODE_INIT ();
@@ -235,7 +247,7 @@ xb_predicate_func (void)
 		{ "last()",
 		  "last()" },
 		{ "text()~='beef'",
-		  "text(),'beef',search()" },
+		  "text(),'beef'[beef],search()" },
 		{ "@type~='dead'",
 		  "'type',attr(),'dead',search()" },
 		{ "2",
@@ -2533,6 +2545,7 @@ main (int argc, char **argv)
 
 	/* tests go here */
 	g_test_add_func ("/libxmlb/common", xb_common_func);
+	g_test_add_func ("/libxmlb/common{searchv}", xb_common_searchv_func);
 	g_test_add_func ("/libxmlb/common{union}", xb_common_union_func);
 	g_test_add_func ("/libxmlb/opcodes", xb_predicate_func);
 	g_test_add_func ("/libxmlb/opcodes{optimize}", xb_predicate_optimize_func);
