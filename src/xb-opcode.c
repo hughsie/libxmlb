@@ -99,18 +99,8 @@ xb_opcode_get_str_for_display (XbOpcode *self)
 	return self->ptr;
 }
 
-/**
- * xb_opcode_to_string:
- * @self: a #XbOpcode
- *
- * Returns a string representing the specific opcode.
- *
- * Returns: text
- *
- * Since: 0.1.4
- **/
-gchar *
-xb_opcode_to_string (XbOpcode *self)
+static gchar *
+xb_opcode_to_string_internal (XbOpcode *self)
 {
 	/* special cases */
 	if (self->kind == XB_OPCODE_KIND_INDEXED_TEXT)
@@ -136,6 +126,27 @@ xb_opcode_to_string (XbOpcode *self)
 }
 
 /**
+ * xb_opcode_to_string:
+ * @self: a #XbOpcode
+ *
+ * Returns a string representing the specific opcode.
+ *
+ * Returns: text
+ *
+ * Since: 0.1.4
+ **/
+gchar *
+xb_opcode_to_string (XbOpcode *self)
+{
+	g_autofree gchar *tmp = xb_opcode_to_string_internal (self);
+	if (self->kind & XB_OPCODE_FLAG_TOKENIZED) {
+		g_autofree gchar *tokens = g_strjoinv (",", (gchar **) self->tokens);
+		return g_strdup_printf ("%s[%s]", tmp, tokens);
+	}
+	return g_steal_pointer (&tmp);
+}
+
+/**
  * xb_opcode_get_kind:
  * @self: a #XbOpcode
  *
@@ -148,7 +159,7 @@ xb_opcode_to_string (XbOpcode *self)
 XbOpcodeKind
 xb_opcode_get_kind (XbOpcode *self)
 {
-	return self->kind;
+	return self->kind & ~XB_OPCODE_FLAG_TOKENIZED;
 }
 
 /**
@@ -255,6 +266,22 @@ const gchar *
 xb_opcode_get_str (XbOpcode *self)
 {
 	return self->ptr;
+}
+
+/**
+ * xb_opcode_get_tokens:
+ * @self: a #XbOpcode
+ *
+ * Gets the tokenized string stored on the opcode.
+ *
+ * Returns: a #GStrv, which is always %NULL terminated
+ *
+ * Since: 0.3.1
+ **/
+const gchar **
+xb_opcode_get_tokens (XbOpcode *self)
+{
+	return self->tokens;
 }
 
 /**
@@ -411,6 +438,19 @@ void
 xb_opcode_set_val (XbOpcode *self, guint32 val)
 {
 	self->val = val;
+}
+
+/* private */
+gboolean
+xb_opcode_append_token (XbOpcode *self, const gchar *val)
+{
+	g_return_val_if_fail (val != NULL, FALSE);
+	g_return_val_if_fail (val[0] != '\0', FALSE);
+	if (self->tokens_len >= XB_OPCODE_TOKEN_MAX)
+		return FALSE;
+	self->tokens[self->tokens_len++] = val;
+	self->kind |= XB_OPCODE_FLAG_TOKENIZED;
+	return TRUE;
 }
 
 /* private */
