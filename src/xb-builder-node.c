@@ -353,7 +353,7 @@ xb_builder_node_tokenize_text (XbBuilderNode *self)
 	for (guint i = 0; ascii_tokens[i] != NULL; i++) {
 		if (!xb_string_token_valid (ascii_tokens[i]))
 			continue;
-		g_ptr_array_add (priv->tokens, g_steal_pointer (&tokens[i]));
+		g_ptr_array_add (priv->tokens, g_steal_pointer (&ascii_tokens[i]));
 	}
 
 	/* add this so we can set XbSiloNodeFlag.TOKENIZE_TEXT */
