@@ -37,6 +37,7 @@ typedef struct {
 
 	/* Most nodes will have no tokens */
 	GPtrArray		*tokens;	/* (element-type utf8) (nullable) */
+	GArray			*token_idxs;	/* (element-type guint32) (nullable) */
 
 } XbBuilderNodePrivate;
 
@@ -918,8 +919,9 @@ xb_builder_node_size (XbBuilderNode *self)
 {
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 	guint32 sz = sizeof(XbSiloNode);
-	gsize n_attrs = (priv->attrs != NULL) ? priv->attrs->len : 0;
-	return sz + n_attrs * sizeof(XbSiloNodeAttr);
+	gsize attr_len = (priv->attrs != NULL) ? priv->attrs->len : 0;
+	gsize token_len = (priv->tokens != NULL) ? priv->tokens->len : 0;
+	return sz + attr_len * sizeof(XbSiloNodeAttr) + token_len * sizeof(guint32);
 }
 
 static void
@@ -970,6 +972,7 @@ xb_builder_node_finalize (GObject *obj)
 	g_clear_pointer (&priv->attrs, g_ptr_array_unref);
 	g_clear_pointer (&priv->children, g_ptr_array_unref);
 	g_clear_pointer (&priv->tokens, g_ptr_array_unref);
+	g_clear_pointer (&priv->token_idxs, g_array_unref);
 	G_OBJECT_CLASS (xb_builder_node_parent_class)->finalize (obj);
 }
 
@@ -1218,4 +1221,27 @@ xb_builder_node_get_tokens (XbBuilderNode *self)
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (self != NULL, NULL);
 	return priv->tokens;
+}
+
+/* private */
+void
+xb_builder_node_add_token_idx (XbBuilderNode *self, guint32 tail_idx)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+
+	g_return_if_fail (self != NULL);
+	g_return_if_fail (tail_idx != XB_SILO_UNSET);
+
+	if (priv->token_idxs == NULL)
+		priv->token_idxs = g_array_new (FALSE, FALSE, sizeof(guint32));
+	g_array_append_val (priv->token_idxs, tail_idx);
+}
+
+/* Returns: (transfer none) (element-type guint32) (nullable): token indexes */
+GArray *
+xb_builder_node_get_token_idxs (XbBuilderNode *self)
+{
+	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
+	g_return_val_if_fail (self != NULL, NULL);
+	return priv->token_idxs;
 }

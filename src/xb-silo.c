@@ -346,6 +346,12 @@ xb_silo_to_string (XbSilo *self, GError **error)
 							xb_silo_from_strtab (self, a->attr_value),
 							a->attr_value);
 			}
+			for (guint8 i = 0; i < xb_silo_node_get_token_count (n); i++) {
+				guint32 idx_tmp = xb_silo_node_get_token_idx (n, i);
+				g_string_append_printf (str, "token:        %s [%03u]\n",
+							xb_silo_from_strtab (self, idx_tmp),
+							idx_tmp);
+			}
 		} else {
 			g_string_append_printf (str, "SENT @%" G_GUINT32_FORMAT "\n", off);
 		}

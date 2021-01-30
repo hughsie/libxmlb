@@ -37,5 +37,8 @@ void		 xb_builder_node_set_text_idx	(XbBuilderNode		*self,
 guint32		 xb_builder_node_get_tail_idx	(XbBuilderNode		*self);
 void		 xb_builder_node_set_tail_idx	(XbBuilderNode		*self,
 						 guint32		 tail_idx);
+void		 xb_builder_node_add_token_idx	(XbBuilderNode		*self,
+						 guint32		 tail_idx);
+GArray		*xb_builder_node_get_token_idxs	(XbBuilderNode		*self);
 
 G_END_DECLS
