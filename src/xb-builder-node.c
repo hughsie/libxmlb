@@ -346,13 +346,17 @@ xb_builder_node_tokenize_text (XbBuilderNode *self)
 
 	/* add all valid UTF-8 and ASCII tokens */
 	for (guint i = 0; tokens[i] != NULL; i++) {
-		if (!xb_string_token_valid (tokens[i]))
+		if (!xb_string_token_valid (tokens[i])) {
+			g_free (g_steal_pointer (&tokens[i]));
 			continue;
+		}
 		g_ptr_array_add (priv->tokens, g_steal_pointer (&tokens[i]));
 	}
 	for (guint i = 0; ascii_tokens[i] != NULL; i++) {
-		if (!xb_string_token_valid (ascii_tokens[i]))
+		if (!xb_string_token_valid (ascii_tokens[i])) {
+			g_free (g_steal_pointer (&ascii_tokens[i]));
 			continue;
+		}
 		g_ptr_array_add (priv->tokens, g_steal_pointer (&ascii_tokens[i]));
 	}
 
