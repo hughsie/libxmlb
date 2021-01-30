@@ -1215,11 +1215,23 @@ xb_xpath_incomplete_func (void)
 	g_assert_null (n);
 }
 
+static gboolean
+xb_builder_fixup_tokenize_cb (XbBuilderFixup *self,
+				XbBuilderNode *bn,
+				gpointer user_data,
+				GError **error)
+{
+	if (g_strcmp0 (xb_builder_node_get_element (bn), "name") == 0)
+		xb_builder_node_tokenize_text (bn);
+	return TRUE;
+}
+
 static void
 xb_xpath_func (void)
 {
 	XbNode *n;
 	XbNode *n2;
+	gboolean ret;
 	g_autofree gchar *str = NULL;
 	g_autofree gchar *xml_sub1 = NULL;
 	g_autofree gchar *xml_sub2 = NULL;
@@ -1227,6 +1239,9 @@ xb_xpath_func (void)
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GPtrArray) results = NULL;
 	g_autoptr(XbNode) n3 = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbBuilderFixup) fixup = NULL;
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
 	g_autoptr(XbSilo) silo = NULL;
 	const gchar *xml =
 	"<components origin=\"lvfs\">\n"
@@ -1246,8 +1261,16 @@ xb_xpath_func (void)
 	"  </component>\n"
 	"</components>\n";
 
+	/* tokenize specific fields */
+	fixup = xb_builder_fixup_new ("TextTokenize", xb_builder_fixup_tokenize_cb, NULL, NULL);
+	xb_builder_source_add_fixup (source, fixup);
+
 	/* import from XML */
-	silo = xb_silo_new_from_xml (xml, &error);
+	ret = xb_builder_source_load_xml (source, xml, XB_BUILDER_SOURCE_FLAG_NONE, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	xb_builder_import_source (builder, source);
+	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (silo);
 
