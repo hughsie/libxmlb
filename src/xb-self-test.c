@@ -393,7 +393,7 @@ xb_builder_func (void)
 
 	/* check size */
 	bytes = xb_silo_get_bytes (silo);
-	g_assert_cmpint (g_bytes_get_size (bytes), ==, 607);
+	g_assert_cmpint (g_bytes_get_size (bytes), ==, 620);
 }
 
 static void
