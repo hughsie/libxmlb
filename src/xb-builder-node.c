@@ -345,14 +345,14 @@ xb_builder_node_tokenize_text (XbBuilderNode *self)
 		priv->tokens = g_ptr_array_new_full (tokens_sz + ascii_tokens_sz, g_free);
 
 	/* add all valid UTF-8 and ASCII tokens */
-	for (guint i = 0; tokens[i] != NULL; i++) {
+	for (guint i = 0; i < tokens_sz; i++) {
 		if (!xb_string_token_valid (tokens[i])) {
 			g_free (g_steal_pointer (&tokens[i]));
 			continue;
 		}
 		g_ptr_array_add (priv->tokens, g_steal_pointer (&tokens[i]));
 	}
-	for (guint i = 0; ascii_tokens[i] != NULL; i++) {
+	for (guint i = 0; i < ascii_tokens_sz; i++) {
 		if (!xb_string_token_valid (ascii_tokens[i])) {
 			g_free (g_steal_pointer (&ascii_tokens[i]));
 			continue;
