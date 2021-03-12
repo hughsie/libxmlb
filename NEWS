@@ -1,3 +1,26 @@
+Version 0.3.0
+~~~~~~~~~~~~~
+Released: 2021-03-12
+
+New Features:
+ - Add a new object to contain query context data (Philip Withnall)
+ - Allow collapsing empty XML tags if no children or text (Aleksander Morgado)
+ - Allow marking elements as tokenized from xb-tool (Richard Hughes)
+ - Allow optimized searching when comparing tokens (Richard Hughes)
+ - Support mmap()ing the source file to get bytes (Philip Withnall)
+ - Support query caching with xb_silo_lookup_query() (Philip Withnall)
+ - Support UTF-8 for upper-case() and lower-case() (Richard Hughes)
+ - Use g_str_match_string() for non-ASCII search queries (Richard Hughes)
+ - Write search tokens into the built silo (Richard Hughes)
+
+Bugfixes:
+ - Cancel the GFileMonitor before unreffing it (Iain Lane)
+ - Do not allocate a 128Mb buffer for each xb_builder_source_ctx_get_bytes() (Richard Hughes)
+ - Do not error when creating a query if the element doesn’t exist (Philip Withnall)
+ - Fix a parse failure for a double comment (Richard Hughes)
+ - Fix various errors or missing annotations in docs (Philip Withnall)
+ - Make handling of single-result queries more robust (Philip Withnall)
+
 Version 0.2.1
 ~~~~~~~~~~~~~
 Released: 2020-09-07
