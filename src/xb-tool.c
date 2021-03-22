@@ -274,6 +274,7 @@ xb_tool_query (XbToolPrivate *priv, gchar **values, GError **error)
 	file = g_file_new_for_path (values[0]);
 	if (priv->profile) {
 		xb_silo_set_profile_flags (silo,
+					   XB_SILO_PROFILE_FLAG_OPTIMIZER |
 					   XB_SILO_PROFILE_FLAG_XPATH |
 					   XB_SILO_PROFILE_FLAG_APPEND);
 	}

@@ -640,7 +640,7 @@ xb_machine_opcodes_optimize (XbMachine *self, XbStack *opcodes, GError **error)
 	g_auto(XbOpcode) op = XB_OPCODE_INIT ();
 
 	/* debug */
-	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_OPTIMIZER) {
 		g_autofree gchar *str = xb_stack_to_string (opcodes);
 		g_debug ("before optimizing: %s", str);
 	}
@@ -665,7 +665,7 @@ xb_machine_opcodes_optimize (XbMachine *self, XbStack *opcodes, GError **error)
 	}
 
 	/* debug */
-	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
+	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_OPTIMIZER) {
 		g_autofree gchar *str = xb_stack_to_string (opcodes);
 		g_debug ("after optimizing: %s", str);
 	}
