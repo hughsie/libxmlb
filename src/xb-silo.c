@@ -730,6 +730,12 @@ xb_silo_set_profile_flags (XbSilo *self, XbSiloProfileFlags profile_flags)
 	XbSiloPrivate *priv = GET_PRIVATE (self);
 	g_return_if_fail (XB_IS_SILO (self));
 	priv->profile_flags = profile_flags;
+
+	/* proxy */
+	if (profile_flags & XB_SILO_PROFILE_FLAG_OPTIMIZER) {
+		xb_machine_set_debug_flags (priv->machine,
+					    XB_MACHINE_DEBUG_FLAG_SHOW_OPTIMIZER);
+	}
 }
 
 /**
