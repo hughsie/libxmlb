@@ -255,7 +255,9 @@ xb_tool_query (XbToolPrivate *priv, gchar **values, GError **error)
 	guint limit = 0;
 	g_autoptr(GFile) file = NULL;
 	g_autoptr(GPtrArray) results = NULL;
+	g_autoptr(XbQuery) query = NULL;
 	g_autoptr(XbSilo) silo = xb_silo_new ();
+	g_auto(XbQueryContext) context = XB_QUERY_CONTEXT_INIT ();
 
 	/* check args */
 	if (g_strv_length (values) < 2) {
@@ -281,9 +283,13 @@ xb_tool_query (XbToolPrivate *priv, gchar **values, GError **error)
 	/* parse optional limit */
 	if (g_strv_length (values) == 3)
 		limit = g_ascii_strtoull (values[2], NULL, 10);
+	xb_query_context_set_limit (&context, limit);
 
 	/* query */
-	results = xb_silo_query (silo, values[1], limit, error);
+	query = xb_query_new_full (silo, values[1], XB_QUERY_FLAG_OPTIMIZE, error);
+	if (query == NULL)
+		return FALSE;
+	results = xb_silo_query_with_context (silo, query, &context, error);
 	if (results == NULL)
 		return FALSE;
 	for (guint i = 0; i < results->len; i++) {
