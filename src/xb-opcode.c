@@ -140,7 +140,10 @@ xb_opcode_to_string (XbOpcode *self)
 {
 	g_autofree gchar *tmp = xb_opcode_to_string_internal (self);
 	if (self->kind & XB_OPCODE_FLAG_TOKENIZED) {
-		g_autofree gchar *tokens = g_strjoinv (",", (gchar **) self->tokens);
+		g_autofree gchar *tokens = NULL;
+		/* Ensure the array is NULL-terminated */
+		self->tokens[self->tokens_len] = NULL;
+		tokens = g_strjoinv (",", (gchar **) self->tokens);
 		return g_strdup_printf ("%s[%s]", tmp, tokens);
 	}
 	return g_steal_pointer (&tmp);
@@ -340,6 +343,7 @@ xb_opcode_init (XbOpcode       *opcode,
 	opcode->kind = kind;
 	opcode->ptr = (gpointer) str;
 	opcode->val = val;
+	opcode->tokens_len = 0;
 	opcode->destroy_func = destroy_func;
 }
 
