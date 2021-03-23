@@ -636,7 +636,7 @@ static gboolean
 xb_machine_opcodes_optimize (XbMachine *self, XbStack *opcodes, GError **error)
 {
 	XbMachinePrivate *priv = GET_PRIVATE (self);
-	g_autoptr(XbStack) results = xb_stack_new (xb_stack_get_size (opcodes));
+	g_autoptr(XbStack) results = xb_stack_new_inline (xb_stack_get_size (opcodes));
 	g_auto(XbOpcode) op = XB_OPCODE_INIT ();
 
 	/* debug */
@@ -967,7 +967,7 @@ xb_machine_run_with_bindings (XbMachine        *self,
 	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
 	/* process each opcode */
-	stack = xb_stack_new (priv->stack_size);
+	stack = xb_stack_new_inline (priv->stack_size);
 	for (guint i = 0; i < opcodes_stack_size; i++) {
 		XbOpcode *opcode = xb_stack_peek (opcodes, i);
 		XbOpcodeKind kind = xb_opcode_get_kind (opcode);
