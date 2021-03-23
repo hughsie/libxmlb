@@ -13,13 +13,6 @@
 #include "xb-opcode-private.h"
 #include "xb-stack-private.h"
 
-struct _XbStack {
-	gint		 ref;
-	guint		 pos;	/* index of the next unused entry in .opcodes */
-	guint		 max_size;
-	XbOpcode	 opcodes[];	/* allocated as part of XbStack */
-};
-
 /**
  * xb_stack_unref:
  * @self: a #XbStack
@@ -37,7 +30,8 @@ xb_stack_unref (XbStack *self)
 		return;
 	for (guint i = 0; i < self->pos; i++)
 		xb_opcode_clear (&self->opcodes[i]);
-	g_free (self);
+	if (!self->stack_allocated)
+		g_free (self);
 }
 
 /**
@@ -254,6 +248,8 @@ xb_stack_to_string (XbStack *self)
  * Creates a stack for the XbMachine request. Only #XbOpcode's can be pushed and
  * popped from the stack.
  *
+ * Unlike with xb_stack_new_inline(), this stack will be allocated on the heap.
+ *
  * Returns: (transfer full): a #XbStack
  *
  * Since: 0.1.3
@@ -263,6 +259,7 @@ xb_stack_new (guint max_size)
 {
 	XbStack *self = g_malloc (sizeof(XbStack) + max_size * sizeof(XbOpcode));
 	self->ref = 1;
+	self->stack_allocated = FALSE;
 	self->pos = 0;
 	self->max_size = max_size;
 	return self;
