@@ -261,8 +261,9 @@ xb_stack_to_string (XbStack *self)
 XbStack *
 xb_stack_new (guint max_size)
 {
-	XbStack *self = g_malloc0 (sizeof(XbStack) + max_size * sizeof(XbOpcode));
+	XbStack *self = g_malloc (sizeof(XbStack) + max_size * sizeof(XbOpcode));
 	self->ref = 1;
+	self->pos = 0;
 	self->max_size = max_size;
 	return self;
 }
