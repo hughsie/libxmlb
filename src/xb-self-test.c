@@ -427,7 +427,7 @@ xb_builder_custom_mime_cb (XbBuilderSource *self,
 				      "<component type=\"desktop\">"
 				      "<id>%s</id></component>",
 				      xb_builder_source_ctx_get_filename (ctx));
-	return g_memory_input_stream_new_from_data (xml, -1, g_free);
+	return g_memory_input_stream_new_from_data (g_steal_pointer (&xml), -1, g_free);
 }
 
 static void

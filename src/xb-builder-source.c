@@ -370,7 +370,7 @@ gchar *
 xb_builder_source_get_guid (XbBuilderSource *self)
 {
 	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
-	GString *str = g_string_new (priv->guid);
+	g_autoptr(GString) str = g_string_new (priv->guid);
 
 	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), NULL);
 
@@ -390,7 +390,7 @@ xb_builder_source_get_guid (XbBuilderSource *self)
 	/* append prefix */
 	if (priv->prefix != NULL)
 		g_string_append_printf (str, ":prefix=%s", priv->prefix);
-	return g_string_free (str, FALSE);
+	return g_string_free (g_steal_pointer (&str), FALSE);
 }
 
 const gchar *

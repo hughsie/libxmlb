@@ -397,7 +397,7 @@ xb_machine_parse_add_text (XbMachine *self,
 				return FALSE;
 			xb_opcode_init (opcode,
 					XB_OPCODE_KIND_INDEXED_TEXT,
-					tmp,
+					g_steal_pointer (&tmp),
 					XB_SILO_UNSET,
 					g_free);
 			return TRUE;

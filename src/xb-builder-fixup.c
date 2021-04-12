@@ -89,7 +89,7 @@ xb_builder_fixup_get_id (XbBuilderFixup *self)
 gchar *
 xb_builder_fixup_get_guid (XbBuilderFixup *self)
 {
-	GString *str = g_string_new ("func-id=");
+	g_autoptr(GString) str = g_string_new ("func-id=");
 	XbBuilderFixupPrivate *priv = GET_PRIVATE (self);
 
 	g_return_val_if_fail (XB_IS_BUILDER_FIXUP (self), NULL);
@@ -98,7 +98,7 @@ xb_builder_fixup_get_guid (XbBuilderFixup *self)
 	g_string_append (str, priv->id);
 	if (priv->max_depth != -1)
 		g_string_append_printf (str, "@%i", priv->max_depth);
-	return g_string_free (str, FALSE);
+	return g_string_free (g_steal_pointer (&str), FALSE);
 }
 
 /**
