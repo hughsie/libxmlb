@@ -494,6 +494,10 @@ xb_builder_chained_adapters_func (void)
 	/* import a source file */
 	path = g_test_build_filename (G_TEST_DIST, "test.xml.gz.gz.gz", NULL);
 	file_src = g_file_new_for_path (path);
+	if (!g_file_query_exists (file_src, NULL)) {
+		g_test_skip ("does not work in subproject test");
+		return;
+	}
 	ret = xb_builder_source_load_file (source, file_src,
 					   XB_BUILDER_SOURCE_FLAG_NONE,
 					   NULL, &error);
