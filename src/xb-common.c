@@ -64,7 +64,8 @@ xb_content_type_guess (const gchar *filename, const guchar *buf, gsize bufsz)
 
 	/* check for bad results, e.g. from Chrome OS */
 	content_type = g_content_type_guess (filename, buf, bufsz, NULL);
-	if (g_strcmp0 (content_type, "application/octet-stream") == 0 ||
+	if (g_strstr_len (content_type, -1, "/") == NULL ||
+	    g_strcmp0 (content_type, "application/octet-stream") == 0 ||
 	    g_strcmp0 (content_type, "text/plain") == 0) {
 
 		/* magic */
