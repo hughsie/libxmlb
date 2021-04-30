@@ -17,6 +17,7 @@
 #endif
 
 #include "xb-builder.h"
+#include "xb-common-private.h"
 #include "xb-machine-private.h"
 #include "xb-node-private.h"
 #include "xb-opcode-private.h"
@@ -966,13 +967,10 @@ xb_silo_save_to_file (XbSilo *self,
 	}
 
 	/* save and then rename */
-	if (!g_file_replace_contents (file,
-				      (const gchar *) priv->data,
-				      (gsize) priv->datasz, NULL, FALSE,
-				      G_FILE_CREATE_NONE, NULL,
-				      cancellable, error)) {
+	if (!xb_file_set_contents (file, priv->data, (gsize) priv->datasz,
+				   cancellable, error))
 		return FALSE;
-	}
+
 	xb_silo_add_profile (self, timer, "save file");
 	return TRUE;
 }

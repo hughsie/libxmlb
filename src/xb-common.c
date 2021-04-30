@@ -97,3 +97,51 @@ xb_content_type_guess (const gchar *filename, const guchar *buf, gsize bufsz)
 
 	return g_steal_pointer (&content_type);
 }
+
+/**
+ * xb_file_set_contents: (skip)
+ * @file: (nullable): file to write
+ * @buf: (nullable): data buffer
+ * @bufsz: size of @buf
+ * @cancellable: (nullable): optional #GCancellable
+ * @error: (nullable): optional return location for an error
+ *
+ * Writes data to a file. This is done safely using a temporary file to do this
+ * atomically on Linux but a direct write is used on Windows.
+ *
+ * Returns: %TRUE for success
+ **/
+gboolean
+xb_file_set_contents (GFile *file, const guint8 *buf, gsize bufsz,
+		      GCancellable *cancellable,
+		      GError **error)
+{
+#ifdef _WIN32
+	g_autofree gchar *fn = g_file_get_path (file);
+#endif
+
+	g_return_val_if_fail (G_IS_FILE (file), FALSE);
+	g_return_val_if_fail (buf != NULL, FALSE);
+	g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), FALSE);
+	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
+#ifdef _WIN32
+#if GLIB_CHECK_VERSION(2,66,0)
+	return g_file_set_contents_full (fn, (const gchar *) buf, (gssize) bufsz,
+					 G_FILE_SET_CONTENTS_NONE, 0666, error);
+
+#else
+	g_set_error_literal (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_NOT_SUPPORTED,
+			     "not supported as GLib version is too old");
+	return FALSE;
+#endif
+#else
+	return g_file_replace_contents (file,
+					(const gchar *) buf,
+					(gsize) bufsz, NULL, FALSE,
+					G_FILE_CREATE_NONE, NULL,
+					cancellable, error);
+#endif
+}

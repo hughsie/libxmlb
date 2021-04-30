@@ -11,3 +11,8 @@
 gchar		*xb_content_type_guess			(const gchar	*filename,
 							 const guchar	*buf,
 							 gsize		 bufsz);
+gboolean	 xb_file_set_contents			(GFile		*file,
+							 const guint8	*buf,
+							 gsize		 bufsz,
+							 GCancellable	*cancellable,
+							 GError		**error);
