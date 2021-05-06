@@ -1,3 +1,15 @@
+Version 0.3.1
+~~~~~~~~~~~~~
+Released: 2021-05-06
+
+New Features:
+ - Use stack-allocated XbStack instances for running a machine (Philip Withnall)
+
+Bugfixes:
+ - Always run xb-tool queries with the optimizer (Richard Hughes)
+ - Do not use g_file_replace_contents for win32 (Richard Hughes)
+ - Ensure tokens handling works when XbOpcode is not zero-inited (Philip Withnall)
+
 Version 0.3.0
 ~~~~~~~~~~~~~
 Released: 2021-03-12
