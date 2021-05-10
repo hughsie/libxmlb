@@ -1100,6 +1100,10 @@ xb_builder_node_export_helper (XbBuilderNode *self,
 {
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 
+	/* do not output */
+	if (xb_builder_node_has_flag (self, XB_BUILDER_NODE_FLAG_IGNORE))
+		return TRUE;
+
 	/* add start of opening tag */
 	if (helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_INDENT) {
 		for (guint i = 0; i < helper->level; i++)
