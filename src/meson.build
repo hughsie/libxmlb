@@ -152,7 +152,7 @@ if get_option('introspection')
     namespace : 'Xmlb',
     symbol_prefix : 'xb',
     identifier_prefix : 'Xb',
-    export_packages : 'libxmlb',
+    export_packages : 'xmlb',
     header : 'xmlb.h',
     dependencies : [
       gio,
