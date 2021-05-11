@@ -234,7 +234,7 @@ xb_value_bindings_bind_val (XbValueBindings *self, guint idx, guint32 val)
  * xb_value_bindings_lookup_opcode:
  * @self: an #XbValueBindings
  * @idx: 0-based index to look up the binding from
- * @opcode_out: (out caller-allocates) (not optional): pointer to an #XbOpcode
+ * @opcode_out: (out caller-allocates) (not nullable): pointer to an #XbOpcode
  *     to initialise from the binding
  *
  * Initialises an #XbOpcode with the value bound to @idx, if a value is bound.
