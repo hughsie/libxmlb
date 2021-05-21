@@ -149,7 +149,7 @@ configure_file(
 )
 
 python = import('python')
-python3 = python.find_installation('python3')
+python3 = python.find_installation()
 
 subdir('data')
 subdir('src')
