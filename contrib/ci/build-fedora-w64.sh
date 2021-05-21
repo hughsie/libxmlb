@@ -2,7 +2,7 @@
 set -e
 export LC_ALL=C.UTF-8
 mkdir -p build && cd build
-rm * -rf
+rm -rf *
 meson .. \
     --cross-file=../contrib/mingw64.cross \
     -Dintrospection=false \

@@ -1,0 +1,38 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        distro:
+          - fedora
+          - debian
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+      - run: docker build -t libxmlb-${{ matrix.distro }} -f contrib/ci/Dockerfile-${{ matrix.distro }} .
+      - run: docker run -t -v `pwd`:/build libxmlb-${{ matrix.distro }} ./contrib/ci/build-${{ matrix.distro }}.sh
+
+  build-freebsd:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Build
+      id: test
+      uses: vmactions/freebsd-vm@v0.1.4
+      with:
+        usesh: true
+        mem: 8192
+        prepare: |
+          pkg install -y git python3 glib meson pkgconf gobject-introspection gtk-doc
+        sync: rsync
+        run: ./contrib/ci/build-debian.sh
