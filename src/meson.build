@@ -98,8 +98,7 @@ xb_tool = executable(
 )
 
 pkgg = import('pkgconfig')
-pkgg.generate(
-  libraries : libxmlb,
+pkgg.generate(libxmlb,
   requires : [ 'gio-2.0' ],
   subdirs : 'libxmlb-2',
   version : meson.project_version(),
