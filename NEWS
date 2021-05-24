@@ -1,3 +1,12 @@
+Version 0.3.2
+~~~~~~~~~~~~~
+Released: 2021-05-24
+
+Bugfixes:
+ - Respect XB_BUILDER_NODE_FLAG_IGNORE when exporting (Richard Hughes)
+ - Use the chosen chunk size when reading from a stream (Richard Hughes)
+ - Use the correct pkgconfig export package name in the GIR file (Richard Hughes)
+
 Version 0.3.1
 ~~~~~~~~~~~~~
 Released: 2021-05-06
