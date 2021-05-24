@@ -60,7 +60,7 @@ _g_input_stream_read_bytes_in_chunks (GInputStream *stream,
 	tmp = g_malloc (chunk_sz);
 	while (TRUE) {
 		gssize sz;
-		sz = g_input_stream_read (stream, tmp, sizeof(tmp), NULL, error);
+		sz = g_input_stream_read (stream, tmp, chunk_sz, NULL, error);
 		if (sz == 0)
 			break;
 		if (sz < 0)
