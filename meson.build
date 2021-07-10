@@ -116,6 +116,7 @@ endif
 
 gio = dependency('gio-2.0', version : '>= 2.45.8')
 giounix = dependency('gio-unix-2.0', version : '>= 2.45.8', required: false)
+lzma = dependency('liblzma')
 if giounix.found()
   conf.set('HAVE_GIO_UNIX', '1')
 endif
@@ -128,6 +129,7 @@ add_project_arguments('-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_58', language: 
 
 libxmlb_deps = [
   gio,
+  lzma,
 ]
 
 # support stemming of search tokens

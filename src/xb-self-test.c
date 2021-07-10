@@ -478,6 +478,40 @@ xb_builder_custom_mime_func (void)
 }
 
 static void
+xb_builder_source_lzma_func (void)
+{
+	gboolean ret;
+	g_autofree gchar *path = NULL;
+	g_autofree gchar *tmp_xmlb = g_build_filename (g_get_tmp_dir (), "temp.xmlb", NULL);
+	g_autoptr(GError) error = NULL;
+	g_autoptr(GFile) file = NULL;
+	g_autoptr(GFile) file_src = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
+	g_autoptr(XbSilo) silo = NULL;
+
+	/* import a source file */
+	path = g_test_build_filename (G_TEST_DIST, "test.xml.xz", NULL);
+	file_src = g_file_new_for_path (path);
+	if (!g_file_query_exists (file_src, NULL)) {
+		g_test_skip ("does not work in subproject test");
+		return;
+	}
+	ret = xb_builder_source_load_file (source, file_src,
+					   XB_BUILDER_SOURCE_FLAG_NONE,
+					   NULL, &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	xb_builder_import_source (builder, source);
+	file = g_file_new_for_path (tmp_xmlb);
+	silo = xb_builder_ensure (builder, file,
+				  XB_BUILDER_COMPILE_FLAG_NONE,
+				  NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+}
+
+static void
 xb_builder_chained_adapters_func (void)
 {
 	gboolean ret;
@@ -2573,6 +2607,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/builder{ignore-invalid}", xb_builder_ignore_invalid_func);
 	g_test_add_func ("/libxmlb/builder{custom-mime}", xb_builder_custom_mime_func);
 	g_test_add_func ("/libxmlb/builder{chained-adapters}", xb_builder_chained_adapters_func);
+	g_test_add_func ("/libxmlb/builder{source-lzma}", xb_builder_source_lzma_func);
 	g_test_add_func ("/libxmlb/builder-node", xb_builder_node_func);
 	g_test_add_func ("/libxmlb/builder-node{info}", xb_builder_node_info_func);
 	g_test_add_func ("/libxmlb/builder-node{literal-text}", xb_builder_node_literal_text_func);

@@ -15,6 +15,7 @@ BuildRequires: gtk-doc
 BuildRequires: libstemmer-devel
 BuildRequires: meson
 BuildRequires: gobject-introspection-devel
+BuildRequires: xz-devel
 %if 0%{?rhel} == 7
 BuildRequires: python36-setuptools
 %else

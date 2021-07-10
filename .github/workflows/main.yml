@@ -33,6 +33,6 @@ jobs:
         usesh: true
         mem: 8192
         prepare: |
-          pkg install -y git python3 glib meson pkgconf gobject-introspection gtk-doc
+          pkg install -y git python3 glib meson pkgconf gobject-introspection gtk-doc lzma
         sync: rsync
         run: ./contrib/ci/build-debian.sh

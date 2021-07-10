@@ -6,6 +6,7 @@ RUN dnf -y install \
 	gcc \
 	git-core \
 	meson \
+	mingw64-xz-libs \
 	mingw64-gcc \
 	mingw64-glib2 \
 	mingw64-pkg-config \

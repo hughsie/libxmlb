@@ -14,6 +14,7 @@
 #include "xb-builder-fixup-private.h"
 #include "xb-builder-source-ctx-private.h"
 #include "xb-builder-source-private.h"
+#include "xb-lzma-decompressor.h"
 
 typedef struct {
 	GInputStream		*istream;
@@ -516,6 +517,18 @@ xb_builder_source_load_gzip_cb (XbBuilderSource *self,
 	return g_converter_input_stream_new (istream, conv);
 }
 
+static GInputStream *
+xb_builder_source_load_lzma_cb (XbBuilderSource *self,
+				XbBuilderSourceCtx *ctx,
+				gpointer user_data,
+				GCancellable *cancellable,
+				GError **error)
+{
+	GInputStream *istream = xb_builder_source_ctx_get_stream (ctx);
+	g_autoptr(GConverter) conv = G_CONVERTER (xb_lzma_decompressor_new ());
+	return g_converter_input_stream_new (istream, conv);
+}
+
 static void
 xb_builder_source_adapter_free (XbBuilderSourceAdapter *item)
 {
@@ -561,6 +574,8 @@ xb_builder_source_init (XbBuilderSource *self)
 	priv->adapters = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_builder_source_adapter_free);
 	xb_builder_source_add_adapter (self, "application/gzip,application/x-gzip",
 				       xb_builder_source_load_gzip_cb, NULL, NULL);
+	xb_builder_source_add_adapter (self, "application/x-xz",
+				       xb_builder_source_load_lzma_cb, NULL, NULL);
 }
 
 /**
