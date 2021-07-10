@@ -4,6 +4,7 @@ RUN dnf -y update
 RUN dnf -y install \
 	diffutils \
 	gcovr \
+	xz-devel \
 	git-core \
 	glib2-devel \
 	gobject-introspection-devel \

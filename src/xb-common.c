@@ -28,6 +28,8 @@ xb_content_type_guess_from_fn (const gchar *filename)
 	/* map Windows "mime-type" to a content type */
 	if (g_strcmp0 (ext, ".gz") == 0)
 		return "application/gzip";
+	if (g_strcmp0 (ext, ".xz") == 0)
+		return "application/x-xz";
 	if (g_strcmp0 (ext, ".txt") == 0 ||
 	    g_strcmp0 (ext, ".xml") == 0)
 		return "application/xml";
@@ -72,6 +74,8 @@ xb_content_type_guess (const gchar *filename, const guchar *buf, gsize bufsz)
 		if (bufsz > 0) {
 			if (xb_content_type_match (buf, bufsz, 0x0, "\x1f\x8b", 2))
 				return g_strdup ("application/gzip");
+			if (xb_content_type_match (buf, bufsz, 0x0, "\xfd\x37\x7a\x58\x5a\x00", 6))
+				return g_strdup ("application/x-xz");
 			if (xb_content_type_match (buf, bufsz, 0x0, "<?xml", 5))
 				return g_strdup ("application/xml");
 			if (xb_content_type_match (buf, bufsz, 0x0, "[Desktop Entry]", 15))
