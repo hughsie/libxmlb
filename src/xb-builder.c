@@ -905,6 +905,9 @@ xb_builder_compile (XbBuilder *self, XbBuilderCompileFlags flags, GCancellable *
  * If @silo is being used by a query (e.g. in another thread) then all node
  * data is immediately invalid.
  *
+ * The returned #XbSilo will use the thread-default main context at the time of
+ * calling this function for its future signal emissions.
+ *
  * Returns: (transfer full): a #XbSilo, or %NULL for error
  *
  * Since: 0.1.0
@@ -1098,6 +1101,10 @@ xb_builder_init (XbBuilder *self)
  * xb_builder_new:
  *
  * Creates a new builder.
+ *
+ * The #XbSilo returned by the methods of this #XbBuilder will use the
+ * thread-default main context at the time of calling this function for its
+ * future signal emissions.
  *
  * Returns: a new #XbBuilder
  *
