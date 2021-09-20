@@ -58,13 +58,13 @@ typedef struct {
 G_DEFINE_TYPE_WITH_PRIVATE (XbSilo, xb_silo, G_TYPE_OBJECT)
 #define GET_PRIVATE(o) (xb_silo_get_instance_private (o))
 
-enum {
-	PROP_0,
-	PROP_GUID,
+typedef enum {
+	PROP_GUID = 1,
 	PROP_VALID,
 	PROP_ENABLE_NODE_CACHE,
-	PROP_LAST
-};
+} XbSiloProperty;
+
+static GParamSpec *obj_props[PROP_ENABLE_NODE_CACHE + 1] = { NULL, };
 
 /* private */
 GTimer *
@@ -1431,7 +1431,7 @@ xb_silo_get_property (GObject *obj, guint prop_id, GValue *value, GParamSpec *ps
 {
 	XbSilo *self = XB_SILO (obj);
 	XbSiloPrivate *priv = GET_PRIVATE (self);
-	switch (prop_id) {
+	switch ((XbSiloProperty) prop_id) {
 	case PROP_GUID:
 		g_value_set_string (value, priv->guid);
 		break;
@@ -1452,10 +1452,14 @@ xb_silo_set_property (GObject *obj, guint prop_id, const GValue *value, GParamSp
 {
 	XbSilo *self = XB_SILO (obj);
 	XbSiloPrivate *priv = GET_PRIVATE (self);
-	switch (prop_id) {
+	switch ((XbSiloProperty) prop_id) {
 	case PROP_GUID:
 		g_free (priv->guid);
 		priv->guid = g_value_dup_string (value);
+		break;
+	case PROP_VALID:
+		/* Read only */
+		g_assert_not_reached ();
 		break;
 	case PROP_ENABLE_NODE_CACHE:
 		xb_silo_set_enable_node_cache (self, g_value_get_boolean (value));
@@ -1546,7 +1550,6 @@ xb_silo_finalize (GObject *obj)
 static void
 xb_silo_class_init (XbSiloClass *klass)
 {
-	GParamSpec *pspec;
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = xb_silo_finalize;
 	object_class->get_property = xb_silo_get_property;
@@ -1555,19 +1558,19 @@ xb_silo_class_init (XbSiloClass *klass)
 	/**
 	 * XbSilo:guid:
 	 */
-	pspec = g_param_spec_string ("guid", NULL, NULL, NULL,
+	obj_props[PROP_GUID] =
+		g_param_spec_string ("guid", NULL, NULL, NULL,
 				     G_PARAM_READWRITE |
 				     G_PARAM_CONSTRUCT |
 				     G_PARAM_STATIC_NAME);
-	g_object_class_install_property (object_class, PROP_GUID, pspec);
 
 	/**
 	 * XbSilo:allow-cancel:
 	 */
-	pspec = g_param_spec_boolean ("valid", NULL, NULL, TRUE,
+	obj_props[PROP_VALID] =
+		g_param_spec_boolean ("valid", NULL, NULL, TRUE,
 				      G_PARAM_READABLE |
 				      G_PARAM_STATIC_NAME);
-	g_object_class_install_property (object_class, PROP_VALID, pspec);
 
 	/**
 	 * XbSilo:enable-node-cache:
@@ -1590,10 +1593,12 @@ xb_silo_class_init (XbSiloClass *klass)
 	 *
 	 * Since: 0.2.0
 	 */
-	pspec = g_param_spec_boolean ("enable-node-cache", NULL, NULL, TRUE,
+	obj_props[PROP_ENABLE_NODE_CACHE] =
+		g_param_spec_boolean ("enable-node-cache", NULL, NULL, TRUE,
 				      G_PARAM_READWRITE |
 				      G_PARAM_STATIC_NAME);
-	g_object_class_install_property (object_class, PROP_ENABLE_NODE_CACHE, pspec);
+
+	g_object_class_install_properties (object_class, G_N_ELEMENTS (obj_props), obj_props);
 }
 
 /**
