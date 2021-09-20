@@ -1562,7 +1562,7 @@ xb_silo_class_init (XbSiloClass *klass)
 		g_param_spec_string ("guid", NULL, NULL, NULL,
 				     G_PARAM_READWRITE |
 				     G_PARAM_CONSTRUCT |
-				     G_PARAM_STATIC_NAME);
+				     G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * XbSilo:valid:
@@ -1570,7 +1570,7 @@ xb_silo_class_init (XbSiloClass *klass)
 	obj_props[PROP_VALID] =
 		g_param_spec_boolean ("valid", NULL, NULL, TRUE,
 				      G_PARAM_READABLE |
-				      G_PARAM_STATIC_NAME);
+				      G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * XbSilo:enable-node-cache:
@@ -1596,7 +1596,7 @@ xb_silo_class_init (XbSiloClass *klass)
 	obj_props[PROP_ENABLE_NODE_CACHE] =
 		g_param_spec_boolean ("enable-node-cache", NULL, NULL, TRUE,
 				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_NAME);
+				      G_PARAM_STATIC_STRINGS);
 
 	g_object_class_install_properties (object_class, G_N_ELEMENTS (obj_props), obj_props);
 }
