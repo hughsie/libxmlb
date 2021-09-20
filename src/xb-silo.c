@@ -56,7 +56,8 @@ typedef struct {
 	gboolean		 enable_node_cache;
 	GHashTable		*nodes;	/* (mutex nodes_mutex) */
 	GMutex			 nodes_mutex;
-	GHashTable		*file_monitors;	/* of GFile:XbSiloFileMonitorItem */
+	GHashTable		*file_monitors;	/* (element-type GFile XbSiloFileMonitorItem) (mutex file_monitors_mutex) */
+	GMutex			 file_monitors_mutex;
 	XbMachine		*machine;
 	XbSiloProfileFlags	 profile_flags;
 	GString			*profile_str;
@@ -945,6 +946,7 @@ watch_file_cb (gpointer user_data)
 	XbSiloPrivate *priv = GET_PRIVATE (self);
 	g_autoptr(GFileMonitor) file_monitor = NULL;
 	g_autoptr(GError) error_local = NULL;
+	g_autoptr(GMutexLocker) locker = g_mutex_locker_new (&priv->file_monitors_mutex);
 
 	/* already exists */
 	item = g_hash_table_lookup (priv->file_monitors, file);
@@ -996,6 +998,7 @@ xb_silo_load_from_file (XbSilo *self,
 	g_autofree gchar *fn = NULL;
 	g_autoptr(GBytes) blob = NULL;
 	g_autoptr(GTimer) timer = xb_silo_start_profile (self);
+	g_autoptr(GMutexLocker) file_monitors_locker = g_mutex_locker_new (&priv->file_monitors_mutex);
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
@@ -1004,6 +1007,8 @@ xb_silo_load_from_file (XbSilo *self,
 
 	/* no longer valid (@nodes is cleared by xb_silo_load_from_bytes()) */
 	g_hash_table_remove_all (priv->file_monitors);
+	g_clear_pointer (&file_monitors_locker, g_mutex_locker_free);
+
 	g_hash_table_remove_all (priv->strtab_tags);
 	g_clear_pointer (&priv->guid, g_free);
 	if (priv->mmap != NULL)
@@ -1584,8 +1589,11 @@ static void
 xb_silo_init (XbSilo *self)
 {
 	XbSiloPrivate *priv = GET_PRIVATE (self);
+
 	priv->file_monitors = g_hash_table_new_full (g_file_hash, (GEqualFunc) g_file_equal,
 						     g_object_unref, (GDestroyNotify) xb_silo_file_monitor_item_free);
+	g_mutex_init (&priv->file_monitors_mutex);
+
 	priv->strtab_tags = g_hash_table_new (g_str_hash, g_str_equal);
 	priv->strindex = g_hash_table_new (g_str_hash, g_str_equal);
 	priv->profile_str = g_string_new (NULL);
@@ -1653,6 +1661,7 @@ xb_silo_finalize (GObject *obj)
 	g_object_unref (priv->machine);
 	g_hash_table_unref (priv->strindex);
 	g_hash_table_unref (priv->file_monitors);
+	g_mutex_clear (&priv->file_monitors_mutex);
 	g_hash_table_unref (priv->strtab_tags);
 	if (priv->mmap != NULL)
 		g_mapped_file_unref (priv->mmap);
