@@ -4,6 +4,24 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
+/**
+ * SECTION:xb-silo
+ * @title: XbSilo
+ * @include: xmlb.h
+ * @stability: Stable
+ * @short_description: A read-only store of parsed XML data
+ *
+ * #XbSilo provides read-only access and querying of a previously parsed blob
+ * of XML data.
+ *
+ * All signal emissions from #XbSilo (currently only #GObject::notify emissions)
+ * will happen in the #GMainContext which is the thread default when the #XbSilo
+ * is constructed.
+ *
+ * This #GMainContext must be iterated for file monitoring using
+ * xb_silo_watch_file() to function correctly.
+ */
+
 #define G_LOG_DOMAIN				"XbSilo"
 
 #include "config.h"
@@ -44,6 +62,7 @@ typedef struct {
 	GString			*profile_str;
 	GRWLock			 query_cache_mutex;
 	GHashTable		*query_cache;
+	GMainContext		*context;  /* (owned) */
 #ifdef HAVE_LIBSTEMMER
 	struct sb_stemmer	*stemmer_ctx;	/* lazy loaded */
 	GMutex			 stemmer_mutex;
@@ -494,6 +513,45 @@ xb_silo_is_empty (XbSilo *self)
 	return priv->strtab == sizeof(XbSiloHeader);
 }
 
+typedef struct {
+	XbSilo *silo;  /* (owned) */
+	GParamSpec *pspec;  /* (owned) */
+} SiloNotifyData;
+
+static void
+silo_notify_data_free (SiloNotifyData *data)
+{
+	g_clear_object (&data->silo);
+	g_clear_pointer (&data->pspec, g_param_spec_unref);
+	g_free (data);
+}
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (SiloNotifyData, silo_notify_data_free)
+
+static gboolean
+silo_notify_cb (gpointer user_data)
+{
+	g_autoptr(SiloNotifyData) data = g_steal_pointer (&user_data);
+
+	g_object_notify_by_pspec (G_OBJECT (data->silo), data->pspec);
+
+	return G_SOURCE_REMOVE;
+}
+
+/* Like g_object_notify(), but ensure that the signal is emitted in XbSilo.context. */
+static void
+silo_notify (XbSilo *self, GParamSpec *pspec)
+{
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	g_autoptr(SiloNotifyData) data = NULL;
+
+	data = g_new0 (SiloNotifyData, 1);
+	data->silo = g_object_ref (self);
+	data->pspec = g_param_spec_ref (pspec);
+
+	g_main_context_invoke (priv->context, silo_notify_cb, g_steal_pointer (&data));
+}
+
 /**
  * xb_silo_invalidate:
  * @self: a #XbSilo
@@ -509,7 +567,7 @@ xb_silo_invalidate (XbSilo *self)
 	if (!priv->valid)
 		return;
 	priv->valid = FALSE;
-	g_object_notify (G_OBJECT (self), "valid");
+	silo_notify (self, obj_props[PROP_VALID]);
 }
 
 /* private */
@@ -520,7 +578,7 @@ xb_silo_uninvalidate (XbSilo *self)
 	if (priv->valid)
 		return;
 	priv->valid = TRUE;
-	g_object_notify (G_OBJECT (self), "valid");
+	silo_notify (self, obj_props[PROP_VALID]);
 }
 
 /* private */
@@ -786,7 +844,7 @@ xb_silo_set_enable_node_cache (XbSilo *self, gboolean enable_node_cache)
 		g_clear_pointer (&priv->nodes, g_hash_table_unref);
 	}
 
-	g_object_notify (G_OBJECT (self), "enable-node-cache");
+	silo_notify (self, obj_props[PROP_ENABLE_NODE_CACHE]);
 }
 
 /* private */
@@ -797,6 +855,7 @@ xb_silo_get_profile_flags (XbSilo *self)
 	return priv->profile_flags;
 }
 
+/* This will be invoked in silo->context */
 static void
 xb_silo_watch_file_cb (GFileMonitor *monitor,
 		       GFile *file,
@@ -813,6 +872,23 @@ xb_silo_watch_file_cb (GFileMonitor *monitor,
 	xb_silo_invalidate (silo);
 }
 
+typedef struct {
+	XbSilo *silo;  /* (owned) */
+	GFile *file;  /* (owned) */
+} WatchFileData;
+
+static void
+watch_file_data_free (WatchFileData *data)
+{
+	g_clear_object (&data->silo);
+	g_clear_object (&data->file);
+	g_free (data);
+}
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (WatchFileData, watch_file_data_free)
+
+static gboolean watch_file_cb (gpointer user_data);
+
 /**
  * xb_silo_watch_file:
  * @self: a #XbSilo
@@ -822,6 +898,10 @@ xb_silo_watch_file_cb (GFileMonitor *monitor,
  *
  * Adds a file monitor to the silo. If the file or directory for @file changes
  * then the silo will be invalidated.
+ *
+ * The monitor will internally use the #GMainContext which was the thread
+ * default when the #XbSilo was created, so that #GMainContext must be iterated
+ * for monitoring to work.
  *
  * Returns: %TRUE for success, otherwise @error is set.
  *
@@ -833,24 +913,52 @@ xb_silo_watch_file (XbSilo *self,
 		    GCancellable *cancellable,
 		    GError **error)
 {
-	XbSiloFileMonitorItem *item;
 	XbSiloPrivate *priv = GET_PRIVATE (self);
-	g_autoptr(GFileMonitor) file_monitor = NULL;
+	g_autoptr(WatchFileData) data = NULL;
 
 	g_return_val_if_fail (XB_IS_SILO (self), FALSE);
 	g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), FALSE);
 	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
+	/* return if cancelled; this is basically the only failure mode of
+	 * g_file_monitor() for local files, and this function shouldn’t really
+	 * be called on non-local files */
+	if (g_cancellable_set_error_if_cancelled (cancellable, error))
+		return FALSE;
+
+	data = g_new0 (WatchFileData, 1);
+	data->silo = g_object_ref (self);
+	data->file = g_object_ref (file);
+
+	g_main_context_invoke (priv->context, watch_file_cb, g_steal_pointer (&data));
+
+	return TRUE;
+}
+
+static gboolean
+watch_file_cb (gpointer user_data)
+{
+	g_autoptr(WatchFileData) data = g_steal_pointer (&user_data);
+	XbSilo *self = data->silo;
+	GFile *file = data->file;
+	XbSiloFileMonitorItem *item;
+	XbSiloPrivate *priv = GET_PRIVATE (self);
+	g_autoptr(GFileMonitor) file_monitor = NULL;
+	g_autoptr(GError) error_local = NULL;
+
 	/* already exists */
 	item = g_hash_table_lookup (priv->file_monitors, file);
 	if (item != NULL)
-		return TRUE;
+		return G_SOURCE_REMOVE;
 
 	/* try to create */
 	file_monitor = g_file_monitor (file, G_FILE_MONITOR_NONE,
-				       cancellable, error);
-	if (file_monitor == NULL)
-		return FALSE;
+				       NULL, &error_local);
+	if (file_monitor == NULL) {
+		g_warning ("Error adding file monitor: %s", error_local->message);
+		return G_SOURCE_REMOVE;
+	}
+
 	g_file_monitor_set_rate_limit (file_monitor, 20);
 
 	/* add */
@@ -859,7 +967,8 @@ xb_silo_watch_file (XbSilo *self,
 	item->file_monitor_id = g_signal_connect (file_monitor, "changed",
 						  G_CALLBACK (xb_silo_watch_file_cb), self);
 	g_hash_table_insert (priv->file_monitors, g_object_ref (file), item);
-	return TRUE;
+
+	return G_SOURCE_REMOVE;
 }
 
 /**
@@ -1456,6 +1565,7 @@ xb_silo_set_property (GObject *obj, guint prop_id, const GValue *value, GParamSp
 	case PROP_GUID:
 		g_free (priv->guid);
 		priv->guid = g_value_dup_string (value);
+		silo_notify (self, obj_props[PROP_GUID]);
 		break;
 	case PROP_VALID:
 		/* Read only */
@@ -1484,6 +1594,8 @@ xb_silo_init (XbSilo *self)
 
 	priv->nodes = NULL;  /* initialised when first used */
 	g_mutex_init (&priv->nodes_mutex);
+
+	priv->context = g_main_context_ref_thread_default ();
 
 #ifdef HAVE_LIBSTEMMER
 	g_mutex_init (&priv->stemmer_mutex);
@@ -1532,6 +1644,8 @@ xb_silo_finalize (GObject *obj)
 	g_mutex_clear (&priv->stemmer_mutex);
 #endif
 
+	g_clear_pointer (&priv->context, g_main_context_unref);
+
 	g_free (priv->guid);
 	g_string_free (priv->profile_str, TRUE);
 	g_hash_table_unref (priv->query_cache);
@@ -1562,7 +1676,8 @@ xb_silo_class_init (XbSiloClass *klass)
 		g_param_spec_string ("guid", NULL, NULL, NULL,
 				     G_PARAM_READWRITE |
 				     G_PARAM_CONSTRUCT |
-				     G_PARAM_STATIC_STRINGS);
+				     G_PARAM_STATIC_STRINGS |
+				     G_PARAM_EXPLICIT_NOTIFY);
 
 	/**
 	 * XbSilo:valid:
@@ -1570,7 +1685,8 @@ xb_silo_class_init (XbSiloClass *klass)
 	obj_props[PROP_VALID] =
 		g_param_spec_boolean ("valid", NULL, NULL, TRUE,
 				      G_PARAM_READABLE |
-				      G_PARAM_STATIC_STRINGS);
+				      G_PARAM_STATIC_STRINGS |
+				      G_PARAM_EXPLICIT_NOTIFY);
 
 	/**
 	 * XbSilo:enable-node-cache:
@@ -1596,7 +1712,8 @@ xb_silo_class_init (XbSiloClass *klass)
 	obj_props[PROP_ENABLE_NODE_CACHE] =
 		g_param_spec_boolean ("enable-node-cache", NULL, NULL, TRUE,
 				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS);
+				      G_PARAM_STATIC_STRINGS |
+				      G_PARAM_EXPLICIT_NOTIFY);
 
 	g_object_class_install_properties (object_class, G_N_ELEMENTS (obj_props), obj_props);
 }
