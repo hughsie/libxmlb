@@ -1565,7 +1565,7 @@ xb_silo_class_init (XbSiloClass *klass)
 				     G_PARAM_STATIC_NAME);
 
 	/**
-	 * XbSilo:allow-cancel:
+	 * XbSilo:valid:
 	 */
 	obj_props[PROP_VALID] =
 		g_param_spec_boolean ("valid", NULL, NULL, TRUE,
