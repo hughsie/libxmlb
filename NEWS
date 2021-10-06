@@ -1,3 +1,15 @@
+Version 0.3.3
+~~~~~~~~~~~~~
+Released: 2021-10-06
+
+New Features:
+ - Add support for LZMA decompression (Richard Hughes)
+
+Bugfixes:
+ - Add locking for file monitors (Philip Withnall)
+ - Clarify GMainContext usage and signal emission (Philip Withnall)
+ - Modernise property declaration (Philip Withnall)
+
 Version 0.3.2
 ~~~~~~~~~~~~~
 Released: 2021-05-24
