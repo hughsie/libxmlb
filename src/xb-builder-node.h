@@ -35,6 +35,7 @@ struct _XbBuilderNodeClass {
  * @XB_BUILDER_NODE_FLAG_HAS_TEXT:		If the node has leading text
  * @XB_BUILDER_NODE_FLAG_HAS_TAIL:		If the node has trailing text
  * @XB_BUILDER_NODE_FLAG_TOKENIZE_TEXT:		Tokenize and fold text to ASCII (Since: 0.3.1)
+ * @XB_BUILDER_NODE_FLAG_STRIP_TEXT:		Strip leading and trailing spaces from text (Since: 0.3.4)
  *
  * The flags used when building a node.
  **/
@@ -45,6 +46,7 @@ typedef enum {
 	XB_BUILDER_NODE_FLAG_HAS_TEXT		= 1 << 2,	/* Since: 0.1.12 */
 	XB_BUILDER_NODE_FLAG_HAS_TAIL		= 1 << 3,	/* Since: 0.1.12 */
 	XB_BUILDER_NODE_FLAG_TOKENIZE_TEXT	= 1 << 4,	/* Since: 0.3.1 */
+	XB_BUILDER_NODE_FLAG_STRIP_TEXT		= 1 << 5,	/* Since: 0.3.4 */
 	/*< private >*/
 	XB_BUILDER_NODE_FLAG_LAST
 } XbBuilderNodeFlags;
