@@ -83,6 +83,10 @@ xb_builder_node_add_flag (XbBuilderNode *self, XbBuilderNodeFlags flag)
 	if ((priv->flags & flag) != 0)
 		return;
 
+	/* do in-place */
+	if ((flag & XB_BUILDER_NODE_FLAG_STRIP_TEXT) > 0 && priv->text != NULL)
+		g_strstrip (priv->text);
+
 	priv->flags |= flag;
 	for (guint i = 0; priv->children != NULL && i < priv->children->len; i++) {
 		XbBuilderNode *c = g_ptr_array_index (priv->children, i);
@@ -387,6 +391,10 @@ xb_builder_node_set_text (XbBuilderNode *self, const gchar *text, gssize text_le
 	g_free (priv->text);
 	priv->text = xb_builder_node_parse_literal_text (self, text, text_len);
 	priv->flags |= XB_BUILDER_NODE_FLAG_HAS_TEXT;
+
+	/* strip before tokenization */
+	if ((priv->flags & XB_BUILDER_NODE_FLAG_STRIP_TEXT) > 0 && priv->text != NULL)
+		g_strstrip (priv->text);
 
 	/* tokenize */
 	if (priv->flags & XB_BUILDER_NODE_FLAG_TOKENIZE_TEXT)

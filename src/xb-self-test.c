@@ -1276,6 +1276,17 @@ xb_builder_fixup_tokenize_cb (XbBuilderFixup *self,
 	return TRUE;
 }
 
+static gboolean
+xb_builder_fixup_strip_inner_cb (XbBuilderFixup *self,
+				 XbBuilderNode *bn,
+				 gpointer user_data,
+				 GError **error)
+{
+	if (xb_builder_node_get_first_child (bn) == NULL)
+		xb_builder_node_add_flag (bn, XB_BUILDER_NODE_FLAG_STRIP_TEXT);
+	return TRUE;
+}
+
 static void
 xb_xpath_func (void)
 {
@@ -1291,6 +1302,7 @@ xb_xpath_func (void)
 	g_autoptr(XbNode) n3 = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
 	g_autoptr(XbBuilderFixup) fixup = NULL;
+	g_autoptr(XbBuilderFixup) fixup2 = NULL;
 	g_autoptr(XbBuilderSource) source = xb_builder_source_new ();
 	g_autoptr(XbSilo) silo = NULL;
 	const gchar *xml =
@@ -1299,7 +1311,7 @@ xb_xpath_func (void)
 	"    <csum type=\"sha1\">dead</csum>\n"
 	"  </header>\n"
 	"  <component type=\"desktop\">\n"
-	"    <id>gimp.desktop</id>\n"
+	"    <id> gimp.desktop </id>\n"
 	"    <id>org.gnome.Gimp.desktop</id>\n"
 	"    <name>Mêẞ</name>\n"
 	"    <custom>\n"
@@ -1314,6 +1326,10 @@ xb_xpath_func (void)
 	/* tokenize specific fields */
 	fixup = xb_builder_fixup_new ("TextTokenize", xb_builder_fixup_tokenize_cb, NULL, NULL);
 	xb_builder_source_add_fixup (source, fixup);
+
+	/* strip inner nodes without children */
+	fixup2 = xb_builder_fixup_new ("TextStripInner", xb_builder_fixup_strip_inner_cb, NULL, NULL);
+	xb_builder_source_add_fixup (source, fixup2);
 
 	/* import from XML */
 	ret = xb_builder_source_load_xml (source, xml, XB_BUILDER_SOURCE_FLAG_NONE, &error);
