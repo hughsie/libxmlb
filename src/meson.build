@@ -80,6 +80,7 @@ libxmlb_dep = declare_dependency(
   dependencies : libxmlb_deps
 )
 
+if get_option('cli')
 xb_tool = executable(
   'xb-tool',
   sources : [
@@ -97,6 +98,7 @@ xb_tool = executable(
   install : true,
   install_dir : libexecdir
 )
+endif
 
 pkgg = import('pkgconfig')
 pkgg.generate(libxmlb,
