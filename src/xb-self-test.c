@@ -2044,6 +2044,24 @@ xb_builder_multiple_roots_func (void)
 }
 
 static void
+xb_builder_single_root_func (void)
+{
+	gboolean ret;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilder) builder = NULL;
+	g_autoptr(XbSilo) silo = NULL;
+
+	/* import from XML */
+	builder = xb_builder_new ();
+	ret = xb_test_import_xml (builder, "<tag>value2</tag><tag>value3</tag>", &error);
+	g_assert_no_error (error);
+	g_assert_true (ret);
+	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_SINGLE_ROOT, NULL, &error);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
+	g_assert_null (silo);
+}
+
+static void
 xb_builder_node_func (void)
 {
 	g_autofree gchar *xml = NULL;
@@ -2641,6 +2659,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/xpath-node", xb_xpath_node_func);
 	g_test_add_func ("/libxmlb/xpath-parent-subnode", xb_xpath_parent_subnode_func);
 	g_test_add_func ("/libxmlb/multiple-roots", xb_builder_multiple_roots_func);
+	g_test_add_func ("/libxmlb/single-root", xb_builder_single_root_func);
 	if (g_test_perf ())
 		g_test_add_func ("/libxmlb/threading", xb_threading_func);
 	if (g_test_perf ())

@@ -39,6 +39,7 @@ struct _XbBuilderClass {
  * @XB_BUILDER_COMPILE_FLAG_SINGLE_LANG:	Only store a single language
  * @XB_BUILDER_COMPILE_FLAG_WATCH_BLOB:		Watch the XMLB file for changes
  * @XB_BUILDER_COMPILE_FLAG_IGNORE_GUID:	Ignore the cache GUID value
+ * @XB_BUILDER_COMPILE_FLAG_SINGLE_ROOT:	Require at most one root node
  *
  * The flags for converting to XML.
  **/
@@ -49,6 +50,7 @@ typedef enum {
 	XB_BUILDER_COMPILE_FLAG_SINGLE_LANG	= 1 << 3,	/* Since: 0.1.0 */
 	XB_BUILDER_COMPILE_FLAG_WATCH_BLOB	= 1 << 4,	/* Since: 0.1.0 */
 	XB_BUILDER_COMPILE_FLAG_IGNORE_GUID	= 1 << 5,	/* Since: 0.1.7 */
+	XB_BUILDER_COMPILE_FLAG_SINGLE_ROOT	= 1 << 6,	/* Since: 0.3.4 */
 	/*< private >*/
 	XB_BUILDER_COMPILE_FLAG_LAST
 } XbBuilderCompileFlags;
