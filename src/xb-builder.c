@@ -260,6 +260,17 @@ xb_builder_compile_source (XbBuilderCompileHelper *helper,
 	if (!xb_builder_source_fixup (source, root_tmp, error))
 		return FALSE;
 
+	/* a single root with no siblings was required */
+	if (helper->compile_flags & XB_BUILDER_COMPILE_FLAG_SINGLE_ROOT) {
+		if (xb_builder_node_get_children (root_tmp)->len > 1) {
+			g_set_error_literal (error,
+					     G_IO_ERROR,
+					     G_IO_ERROR_INVALID_DATA,
+					     "A root node without siblings was required");
+			return FALSE;
+		}
+	}
+
 	/* this is something we can query with later */
 	info = xb_builder_source_get_info (source);
 	if (info != NULL) {
