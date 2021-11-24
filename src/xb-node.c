@@ -24,6 +24,32 @@ G_DEFINE_TYPE_WITH_PRIVATE (XbNode, xb_node, G_TYPE_OBJECT)
 #define GET_PRIVATE(o) (xb_node_get_instance_private (o))
 
 /**
+ * XbNodeAttrIter:
+ *
+ * A #XbNodeAttrIter structure represents an iterator that can be used
+ * to iterate over the attributes of a #XbNode. #XbNodeAttrIter
+ * structures are typically allocated on the stack and then initialized
+ * with xb_node_attr_iter_init().
+ *
+ * The iteration order of a #XbNodeAttrIter is not defined.
+ *
+ * Since: 0.3.4
+ */
+
+typedef struct
+{
+  XbNode 	*node;
+  guint8	 position;
+  gpointer	 dummy3;
+  gpointer	 dummy4;
+  gpointer	 dummy5;
+  gpointer	 dummy6;
+} RealAttrIter;
+
+G_STATIC_ASSERT (sizeof (XbNodeAttrIter) == sizeof (RealAttrIter));
+G_STATIC_ASSERT (G_ALIGNOF (XbNodeAttrIter) >= G_ALIGNOF (RealAttrIter));
+
+/**
  * xb_node_get_data:
  * @self: a #XbNode
  * @key: a string key, e.g. `fwupd::RemoteId`
@@ -363,6 +389,82 @@ xb_node_get_attr_as_uint (XbNode *self, const gchar *name)
 	if (g_str_has_prefix (tmp, "0x"))
 		return g_ascii_strtoull (tmp + 2, NULL, 16);
 	return g_ascii_strtoull (tmp, NULL, 10);
+}
+
+/**
+ * xb_node_attr_iter_init:
+ * @iter: an uninitialized #XbNodeAttrIter
+ * @self: a #XbNode
+ *
+ * Initializes a name/value pair iterator for the node attributes
+ * and associates it with @self.
+ * The #XbNodeAttrIter structure is typically allocated on the stack
+ * and does not need to be freed explicitly.
+ *
+ * Since: 0.3.4
+ */
+void
+xb_node_attr_iter_init (XbNodeAttrIter *iter, XbNode *self)
+{
+	XbNodePrivate *priv = GET_PRIVATE (self);
+	RealAttrIter *ri = (RealAttrIter *) iter;
+
+	g_return_if_fail (iter != NULL);
+	g_return_if_fail (XB_IS_NODE (self));
+
+	ri->node = self;
+	ri->position = xb_silo_node_get_attr_count (priv->sn);
+}
+
+/**
+ * xb_node_attr_iter_next:
+ * @iter: an initialized #XbNodeAttrIter
+ * @name: (out) (optional) (not nullable): Destination of the returned attribute name
+ * @value: (out) (optional) (not nullable): Destination of the returned attribute value
+ *
+ * Returns the current attribute name and value and advances the iterator.
+ * Example:
+ * |[<!-- language="C" -->
+ * XbNodeAttrIter iter;
+ * const gchar *attr_name, *attr_value;
+ *
+ * xb_node_attr_iter_init (&iter, node);
+ * while (xb_node_attr_iter_next (&iter, &attr_name, &attr_value)) {
+ *     // use attr_name and attr_value; no need to free them
+ * }
+ * ]|
+ *
+ * Returns: %TRUE if there are more attributes.
+ *
+ * Since: 0.3.4
+ */
+gboolean
+xb_node_attr_iter_next (XbNodeAttrIter *iter, const gchar **name, const gchar **value)
+{
+	XbSiloNodeAttr *a;
+	XbNodePrivate *priv;
+	RealAttrIter *ri = (RealAttrIter *) iter;
+
+	g_return_val_if_fail (iter != NULL, FALSE);
+	priv = GET_PRIVATE (ri->node);
+
+	/* check if the iteration was finished */
+	if (ri->position == 0) {
+		if (name != NULL)
+			*name = NULL;
+		if (value != NULL)
+			*value = NULL;
+		return FALSE;
+	}
+
+	ri->position--;
+	a = xb_silo_node_get_attr (priv->sn, ri->position);
+	if (name != NULL)
+		*name = xb_silo_from_strtab (priv->silo, a->attr_name);
+	if (value != NULL)
+		*value = xb_silo_from_strtab (priv->silo, a->attr_value);
+
+	return TRUE;
 }
 
 /**
