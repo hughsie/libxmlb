@@ -260,3 +260,10 @@ LIBXMLB_0.3.1 {
     xb_builder_node_tokenize_text;
   local: *;
 } LIBXMLB_0.3.0;
+
+LIBXMLB_0.3.4 {
+  global:
+    xb_node_attr_iter_init;
+    xb_node_attr_iter_next;
+  local: *;
+} LIBXMLB_0.3.1;
