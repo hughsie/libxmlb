@@ -90,6 +90,11 @@ LIBXMLB_0.1.1 {
     xb_machine_parse;
     xb_machine_run;
     xb_machine_set_debug_flags;
+    xb_opcode_cmp_str;
+    xb_opcode_cmp_val;
+    xb_opcode_get_kind;
+    xb_opcode_get_str;
+    xb_opcode_get_val;
     xb_opcode_kind_from_string;
     xb_opcode_kind_to_string;
     xb_silo_get_profile_string;
@@ -127,6 +132,7 @@ LIBXMLB_0.1.4 {
   global:
     xb_machine_parse_full;
     xb_node_query_full;
+    xb_opcode_to_string;
     xb_query_bind_str;
     xb_query_bind_val;
     xb_query_get_limit;
@@ -204,6 +210,11 @@ LIBXMLB_0.2.0 {
     xb_machine_stack_push_text_static;
     xb_machine_stack_push_text_steal;
     xb_node_get_silo;
+    xb_opcode_func_init;
+    xb_opcode_integer_init;
+    xb_opcode_text_init;
+    xb_opcode_text_init_static;
+    xb_opcode_text_init_steal;
     xb_silo_get_enable_node_cache;
     xb_silo_set_enable_node_cache;
     xb_stack_pop;
