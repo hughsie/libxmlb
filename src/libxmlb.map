@@ -265,5 +265,8 @@ LIBXMLB_0.3.4 {
   global:
     xb_node_attr_iter_init;
     xb_node_attr_iter_next;
+    xb_node_child_iter_init;
+    xb_node_child_iter_loop;
+    xb_node_child_iter_next;
   local: *;
 } LIBXMLB_0.3.1;

@@ -50,6 +50,30 @@ G_STATIC_ASSERT (sizeof (XbNodeAttrIter) == sizeof (RealAttrIter));
 G_STATIC_ASSERT (G_ALIGNOF (XbNodeAttrIter) >= G_ALIGNOF (RealAttrIter));
 
 /**
+ * XbNodeChildIter:
+ *
+ * A #XbNodeChildIter structure represents an iterator that can be used
+ * to iterate over the children of a #XbNode. #XbNodeChildIter
+ * structures are typically allocated on the stack and then initialized
+ * with xb_node_child_iter_init().
+ *
+ * Since: 0.3.4
+ */
+
+typedef struct
+{
+  XbNode 	*node;
+  XbSiloNode	*position;
+  gboolean	 first_iter;
+  gpointer	 dummy4;
+  gpointer	 dummy5;
+  gpointer	 dummy6;
+} RealChildIter;
+
+G_STATIC_ASSERT (sizeof (XbNodeChildIter) == sizeof (RealChildIter));
+G_STATIC_ASSERT (G_ALIGNOF (XbNodeChildIter) >= G_ALIGNOF (RealChildIter));
+
+/**
  * xb_node_get_data:
  * @self: a #XbNode
  * @key: a string key, e.g. `fwupd::RemoteId`
@@ -256,6 +280,134 @@ xb_node_get_children (XbNode *self)
 		n = xb_node_get_next (n);
 	}
 	return array;
+}
+
+/**
+ * xb_node_child_iter_init:
+ * @iter: an uninitialized #XbNodeChildIter
+ * @self: a #XbNode
+ *
+ * Initializes a child iterator for the node's children and associates
+ * it with @self.
+ * The #XbNodeChildIter structure is typically allocated on the stack
+ * and does not need to be freed explicitly.
+ *
+ * Since: 0.3.4
+ */
+void
+xb_node_child_iter_init (XbNodeChildIter *iter, XbNode *self)
+{
+	XbNodePrivate *priv = GET_PRIVATE (self);
+	RealChildIter *ri = (RealChildIter *) iter;
+
+	g_return_if_fail (iter != NULL);
+	g_return_if_fail (XB_IS_NODE (self));
+
+	ri->node = self;
+	ri->position = xb_silo_get_child_node (priv->silo, priv->sn);
+	ri->first_iter = TRUE;
+}
+
+/**
+ * xb_node_child_iter_next:
+ * @iter: an initialized #XbNodeAttrIter
+ * @child: (out) (optional) (not nullable): Destination of the returned child
+ *
+ * Returns the current child and advances the iterator.
+ * The retrieved #XbNode child needs to be dereferenced with g_object_unref().
+ * Example:
+ * |[<!-- language="C" -->
+ * XbNodeChildIter iter;
+ * g_autoptr(XbNode) child = NULL;
+ *
+ * xb_node_child_iter_init (&iter, node);
+ * while (xb_node_child_iter_next (&iter, &child)) {
+ *     // do something with the node child
+ *     g_clear_pointer (&child, g_object_unref);
+ * }
+ * ]|
+ *
+ * Returns: %FALSE if the last child has been reached.
+ *
+ * Since: 0.3.4
+ */
+gboolean
+xb_node_child_iter_next (XbNodeChildIter *iter, XbNode **child)
+{
+	XbNodePrivate *priv;
+	RealChildIter *ri = (RealChildIter *) iter;
+
+	g_return_val_if_fail (iter != NULL, FALSE);
+	g_return_val_if_fail (child != NULL, FALSE);
+	priv = GET_PRIVATE (ri->node);
+
+	/* check if the iteration was finished */
+	if (ri->position == NULL) {
+		*child = NULL;
+		return FALSE;
+	}
+
+	*child = xb_silo_create_node (priv->silo, ri->position, FALSE);
+	ri->position = xb_silo_get_next_node (priv->silo, ri->position);
+
+	return TRUE;
+}
+
+/**
+ * xb_node_child_iter_loop: (skip)
+ * @iter: an initialized #XbNodeAttrIter
+ * @child: (out) (optional) (nullable): Destination of the returned child
+ *
+ * Returns the current child and advances the iterator.
+ * On the first call to this function, the @child pointer is assumed to point
+ * at uninitialised memory.
+ * On any later calls, it is assumed that the same pointers
+ * will be given and that they will point to the memory as set by the
+ * previous call to this function. This allows the previous values to
+ * be freed, as appropriate.
+ *
+ * Example:
+ * |[<!-- language="C" -->
+ * XbNodeChildIter iter;
+ * XbNode *child;
+ *
+ * xb_node_child_iter_init (&iter, node);
+ * while (xb_node_child_iter_loop (&iter, &child)) {
+ *     // do something with the node child
+ *     // no need to free 'child' unless breaking out of this loop
+ * }
+ * ]|
+ *
+ * Returns: %FALSE if the last child has been reached.
+ *
+ * Since: 0.3.4
+ */
+gboolean
+xb_node_child_iter_loop (XbNodeChildIter *iter, XbNode **child)
+{
+	XbNodePrivate *priv;
+	RealChildIter *ri = (RealChildIter *) iter;
+
+	g_return_val_if_fail (iter != NULL, FALSE);
+	g_return_val_if_fail (child != NULL, FALSE);
+	priv = GET_PRIVATE (ri->node);
+
+	/* unref child from previous iterations, if there were any */
+	if (ri->first_iter)
+		ri->first_iter = FALSE;
+	else
+		g_object_unref (*child);
+
+	/* check if the iteration was finished */
+	if (ri->position == NULL) {
+		*child = NULL;
+		return FALSE;
+	}
+
+	*child = xb_silo_create_node (priv->silo, ri->position, FALSE);
+	ri->position = xb_silo_get_next_node (priv->silo, ri->position);
+
+	return TRUE;
 }
 
 /**
