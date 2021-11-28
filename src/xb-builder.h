@@ -73,6 +73,7 @@ XbSilo		*xb_builder_ensure		(XbBuilder		*self,
 						 GError			**error);
 void		 xb_builder_add_locale		(XbBuilder		*self,
 						 const gchar		*locale);
+void		 xb_builder_add_default_locales	(XbBuilder		*self);
 void		 xb_builder_add_fixup		(XbBuilder		*self,
 						 XbBuilderFixup		*fixup);
 void		 xb_builder_set_profile_flags	(XbBuilder		*self,

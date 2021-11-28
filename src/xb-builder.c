@@ -684,6 +684,23 @@ xb_builder_add_locale (XbBuilder *self, const gchar *locale)
 	xb_builder_append_guid (self, locale);
 }
 
+/**
+ * xb_builder_add_default_locales:
+ * @self: a #XbSilo
+ *
+ * Adds the system locales to the builder.
+ *
+ * Since: 0.3.4
+ **/
+void
+xb_builder_add_default_locales (XbBuilder *self)
+{
+	const gchar *const *locales = g_get_language_names ();
+	g_return_if_fail (XB_IS_BUILDER (self));
+	for (guint i = 0; locales[i] != NULL; i++)
+		xb_builder_add_locale (self, locales[i]);
+}
+
 static gboolean
 xb_builder_watch_source (XbBuilder *self,
 			 XbBuilderSource *source,

@@ -263,6 +263,7 @@ LIBXMLB_0.3.1 {
 
 LIBXMLB_0.3.4 {
   global:
+    xb_builder_add_default_locales;
     xb_node_attr_iter_init;
     xb_node_attr_iter_next;
   local: *;
