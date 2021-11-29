@@ -256,6 +256,10 @@ xb_builder_node_parse_literal_text (XbBuilderNode *self, const gchar *text, gssi
 	g_auto(GStrv) split = NULL;
 	gsize text_len_safe;
 
+	/* sanity check */
+	if (text == NULL)
+		return NULL;
+
 	/* we know this has been pre-fixed */
 	text_len_safe = text_len >= 0 ? (gsize) text_len : strlen (text);
 	if (xb_builder_node_has_flag (self, XB_BUILDER_NODE_FLAG_LITERAL_TEXT))
@@ -372,7 +376,7 @@ xb_builder_node_tokenize_text (XbBuilderNode *self)
 /**
  * xb_builder_node_set_text:
  * @self: a #XbBuilderNode
- * @text: a string
+ * @text: (allow-none): a string
  * @text_len: length of @text, or -1 if @text is NUL terminated
  *
  * Sets the text on the builder node.
@@ -385,7 +389,6 @@ xb_builder_node_set_text (XbBuilderNode *self, const gchar *text, gssize text_le
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 
 	g_return_if_fail (XB_IS_BUILDER_NODE (self));
-	g_return_if_fail (text != NULL);
 
 	/* old data */
 	g_free (priv->text);
@@ -404,7 +407,7 @@ xb_builder_node_set_text (XbBuilderNode *self, const gchar *text, gssize text_le
 /**
  * xb_builder_node_set_tail:
  * @self: a #XbBuilderNode
- * @tail: a string
+ * @text: (allow-none): a string
  * @tail_len: length of @tail, or -1 if @tail is NUL terminated
  *
  * Sets the tail on the builder node.
@@ -417,7 +420,6 @@ xb_builder_node_set_tail (XbBuilderNode *self, const gchar *tail, gssize tail_le
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 
 	g_return_if_fail (XB_IS_BUILDER_NODE (self));
-	g_return_if_fail (tail != NULL);
 
 	/* old data */
 	g_free (priv->tail);

@@ -2073,6 +2073,7 @@ xb_builder_node_func (void)
 	g_autoptr(XbBuilderNode) component = NULL;
 	g_autoptr(XbBuilderNode) components = NULL;
 	g_autoptr(XbBuilderNode) id = NULL;
+	g_autoptr(XbBuilderNode) empty = NULL;
 	g_autoptr(XbBuilderNode) root = xb_builder_node_new (NULL);
 	g_autoptr(XbSilo) silo = NULL;
 
@@ -2094,6 +2095,11 @@ xb_builder_node_func (void)
 	xb_builder_node_set_text (id, "gimp.desktop", -1);
 	xb_builder_node_insert_text (component, "icon", "dave", "type", "stock", NULL);
 	g_assert_cmpint (xb_builder_node_depth (id), ==, 3);
+
+	/* no text contents */
+	empty = xb_builder_node_new ("empty");
+	xb_builder_node_set_text(empty, NULL, -1);
+	xb_builder_node_set_tail(empty, NULL, -1);
 
 	/* get specific child */
 	child_by_element = xb_builder_node_get_child (components, "component", NULL);
