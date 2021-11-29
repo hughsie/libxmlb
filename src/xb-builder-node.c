@@ -407,7 +407,7 @@ xb_builder_node_set_text (XbBuilderNode *self, const gchar *text, gssize text_le
 /**
  * xb_builder_node_set_tail:
  * @self: a #XbBuilderNode
- * @text: (allow-none): a string
+ * @tail: (allow-none): a string
  * @tail_len: length of @tail, or -1 if @tail is NUL terminated
  *
  * Sets the tail on the builder node.

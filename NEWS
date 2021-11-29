@@ -1,3 +1,15 @@
+Version 0.3.4
+~~~~~~~~~~~~~
+Released: 2021-11-29
+
+New Features:
+ - Add a flag to require the XbBuilderSource to have no siblings (Richard Hughes)
+ - Add iterator for XbNode attributes and children (Matthias Klumpp)
+ - Allow removing XbBuilderNode text (Richard Hughes)
+ - Allow stripping builder node inner text (Richard Hughes)
+ - Include records in the symbol export list (Richard Hughes)
+ - Use -Dcli=false to reduce the install size (Richard Hughes)
+
 Version 0.3.3
 ~~~~~~~~~~~~~
 Released: 2021-10-06
