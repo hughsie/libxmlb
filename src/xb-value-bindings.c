@@ -38,9 +38,6 @@ typedef struct {
 } RealValueBindings;
 
 G_STATIC_ASSERT (sizeof (XbValueBindings) == sizeof (RealValueBindings));
-#if GLIB_CHECK_VERSION(2, 60, 0)
-G_STATIC_ASSERT (G_ALIGNOF (XbValueBindings) == G_ALIGNOF (RealValueBindings));
-#endif
 
 G_DEFINE_BOXED_TYPE (XbValueBindings, xb_value_bindings,
 		     xb_value_bindings_copy, xb_value_bindings_free)

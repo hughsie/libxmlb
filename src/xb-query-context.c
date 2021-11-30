@@ -33,9 +33,6 @@ typedef struct {
 } RealQueryContext;
 
 G_STATIC_ASSERT (sizeof (XbQueryContext) == sizeof (RealQueryContext));
-#if GLIB_CHECK_VERSION(2, 60, 0)
-G_STATIC_ASSERT (G_ALIGNOF (XbQueryContext) == G_ALIGNOF (RealQueryContext));
-#endif
 
 G_DEFINE_BOXED_TYPE (XbQueryContext, xb_query_context,
 		     xb_query_context_copy, xb_query_context_free)

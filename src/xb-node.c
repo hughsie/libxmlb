@@ -47,7 +47,6 @@ typedef struct
 } RealAttrIter;
 
 G_STATIC_ASSERT (sizeof (XbNodeAttrIter) == sizeof (RealAttrIter));
-G_STATIC_ASSERT (G_ALIGNOF (XbNodeAttrIter) >= G_ALIGNOF (RealAttrIter));
 
 /**
  * XbNodeChildIter:
@@ -71,7 +70,6 @@ typedef struct
 } RealChildIter;
 
 G_STATIC_ASSERT (sizeof (XbNodeChildIter) == sizeof (RealChildIter));
-G_STATIC_ASSERT (G_ALIGNOF (XbNodeChildIter) >= G_ALIGNOF (RealChildIter));
 
 /**
  * xb_node_get_data:
