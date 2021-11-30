@@ -1149,12 +1149,6 @@ xb_builder_node_export_helper (XbBuilderNode *self,
 		helper->level--;
 	}
 
-	/* add any tail if it exists */
-	if (priv->tail != NULL) {
-		g_autofree gchar *tail = xb_string_xml_escape (priv->tail);
-		g_string_append (helper->xml, tail);
-	}
-
 	/* add closing tag */
 	if ((helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_INDENT) > 0 &&
 	    priv->text == NULL) {
@@ -1162,6 +1156,13 @@ xb_builder_node_export_helper (XbBuilderNode *self,
 			g_string_append (helper->xml, "  ");
 	}
 	g_string_append_printf (helper->xml, "</%s>", priv->element);
+
+	/* add any tail if it exists */
+	if (priv->tail != NULL) {
+		g_autofree gchar *tail = xb_string_xml_escape (priv->tail);
+		g_string_append (helper->xml, tail);
+	}
+
 	if (helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE)
 		g_string_append (helper->xml, "\n");
 	return TRUE;

@@ -2073,6 +2073,8 @@ xb_builder_node_func (void)
 	g_autoptr(XbBuilderNode) component = NULL;
 	g_autoptr(XbBuilderNode) components = NULL;
 	g_autoptr(XbBuilderNode) id = NULL;
+	g_autoptr(XbBuilderNode) description = xb_builder_node_new ("description");
+	g_autoptr(XbBuilderNode) em = xb_builder_node_new ("em");
 	g_autoptr(XbBuilderNode) empty = NULL;
 	g_autoptr(XbBuilderNode) root = xb_builder_node_new (NULL);
 	g_autoptr(XbSilo) silo = NULL;
@@ -2095,6 +2097,13 @@ xb_builder_node_func (void)
 	xb_builder_node_set_text (id, "gimp.desktop", -1);
 	xb_builder_node_insert_text (component, "icon", "dave", "type", "stock", NULL);
 	g_assert_cmpint (xb_builder_node_depth (id), ==, 3);
+
+	xb_builder_node_add_flag (em, XB_BUILDER_NODE_FLAG_LITERAL_TEXT);
+	xb_builder_node_set_text (em, "world!", -1);
+	xb_builder_node_set_tail (em, "    ", -1);
+	xb_builder_node_add_child (description, em);
+	xb_builder_node_set_text (description, "hello ", -1);
+	xb_builder_node_add_child (component, description);
 
 	/* no text contents */
 	empty = xb_builder_node_new ("empty");
@@ -2120,9 +2129,10 @@ xb_builder_node_func (void)
 			 "<component type=\"desktop\">\n"
 			 "<id>gimp.desktop</id>\n"
 			 "<icon type=\"stock\">dave</icon>\n"
+			 "<description>hello <em>world!</em>    \n"
+			 "</description>\n"
 			 "</component>\n"
 			 "</components>\n", ==, xml_src);
-
 	/* import the doc */
 	xb_builder_import_node (builder, root);
 	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
@@ -2138,6 +2148,8 @@ xb_builder_node_func (void)
 			 "<component type=\"desktop\">"
 			 "<id>gimp.desktop</id>"
 			 "<icon type=\"stock\">dave</icon>"
+			 "<description>hello <em>world!</em>"
+			 "</description>"
 			 "</component>"
 			 "</components>", ==, xml);
 }
