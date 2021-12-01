@@ -1,3 +1,11 @@
+Version 0.3.5
+~~~~~~~~~~~~~
+Released: 2021-12-01
+
+Bugfixes:
+ - Put tail after the node when exporting XbBuilderNode (Matthias Klumpp)
+ - Remove the G_ALIGNOF checks to fix compile with old GLib versions (Richard Hughes)
+
 Version 0.3.4
 ~~~~~~~~~~~~~
 Released: 2021-11-29
