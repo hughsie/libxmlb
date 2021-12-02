@@ -493,7 +493,7 @@ xb_builder_nodetab_write_node (XbBuilderNodetabHelper *helper, XbBuilderNode *bn
 	};
 
 	/* add tokens */
-	if (xb_builder_node_has_flag (bn, XB_BUILDER_NODE_FLAG_TOKENIZE_TEXT))
+	if (token_idxs != NULL)
 		sn.flags |= XB_SILO_NODE_FLAG_IS_TOKENIZED;
 
 	/* if the node had no children and the text is just whitespace then
