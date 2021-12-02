@@ -2062,6 +2062,36 @@ xb_builder_single_root_func (void)
 }
 
 static void
+xb_builder_node_token_max_func (void)
+{
+	g_autofree gchar *xml = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new ();
+	g_autoptr(XbBuilderNode) components = NULL;
+	g_autoptr(XbBuilderNode) root = xb_builder_node_new (NULL);
+	g_autoptr(XbSilo) silo = NULL;
+
+	/* create a simple document */
+	components = xb_builder_node_insert (root, "components", NULL);
+	for (guint i = 0; i < XB_OPCODE_TOKEN_MAX * 2; i++) {
+		g_autofree gchar *tmp = g_strdup_printf("foobarbaz%04u", i);
+		xb_builder_node_add_token (components, tmp);
+	}
+
+	/* import the doc */
+	xb_builder_import_node (builder, root);
+	silo = xb_builder_compile (builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (silo);
+
+	/* check the XML */
+	xml = xb_silo_export (silo, XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (xml);
+	g_assert_cmpstr ("<components />", ==, xml);
+}
+
+static void
 xb_builder_node_func (void)
 {
 	g_autofree gchar *xml = NULL;
@@ -2661,6 +2691,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/libxmlb/builder{chained-adapters}", xb_builder_chained_adapters_func);
 	g_test_add_func ("/libxmlb/builder{source-lzma}", xb_builder_source_lzma_func);
 	g_test_add_func ("/libxmlb/builder-node", xb_builder_node_func);
+	g_test_add_func ("/libxmlb/builder-node{token-max}", xb_builder_node_token_max_func);
 	g_test_add_func ("/libxmlb/builder-node{info}", xb_builder_node_info_func);
 	g_test_add_func ("/libxmlb/builder-node{literal-text}", xb_builder_node_literal_text_func);
 	g_test_add_func ("/libxmlb/builder-node{source-text}", xb_builder_node_source_text_func);

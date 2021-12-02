@@ -388,7 +388,7 @@ xb_builder_strtab_tokens_cb (XbBuilderNode *bn, gpointer user_data)
 		return FALSE;
 	if (tokens == NULL)
 		return FALSE;
-	for (guint i = 0; i < tokens->len; i++) {
+	for (guint i = 0; i < MIN(tokens->len, XB_OPCODE_TOKEN_MAX); i++) {
 		const gchar *tmp = g_ptr_array_index (tokens, i);
 		if (tmp == NULL)
 			continue;

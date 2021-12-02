@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "xb-builder-node-private.h"
+#include "xb-opcode-private.h"
 #include "xb-silo-private.h"
 #include "xb-string-private.h"
 
@@ -930,7 +931,7 @@ xb_builder_node_size (XbBuilderNode *self)
 	XbBuilderNodePrivate *priv = GET_PRIVATE (self);
 	guint32 sz = sizeof(XbSiloNode);
 	gsize attr_len = (priv->attrs != NULL) ? priv->attrs->len : 0;
-	gsize token_len = (priv->tokens != NULL) ? priv->tokens->len : 0;
+	gsize token_len = (priv->tokens != NULL) ? MIN(priv->tokens->len, XB_OPCODE_TOKEN_MAX) : 0;
 	return sz + attr_len * sizeof(XbSiloNodeAttr) + token_len * sizeof(guint32);
 }
 
