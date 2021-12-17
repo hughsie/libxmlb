@@ -956,6 +956,8 @@ xb_builder_ensure (XbBuilder *self, GFile *file, XbBuilderCompileFlags flags,
 		g_debug ("failed to load silo: %s", error_local->message);
 	} else {
 		g_autofree gchar *guid = xb_builder_generate_guid (self);
+		if (priv->profile_flags & XB_SILO_PROFILE_FLAG_DEBUG)
+			g_debug("GUID string: %s", priv->guid->str);
 		g_debug ("file: %s, current:%s, cached: %s",
 			 xb_silo_get_guid (silo_tmp), guid,
 			 xb_silo_get_guid (priv->silo));
