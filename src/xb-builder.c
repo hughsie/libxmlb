@@ -646,11 +646,12 @@ void
 xb_builder_import_node (XbBuilder *self, XbBuilderNode *bn)
 {
 	XbBuilderPrivate *priv = GET_PRIVATE (self);
-	g_autofree gchar *guid = g_strdup_printf ("bn@%p", bn);
+	g_autofree gchar *data = xb_builder_node_export(bn, XB_NODE_EXPORT_FLAG_NONE, NULL);
+	g_autofree gchar *hash = g_strdup_printf ("bn@%x", g_str_hash(data));
 	g_return_if_fail (XB_IS_BUILDER (self));
 	g_return_if_fail (XB_IS_BUILDER_NODE (bn));
 	g_ptr_array_add (priv->nodes, g_object_ref (bn));
-	xb_builder_append_guid (self, guid);
+	xb_builder_append_guid (self, hash);
 }
 
 /**
