@@ -8,16 +8,16 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#define G_LOG_DOMAIN				"XbQueryContext"
+#define G_LOG_DOMAIN "XbQueryContext"
+
+#include "xb-query-context.h"
 
 #include "config.h"
 
 #include <glib.h>
 
 #include "xb-query.h"
-#include "xb-query-context.h"
 #include "xb-value-bindings.h"
-
 
 /* Why are #XbQueryContext and #XbValueBindings not the same object?
  * #XbQueryContext is associated with a query, but the #XbValueBindings is
@@ -32,10 +32,9 @@ typedef struct {
 	gpointer dummy[5];
 } RealQueryContext;
 
-G_STATIC_ASSERT (sizeof (XbQueryContext) == sizeof (RealQueryContext));
+G_STATIC_ASSERT(sizeof(XbQueryContext) == sizeof(RealQueryContext));
 
-G_DEFINE_BOXED_TYPE (XbQueryContext, xb_query_context,
-		     xb_query_context_copy, xb_query_context_free)
+G_DEFINE_BOXED_TYPE(XbQueryContext, xb_query_context, xb_query_context_copy, xb_query_context_free)
 
 /**
  * xb_query_context_init:
@@ -50,13 +49,13 @@ G_DEFINE_BOXED_TYPE (XbQueryContext, xb_query_context,
  * Since: 0.3.0
  */
 void
-xb_query_context_init (XbQueryContext *self)
+xb_query_context_init(XbQueryContext *self)
 {
-	RealQueryContext *_self = (RealQueryContext *) self;
+	RealQueryContext *_self = (RealQueryContext *)self;
 
 	_self->limit = 0;
 	_self->flags = XB_QUERY_FLAG_NONE;
-	xb_value_bindings_init (&_self->bindings);
+	xb_value_bindings_init(&_self->bindings);
 }
 
 /**
@@ -71,11 +70,11 @@ xb_query_context_init (XbQueryContext *self)
  * Since: 0.3.0
  */
 void
-xb_query_context_clear (XbQueryContext *self)
+xb_query_context_clear(XbQueryContext *self)
 {
-	RealQueryContext *_self = (RealQueryContext *) self;
+	RealQueryContext *_self = (RealQueryContext *)self;
 
-	xb_value_bindings_clear (&_self->bindings);
+	xb_value_bindings_clear(&_self->bindings);
 }
 
 /**
@@ -88,22 +87,22 @@ xb_query_context_clear (XbQueryContext *self)
  * Since: 0.3.0
  */
 XbQueryContext *
-xb_query_context_copy (XbQueryContext *self)
+xb_query_context_copy(XbQueryContext *self)
 {
-	RealQueryContext *_self = (RealQueryContext *) self;
-	g_autoptr(XbQueryContext) copy = g_new0 (XbQueryContext, 1);
-	RealQueryContext *_copy = (RealQueryContext *) copy;
+	RealQueryContext *_self = (RealQueryContext *)self;
+	g_autoptr(XbQueryContext) copy = g_new0(XbQueryContext, 1);
+	RealQueryContext *_copy = (RealQueryContext *)copy;
 	gsize i = 0;
 
-	xb_query_context_init (copy);
+	xb_query_context_init(copy);
 
 	_copy->limit = _self->limit;
 	_copy->flags = _self->flags;
 
-	while (xb_value_bindings_copy_binding (&_self->bindings, i, &_copy->bindings, i))
+	while (xb_value_bindings_copy_binding(&_self->bindings, i, &_copy->bindings, i))
 		i++;
 
-	return g_steal_pointer (&copy);
+	return g_steal_pointer(&copy);
 }
 
 /**
@@ -119,12 +118,12 @@ xb_query_context_copy (XbQueryContext *self)
  * Since: 0.3.0
  */
 void
-xb_query_context_free (XbQueryContext *self)
+xb_query_context_free(XbQueryContext *self)
 {
-	g_return_if_fail (self != NULL);
+	g_return_if_fail(self != NULL);
 
-	xb_query_context_clear (self);
-	g_free (self);
+	xb_query_context_clear(self);
+	g_free(self);
 }
 
 /**
@@ -137,11 +136,11 @@ xb_query_context_free (XbQueryContext *self)
  * Since: 0.3.0
  */
 XbValueBindings *
-xb_query_context_get_bindings (XbQueryContext *self)
+xb_query_context_get_bindings(XbQueryContext *self)
 {
-	RealQueryContext *_self = (RealQueryContext *) self;
+	RealQueryContext *_self = (RealQueryContext *)self;
 
-	g_return_val_if_fail (self != NULL, NULL);
+	g_return_val_if_fail(self != NULL, NULL);
 
 	return &_self->bindings;
 }
@@ -157,11 +156,11 @@ xb_query_context_get_bindings (XbQueryContext *self)
  * Since: 0.3.0
  */
 guint
-xb_query_context_get_limit (XbQueryContext *self)
+xb_query_context_get_limit(XbQueryContext *self)
 {
-	RealQueryContext *_self = (RealQueryContext *) self;
+	RealQueryContext *_self = (RealQueryContext *)self;
 
-	g_return_val_if_fail (self != NULL, 0);
+	g_return_val_if_fail(self != NULL, 0);
 
 	return _self->limit;
 }
@@ -176,11 +175,11 @@ xb_query_context_get_limit (XbQueryContext *self)
  * Since: 0.3.0
  */
 void
-xb_query_context_set_limit (XbQueryContext *self, guint limit)
+xb_query_context_set_limit(XbQueryContext *self, guint limit)
 {
-	RealQueryContext *_self = (RealQueryContext *) self;
+	RealQueryContext *_self = (RealQueryContext *)self;
 
-	g_return_if_fail (self != NULL);
+	g_return_if_fail(self != NULL);
 
 	_self->limit = limit;
 }
@@ -195,11 +194,11 @@ xb_query_context_set_limit (XbQueryContext *self, guint limit)
  * Since: 0.3.0
  */
 XbQueryFlags
-xb_query_context_get_flags (XbQueryContext *self)
+xb_query_context_get_flags(XbQueryContext *self)
 {
-	RealQueryContext *_self = (RealQueryContext *) self;
+	RealQueryContext *_self = (RealQueryContext *)self;
 
-	g_return_val_if_fail (self != NULL, XB_QUERY_FLAG_NONE);
+	g_return_val_if_fail(self != NULL, XB_QUERY_FLAG_NONE);
 
 	return _self->flags;
 }
@@ -214,11 +213,11 @@ xb_query_context_get_flags (XbQueryContext *self)
  * Since: 0.3.0
  */
 void
-xb_query_context_set_flags (XbQueryContext *self, XbQueryFlags flags)
+xb_query_context_set_flags(XbQueryContext *self, XbQueryFlags flags)
 {
-	RealQueryContext *_self = (RealQueryContext *) self;
+	RealQueryContext *_self = (RealQueryContext *)self;
 
-	g_return_if_fail (self != NULL);
+	g_return_if_fail(self != NULL);
 
 	_self->flags = flags;
 }

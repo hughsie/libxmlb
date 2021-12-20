@@ -33,7 +33,8 @@ typedef struct {
 	gpointer dummy3[5];
 } XbQueryContext;
 
-GType		 xb_query_context_get_type	(void);
+GType
+xb_query_context_get_type(void);
 
 /**
  * XB_QUERY_CONTEXT_INIT:
@@ -50,26 +51,36 @@ GType		 xb_query_context_get_type	(void);
  *
  * Since: 0.3.0
  */
-#define XB_QUERY_CONTEXT_INIT() { 0, 0, XB_VALUE_BINDINGS_INIT (), { NULL, NULL, NULL, NULL, NULL } }
+#define XB_QUERY_CONTEXT_INIT()                                                                    \
+	{                                                                                          \
+		0, 0, XB_VALUE_BINDINGS_INIT(), { NULL, NULL, NULL, NULL, NULL }                   \
+	}
 
-void		 xb_query_context_init		(XbQueryContext	 *self);
-void		 xb_query_context_clear		(XbQueryContext	 *self);
+void
+xb_query_context_init(XbQueryContext *self);
+void
+xb_query_context_clear(XbQueryContext *self);
 
-G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC (XbQueryContext, xb_query_context_clear)
+G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC(XbQueryContext, xb_query_context_clear)
 
-XbQueryContext	*xb_query_context_copy		(XbQueryContext	 *self);
-void		 xb_query_context_free		(XbQueryContext	 *self);
+XbQueryContext *
+xb_query_context_copy(XbQueryContext *self);
+void
+xb_query_context_free(XbQueryContext *self);
 
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (XbQueryContext, xb_query_context_free)
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(XbQueryContext, xb_query_context_free)
 
-XbValueBindings	*xb_query_context_get_bindings	(XbQueryContext	 *self);
+XbValueBindings *
+xb_query_context_get_bindings(XbQueryContext *self);
 
-guint		 xb_query_context_get_limit	(XbQueryContext	 *self);
-void		 xb_query_context_set_limit	(XbQueryContext	 *self,
-						 guint		  limit);
+guint
+xb_query_context_get_limit(XbQueryContext *self);
+void
+xb_query_context_set_limit(XbQueryContext *self, guint limit);
 
-XbQueryFlags	 xb_query_context_get_flags	(XbQueryContext	 *self);
-void		 xb_query_context_set_flags	(XbQueryContext	 *self,
-						 XbQueryFlags	  flags);
+XbQueryFlags
+xb_query_context_get_flags(XbQueryContext *self);
+void
+xb_query_context_set_flags(XbQueryContext *self, XbQueryFlags flags);
 
 G_END_DECLS

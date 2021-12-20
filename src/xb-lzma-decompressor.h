@@ -12,9 +12,10 @@
 
 G_BEGIN_DECLS
 
-#define XB_TYPE_LZMA_DECOMPRESSOR (xb_lzma_decompressor_get_type ())
-G_DECLARE_FINAL_TYPE (XbLzmaDecompressor, xb_lzma_decompressor, XB, LZMA_DECOMPRESSOR, GObject)
+#define XB_TYPE_LZMA_DECOMPRESSOR (xb_lzma_decompressor_get_type())
+G_DECLARE_FINAL_TYPE(XbLzmaDecompressor, xb_lzma_decompressor, XB, LZMA_DECOMPRESSOR, GObject)
 
-XbLzmaDecompressor	*xb_lzma_decompressor_new	(void);
+XbLzmaDecompressor *
+xb_lzma_decompressor_new(void);
 
 G_END_DECLS

@@ -12,33 +12,35 @@
 
 G_BEGIN_DECLS
 
-#define XB_TYPE_BUILDER_FIXUP (xb_builder_fixup_get_type ())
+#define XB_TYPE_BUILDER_FIXUP (xb_builder_fixup_get_type())
 
-G_DECLARE_DERIVABLE_TYPE (XbBuilderFixup, xb_builder_fixup, XB, BUILDER_FIXUP, GObject)
+G_DECLARE_DERIVABLE_TYPE(XbBuilderFixup, xb_builder_fixup, XB, BUILDER_FIXUP, GObject)
 
 struct _XbBuilderFixupClass {
-	GObjectClass			 parent_class;
+	GObjectClass parent_class;
 	/*< private >*/
-	void (*_xb_reserved1)		(void);
-	void (*_xb_reserved2)		(void);
-	void (*_xb_reserved3)		(void);
-	void (*_xb_reserved4)		(void);
-	void (*_xb_reserved5)		(void);
-	void (*_xb_reserved6)		(void);
-	void (*_xb_reserved7)		(void);
+	void (*_xb_reserved1)(void);
+	void (*_xb_reserved2)(void);
+	void (*_xb_reserved3)(void);
+	void (*_xb_reserved4)(void);
+	void (*_xb_reserved5)(void);
+	void (*_xb_reserved6)(void);
+	void (*_xb_reserved7)(void);
 };
 
-typedef gboolean (*XbBuilderFixupFunc)		(XbBuilderFixup		*self,
-						 XbBuilderNode		*bn,
-						 gpointer		 user_data,
-						 GError			**error);
+typedef gboolean (*XbBuilderFixupFunc)(XbBuilderFixup *self,
+				       XbBuilderNode *bn,
+				       gpointer user_data,
+				       GError **error);
 
-XbBuilderFixup	*xb_builder_fixup_new		(const gchar		*id,
-						 XbBuilderFixupFunc	 func,
-						 gpointer		 user_data,
-						 GDestroyNotify		 user_data_free);
-gint		 xb_builder_fixup_get_max_depth	(XbBuilderFixup		*self);
-void		 xb_builder_fixup_set_max_depth	(XbBuilderFixup		*self,
-						 gint			 max_depth);
+XbBuilderFixup *
+xb_builder_fixup_new(const gchar *id,
+		     XbBuilderFixupFunc func,
+		     gpointer user_data,
+		     GDestroyNotify user_data_free);
+gint
+xb_builder_fixup_get_max_depth(XbBuilderFixup *self);
+void
+xb_builder_fixup_set_max_depth(XbBuilderFixup *self, gint max_depth);
 
 G_END_DECLS

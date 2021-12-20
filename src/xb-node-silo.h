@@ -8,11 +8,12 @@
 
 #include <glib-object.h>
 
-#include "xb-silo.h"
 #include "xb-node.h"
+#include "xb-silo.h"
 
 G_BEGIN_DECLS
 
-XbSilo		*xb_node_get_silo		(XbNode		*self);
+XbSilo *
+xb_node_get_silo(XbNode *self);
 
 G_END_DECLS

@@ -36,7 +36,8 @@ typedef struct {
 	gpointer dummy8[3];
 } XbValueBindings;
 
-GType		 xb_value_bindings_get_type	(void);
+GType
+xb_value_bindings_get_type(void);
 
 /**
  * XB_VALUE_BINDINGS_INIT:
@@ -53,35 +54,42 @@ GType		 xb_value_bindings_get_type	(void);
  *
  * Since: 0.3.0
  */
-#define XB_VALUE_BINDINGS_INIT() { 0, { NULL, NULL }, 0, { NULL, NULL }, 0, { NULL, NULL }, 0, { NULL, NULL }, { NULL, } }
+#define XB_VALUE_BINDINGS_INIT()                                                                   \
+	{                                                                                          \
+		0, {NULL, NULL}, 0, {NULL, NULL}, 0, {NULL, NULL}, 0, {NULL, NULL}, { NULL, }      \
+	}
 
-void		 xb_value_bindings_init		(XbValueBindings	 *self);
-void		 xb_value_bindings_clear	(XbValueBindings	 *self);
+void
+xb_value_bindings_init(XbValueBindings *self);
+void
+xb_value_bindings_clear(XbValueBindings *self);
 
-G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC (XbValueBindings, xb_value_bindings_clear)
+G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC(XbValueBindings, xb_value_bindings_clear)
 
-XbValueBindings	*xb_value_bindings_copy		(XbValueBindings	 *self);
-void		 xb_value_bindings_free		(XbValueBindings	 *self);
+XbValueBindings *
+xb_value_bindings_copy(XbValueBindings *self);
+void
+xb_value_bindings_free(XbValueBindings *self);
 
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (XbValueBindings, xb_value_bindings_free)
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(XbValueBindings, xb_value_bindings_free)
 
-gboolean	 xb_value_bindings_is_bound	(XbValueBindings	 *self,
-						 guint			  idx);
-void		 xb_value_bindings_bind_str	(XbValueBindings	 *self,
-						 guint			  idx,
-						 const gchar		 *str,
-						 GDestroyNotify		  destroy_func);
-void		 xb_value_bindings_bind_val	(XbValueBindings	 *self,
-						 guint			  idx,
-						 guint32		  val);
+gboolean
+xb_value_bindings_is_bound(XbValueBindings *self, guint idx);
+void
+xb_value_bindings_bind_str(XbValueBindings *self,
+			   guint idx,
+			   const gchar *str,
+			   GDestroyNotify destroy_func);
+void
+xb_value_bindings_bind_val(XbValueBindings *self, guint idx, guint32 val);
 
-gboolean	 xb_value_bindings_lookup_opcode(XbValueBindings	 *self,
-						 guint			  idx,
-						 XbOpcode		 *opcode_out);
+gboolean
+xb_value_bindings_lookup_opcode(XbValueBindings *self, guint idx, XbOpcode *opcode_out);
 
-gboolean	 xb_value_bindings_copy_binding	(XbValueBindings	 *self,
-						 guint			  idx,
-						 XbValueBindings	 *dest,
-						 guint			  dest_idx);
+gboolean
+xb_value_bindings_copy_binding(XbValueBindings *self,
+			       guint idx,
+			       XbValueBindings *dest,
+			       guint dest_idx);
 
 G_END_DECLS

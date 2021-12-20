@@ -8,13 +8,14 @@
 
 #include <glib-object.h>
 
-#include "xb-silo-private.h"
 #include "xb-node.h"
+#include "xb-silo-private.h"
 
 G_BEGIN_DECLS
 
-XbNode		*xb_node_new				(XbSilo		*silo,
-							 XbSiloNode	*sn);
-XbSiloNode	*xb_node_get_sn				(XbNode		*self);
+XbNode *
+xb_node_new(XbSilo *silo, XbSiloNode *sn);
+XbSiloNode *
+xb_node_get_sn(XbNode *self);
 
 G_END_DECLS
