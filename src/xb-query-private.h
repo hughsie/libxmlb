@@ -20,13 +20,15 @@ typedef enum {
 } XbSiloQueryKind;
 
 typedef struct {
-	gchar		*element;
-	guint32		 element_idx;
-	GPtrArray	*predicates;	/* of XbStack */
-	XbSiloQueryKind	 kind;
+	gchar *element;
+	guint32 element_idx;
+	GPtrArray *predicates; /* of XbStack */
+	XbSiloQueryKind kind;
 } XbQuerySection;
 
-GPtrArray	*xb_query_get_sections		(XbQuery	*self);
-gchar		*xb_query_to_string		(XbQuery	*self);
+GPtrArray *
+xb_query_get_sections(XbQuery *self);
+gchar *
+xb_query_to_string(XbQuery *self);
 
 G_END_DECLS

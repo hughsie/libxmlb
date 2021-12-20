@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#define G_LOG_DOMAIN				"XbSilo"
+#define G_LOG_DOMAIN "XbSilo"
 
 #include "config.h"
 
@@ -17,38 +17,37 @@
 #include "xb-lzma-decompressor.h"
 
 typedef struct {
-	GInputStream		*istream;
-	GFile			*file;
-	GPtrArray		*fixups;	/* of XbBuilderFixup */
-	GPtrArray		*adapters;	/* of XbBuilderSourceAdapter */
-	XbBuilderNode		*info;
-	gchar			*guid;
-	gchar			*prefix;
-	gchar			*content_type;
-	XbBuilderSourceFlags	 flags;
+	GInputStream *istream;
+	GFile *file;
+	GPtrArray *fixups;   /* of XbBuilderFixup */
+	GPtrArray *adapters; /* of XbBuilderSourceAdapter */
+	XbBuilderNode *info;
+	gchar *guid;
+	gchar *prefix;
+	gchar *content_type;
+	XbBuilderSourceFlags flags;
 } XbBuilderSourcePrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE (XbBuilderSource, xb_builder_source, G_TYPE_OBJECT)
-#define GET_PRIVATE(o) (xb_builder_source_get_instance_private (o))
+G_DEFINE_TYPE_WITH_PRIVATE(XbBuilderSource, xb_builder_source, G_TYPE_OBJECT)
+#define GET_PRIVATE(o) (xb_builder_source_get_instance_private(o))
 
 typedef struct {
-	gchar				*content_type;
-	XbBuilderSourceAdapterFunc	 func_adapter;
-	gpointer			 user_data;
-	GDestroyNotify			 user_data_free;
-	gboolean			 is_simple;
+	gchar *content_type;
+	XbBuilderSourceAdapterFunc func_adapter;
+	gpointer user_data;
+	GDestroyNotify user_data_free;
+	gboolean is_simple;
 } XbBuilderSourceAdapter;
 
 static XbBuilderSourceAdapter *
-xb_builder_source_get_adapter_by_mime (XbBuilderSource *self,
-				       const gchar *content_type)
+xb_builder_source_get_adapter_by_mime(XbBuilderSource *self, const gchar *content_type)
 {
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE(self);
 	for (guint i = 0; i < priv->adapters->len; i++) {
-		XbBuilderSourceAdapter *item = g_ptr_array_index (priv->adapters, i);
+		XbBuilderSourceAdapter *item = g_ptr_array_index(priv->adapters, i);
 		if (item->func_adapter == NULL)
 			continue;
-		if (g_strcmp0 (item->content_type, content_type) == 0)
+		if (g_strcmp0(item->content_type, content_type) == 0)
 			return item;
 	}
 	return NULL;
@@ -69,11 +68,11 @@ xb_builder_source_get_adapter_by_mime (XbBuilderSource *self,
  * Since: 0.1.1
  **/
 gboolean
-xb_builder_source_load_file (XbBuilderSource *self,
-			     GFile *file,
-			     XbBuilderSourceFlags flags,
-			     GCancellable *cancellable,
-			     GError **error)
+xb_builder_source_load_file(XbBuilderSource *self,
+			    GFile *file,
+			    XbBuilderSourceFlags flags,
+			    GCancellable *cancellable,
+			    GError **error)
 {
 	const gchar *content_type = NULL;
 	guint32 ctime_usec;
@@ -81,49 +80,50 @@ xb_builder_source_load_file (XbBuilderSource *self,
 	g_autofree gchar *fn = NULL;
 	g_autoptr(GFileInfo) fileinfo = NULL;
 	g_autoptr(GString) guid = NULL;
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE(self);
 
-	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), FALSE);
-	g_return_val_if_fail (G_IS_FILE (file), FALSE);
-	g_return_val_if_fail (cancellable == NULL || G_IS_CANCELLABLE (cancellable), FALSE);
-	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+	g_return_val_if_fail(XB_IS_BUILDER_SOURCE(self), FALSE);
+	g_return_val_if_fail(G_IS_FILE(file), FALSE);
+	g_return_val_if_fail(cancellable == NULL || G_IS_CANCELLABLE(cancellable), FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	/* what kind of file is this */
-	fileinfo = g_file_query_info (file,
-				      G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE ","
-				      G_FILE_ATTRIBUTE_TIME_CHANGED ","
-				      G_FILE_ATTRIBUTE_TIME_CHANGED_USEC,
-				      G_FILE_QUERY_INFO_NONE,
-				      cancellable,
-				      error);
+	fileinfo = g_file_query_info(file,
+				     G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE
+				     "," G_FILE_ATTRIBUTE_TIME_CHANGED
+				     "," G_FILE_ATTRIBUTE_TIME_CHANGED_USEC,
+				     G_FILE_QUERY_INFO_NONE,
+				     cancellable,
+				     error);
 	if (fileinfo == NULL)
 		return FALSE;
 
 	/* add data to GUID */
-	fn = g_file_get_path (file);
-	guid = g_string_new (fn);
-	ctime = g_file_info_get_attribute_uint64 (fileinfo, G_FILE_ATTRIBUTE_TIME_CHANGED);
+	fn = g_file_get_path(file);
+	guid = g_string_new(fn);
+	ctime = g_file_info_get_attribute_uint64(fileinfo, G_FILE_ATTRIBUTE_TIME_CHANGED);
 	if (ctime != 0)
-		g_string_append_printf (guid, ":ctime=%" G_GUINT64_FORMAT, ctime);
-	ctime_usec = g_file_info_get_attribute_uint32 (fileinfo, G_FILE_ATTRIBUTE_TIME_CHANGED_USEC);
+		g_string_append_printf(guid, ":ctime=%" G_GUINT64_FORMAT, ctime);
+	ctime_usec = g_file_info_get_attribute_uint32(fileinfo, G_FILE_ATTRIBUTE_TIME_CHANGED_USEC);
 	if (ctime_usec != 0)
-		g_string_append_printf (guid, ".%" G_GUINT32_FORMAT, ctime_usec);
-	priv->guid = g_string_free (g_steal_pointer (&guid), FALSE);
+		g_string_append_printf(guid, ".%" G_GUINT32_FORMAT, ctime_usec);
+	priv->guid = g_string_free(g_steal_pointer(&guid), FALSE);
 
 	/* check content type of file */
-	content_type = g_file_info_get_attribute_string (fileinfo, G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE);
+	content_type =
+	    g_file_info_get_attribute_string(fileinfo, G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE);
 	if (content_type == NULL) {
-		g_set_error_literal (error,
-				     G_IO_ERROR,
-				     G_IO_ERROR_NOT_SUPPORTED,
-				     "cannot get content type for file");
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_SUPPORTED,
+				    "cannot get content type for file");
 		return FALSE;
 	}
 
 	/* success */
 	priv->flags = flags;
-	priv->content_type = g_strdup (content_type);
-	priv->file = g_object_ref (file);
+	priv->content_type = g_strdup(content_type);
+	priv->file = g_object_ref(file);
 	return TRUE;
 }
 
@@ -137,11 +137,11 @@ xb_builder_source_load_file (XbBuilderSource *self,
  * Since: 0.1.0
  **/
 void
-xb_builder_source_set_info (XbBuilderSource *self, XbBuilderNode *info)
+xb_builder_source_set_info(XbBuilderSource *self, XbBuilderNode *info)
 {
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
-	g_return_if_fail (XB_IS_BUILDER_SOURCE (self));
-	g_set_object (&priv->info, info);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE(self);
+	g_return_if_fail(XB_IS_BUILDER_SOURCE(self));
+	g_set_object(&priv->info, info);
 }
 
 /**
@@ -155,12 +155,12 @@ xb_builder_source_set_info (XbBuilderSource *self, XbBuilderNode *info)
  * Since: 0.1.0
  **/
 void
-xb_builder_source_set_prefix (XbBuilderSource *self, const gchar *prefix)
+xb_builder_source_set_prefix(XbBuilderSource *self, const gchar *prefix)
 {
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
-	g_return_if_fail (XB_IS_BUILDER_SOURCE (self));
-	g_free (priv->prefix);
-	priv->prefix = g_strdup (prefix);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE(self);
+	g_return_if_fail(XB_IS_BUILDER_SOURCE(self));
+	g_free(priv->prefix);
+	priv->prefix = g_strdup(prefix);
 }
 
 /**
@@ -177,26 +177,26 @@ xb_builder_source_set_prefix (XbBuilderSource *self, const gchar *prefix)
  * Since: 0.1.1
  **/
 gboolean
-xb_builder_source_load_xml (XbBuilderSource *self,
-			    const gchar *xml,
-			    XbBuilderSourceFlags flags,
-			    GError **error)
+xb_builder_source_load_xml(XbBuilderSource *self,
+			   const gchar *xml,
+			   XbBuilderSourceFlags flags,
+			   GError **error)
 {
 	g_autoptr(GBytes) blob = NULL;
-	g_autoptr(GChecksum) csum = g_checksum_new (G_CHECKSUM_SHA1);
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
+	g_autoptr(GChecksum) csum = g_checksum_new(G_CHECKSUM_SHA1);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE(self);
 
-	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), FALSE);
-	g_return_val_if_fail (xml != NULL, FALSE);
-	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+	g_return_val_if_fail(XB_IS_BUILDER_SOURCE(self), FALSE);
+	g_return_val_if_fail(xml != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	/* add a GUID of the SHA1 hash of the entire string */
-	g_checksum_update (csum, (const guchar *) xml, -1);
-	priv->guid = g_strdup (g_checksum_get_string (csum));
+	g_checksum_update(csum, (const guchar *)xml, -1);
+	priv->guid = g_strdup(g_checksum_get_string(csum));
 
 	/* create input stream */
-	blob = g_bytes_new (xml, strlen (xml));
-	priv->istream = g_memory_input_stream_new_from_bytes (blob);
+	blob = g_bytes_new(xml, strlen(xml));
+	priv->istream = g_memory_input_stream_new_from_bytes(blob);
 	if (priv->istream == NULL)
 		return FALSE;
 
@@ -219,26 +219,26 @@ xb_builder_source_load_xml (XbBuilderSource *self,
  * Since: 0.1.2
  **/
 gboolean
-xb_builder_source_load_bytes (XbBuilderSource *self,
-			      GBytes *bytes,
-			      XbBuilderSourceFlags flags,
-			      GError **error)
+xb_builder_source_load_bytes(XbBuilderSource *self,
+			     GBytes *bytes,
+			     XbBuilderSourceFlags flags,
+			     GError **error)
 {
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
-	g_autoptr(GChecksum) csum = g_checksum_new (G_CHECKSUM_SHA1);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE(self);
+	g_autoptr(GChecksum) csum = g_checksum_new(G_CHECKSUM_SHA1);
 
-	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), FALSE);
-	g_return_val_if_fail (bytes != NULL, FALSE);
-	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+	g_return_val_if_fail(XB_IS_BUILDER_SOURCE(self), FALSE);
+	g_return_val_if_fail(bytes != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	/* add a GUID of the SHA1 hash of the entire blob */
-	g_checksum_update (csum,
-			   (const guchar *) g_bytes_get_data (bytes, NULL),
-			   (gssize) g_bytes_get_size (bytes));
-	priv->guid = g_strdup (g_checksum_get_string (csum));
+	g_checksum_update(csum,
+			  (const guchar *)g_bytes_get_data(bytes, NULL),
+			  (gssize)g_bytes_get_size(bytes));
+	priv->guid = g_strdup(g_checksum_get_string(csum));
 
 	/* create input stream */
-	priv->istream = g_memory_input_stream_new_from_bytes (bytes);
+	priv->istream = g_memory_input_stream_new_from_bytes(bytes);
 	if (priv->istream == NULL)
 		return FALSE;
 
@@ -258,40 +258,40 @@ xb_builder_source_load_bytes (XbBuilderSource *self,
  * Since: 0.1.3
  **/
 void
-xb_builder_source_add_fixup (XbBuilderSource *self, XbBuilderFixup *fixup)
+xb_builder_source_add_fixup(XbBuilderSource *self, XbBuilderFixup *fixup)
 {
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
-	g_return_if_fail (XB_IS_BUILDER_SOURCE (self));
-	g_return_if_fail (XB_IS_BUILDER_FIXUP (fixup));
-	g_ptr_array_add (priv->fixups, g_object_ref (fixup));
+	XbBuilderSourcePrivate *priv = GET_PRIVATE(self);
+	g_return_if_fail(XB_IS_BUILDER_SOURCE(self));
+	g_return_if_fail(XB_IS_BUILDER_FIXUP(fixup));
+	g_ptr_array_add(priv->fixups, g_object_ref(fixup));
 }
 
 static void
-xb_builder_source_init_adapter (XbBuilderSource *self,
-			        const gchar *content_types,
-			        XbBuilderSourceAdapterFunc func,
-			        gpointer user_data,
-			        GDestroyNotify user_data_free,
-				gboolean is_simple)
+xb_builder_source_init_adapter(XbBuilderSource *self,
+			       const gchar *content_types,
+			       XbBuilderSourceAdapterFunc func,
+			       gpointer user_data,
+			       GDestroyNotify user_data_free,
+			       gboolean is_simple)
 {
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE(self);
 	g_auto(GStrv) split = NULL;
 
-	g_return_if_fail (XB_IS_BUILDER_SOURCE (self));
-	g_return_if_fail (content_types != NULL);
-	g_return_if_fail (func != NULL);
+	g_return_if_fail(XB_IS_BUILDER_SOURCE(self));
+	g_return_if_fail(content_types != NULL);
+	g_return_if_fail(func != NULL);
 
 	/* add each */
-	split = g_strsplit (content_types, ",", -1);
+	split = g_strsplit(content_types, ",", -1);
 	for (guint i = 0; split[i] != NULL; i++) {
 		XbBuilderSourceAdapter *item;
-		item = g_slice_new0 (XbBuilderSourceAdapter);
-		item->content_type = g_strdup (split[i]);
+		item = g_slice_new0(XbBuilderSourceAdapter);
+		item->content_type = g_strdup(split[i]);
 		item->func_adapter = func;
 		item->user_data = user_data;
 		item->user_data_free = user_data_free;
 		item->is_simple = is_simple;
-		g_ptr_array_add (priv->adapters, item);
+		g_ptr_array_add(priv->adapters, item);
 	}
 }
 
@@ -309,14 +309,13 @@ xb_builder_source_init_adapter (XbBuilderSource *self,
  * Since: 0.1.7
  **/
 void
-xb_builder_source_add_adapter (XbBuilderSource *self,
-			       const gchar *content_types,
-			       XbBuilderSourceAdapterFunc func,
-			       gpointer user_data,
-			       GDestroyNotify user_data_free)
+xb_builder_source_add_adapter(XbBuilderSource *self,
+			      const gchar *content_types,
+			      XbBuilderSourceAdapterFunc func,
+			      gpointer user_data,
+			      GDestroyNotify user_data_free)
 {
-	xb_builder_source_init_adapter (self, content_types, func,
-					user_data, user_data_free, FALSE);
+	xb_builder_source_init_adapter(self, content_types, func, user_data, user_data_free, FALSE);
 }
 
 /**
@@ -333,148 +332,147 @@ xb_builder_source_add_adapter (XbBuilderSource *self,
  * Since: 0.1.15
  **/
 void
-xb_builder_source_add_simple_adapter (XbBuilderSource *self,
-				      const gchar *content_types,
-				      XbBuilderSourceAdapterFunc func,
-				      gpointer user_data,
-				      GDestroyNotify user_data_free)
+xb_builder_source_add_simple_adapter(XbBuilderSource *self,
+				     const gchar *content_types,
+				     XbBuilderSourceAdapterFunc func,
+				     gpointer user_data,
+				     GDestroyNotify user_data_free)
 {
-	xb_builder_source_init_adapter (self, content_types, func,
-					user_data, user_data_free, TRUE);
+	xb_builder_source_init_adapter(self, content_types, func, user_data, user_data_free, TRUE);
 }
 
 gboolean
-xb_builder_source_fixup (XbBuilderSource *self, XbBuilderNode *bn, GError **error)
+xb_builder_source_fixup(XbBuilderSource *self, XbBuilderNode *bn, GError **error)
 {
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE(self);
 	for (guint i = 0; i < priv->fixups->len; i++) {
-		XbBuilderFixup *fixup = g_ptr_array_index (priv->fixups, i);
-		if (!xb_builder_fixup_node (fixup, bn, error))
+		XbBuilderFixup *fixup = g_ptr_array_index(priv->fixups, i);
+		if (!xb_builder_fixup_node(fixup, bn, error))
 			return FALSE;
 	}
 	return TRUE;
 }
 
 static gboolean
-xb_builder_source_info_guid_cb (XbBuilderNode *bn, gpointer data)
+xb_builder_source_info_guid_cb(XbBuilderNode *bn, gpointer data)
 {
-	GString *str = (GString *) data;
-	if (xb_builder_node_get_text (bn) != NULL) {
-		g_string_append_printf (str, ":%s=%s",
-					xb_builder_node_get_element (bn),
-					xb_builder_node_get_text (bn));
+	GString *str = (GString *)data;
+	if (xb_builder_node_get_text(bn) != NULL) {
+		g_string_append_printf(str,
+				       ":%s=%s",
+				       xb_builder_node_get_element(bn),
+				       xb_builder_node_get_text(bn));
 	}
 	return FALSE;
 }
 
 gchar *
-xb_builder_source_get_guid (XbBuilderSource *self)
+xb_builder_source_get_guid(XbBuilderSource *self)
 {
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
-	g_autoptr(GString) str = g_string_new (priv->guid);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE(self);
+	g_autoptr(GString) str = g_string_new(priv->guid);
 
-	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), NULL);
+	g_return_val_if_fail(XB_IS_BUILDER_SOURCE(self), NULL);
 
 	/* append function IDs */
 	for (guint i = 0; i < priv->fixups->len; i++) {
-		XbBuilderFixup *fixup = g_ptr_array_index (priv->fixups, i);
-		g_autofree gchar *tmp = xb_builder_fixup_get_guid (fixup);
-		g_string_append_printf (str, ":%s", tmp);
+		XbBuilderFixup *fixup = g_ptr_array_index(priv->fixups, i);
+		g_autofree gchar *tmp = xb_builder_fixup_get_guid(fixup);
+		g_string_append_printf(str, ":%s", tmp);
 	}
 
 	/* append any info */
 	if (priv->info != NULL) {
-		xb_builder_node_traverse (priv->info, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
-					  xb_builder_source_info_guid_cb, str);
+		xb_builder_node_traverse(priv->info,
+					 G_PRE_ORDER,
+					 G_TRAVERSE_ALL,
+					 -1,
+					 xb_builder_source_info_guid_cb,
+					 str);
 	}
 
 	/* append prefix */
 	if (priv->prefix != NULL)
-		g_string_append_printf (str, ":prefix=%s", priv->prefix);
-	return g_string_free (g_steal_pointer (&str), FALSE);
+		g_string_append_printf(str, ":prefix=%s", priv->prefix);
+	return g_string_free(g_steal_pointer(&str), FALSE);
 }
 
 const gchar *
-xb_builder_source_get_prefix (XbBuilderSource *self)
+xb_builder_source_get_prefix(XbBuilderSource *self)
 {
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
-	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), NULL);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE(self);
+	g_return_val_if_fail(XB_IS_BUILDER_SOURCE(self), NULL);
 	return priv->prefix;
 }
 
 XbBuilderNode *
-xb_builder_source_get_info (XbBuilderSource *self)
+xb_builder_source_get_info(XbBuilderSource *self)
 {
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
-	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), NULL);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE(self);
+	g_return_val_if_fail(XB_IS_BUILDER_SOURCE(self), NULL);
 	return priv->info;
 }
 
 /* converts foo.xml.gz to foo.xml */
 static void
-xb_builder_source_remove_last_extension (gchar *basename)
+xb_builder_source_remove_last_extension(gchar *basename)
 {
-	gchar *tmp = g_strrstr (basename, ".");
+	gchar *tmp = g_strrstr(basename, ".");
 	if (tmp != NULL)
 		*tmp = '\0';
 }
 
 GInputStream *
-xb_builder_source_get_istream (XbBuilderSource *self,
-			       GCancellable *cancellable,
-			       GError **error)
+xb_builder_source_get_istream(XbBuilderSource *self, GCancellable *cancellable, GError **error)
 {
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE(self);
 	g_autofree gchar *basename = NULL;
 	GFile *file;
 
-	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), NULL);
+	g_return_val_if_fail(XB_IS_BUILDER_SOURCE(self), NULL);
 
 	/* nothing required */
 	if (priv->istream != NULL)
-		return g_object_ref (priv->istream);
+		return g_object_ref(priv->istream);
 
 	/* convert the file to a GFileInputStream */
-	priv->istream = G_INPUT_STREAM (g_file_read (priv->file, cancellable, error));
+	priv->istream = G_INPUT_STREAM(g_file_read(priv->file, cancellable, error));
 	if (priv->istream == NULL)
 		return NULL;
 
 	/* run the content type handlers until we get application/xml */
-	basename = g_file_get_basename (priv->file);
+	basename = g_file_get_basename(priv->file);
 	file = priv->file;
 
 	do {
 		XbBuilderSourceAdapter *item;
 		g_autofree gchar *content_type = NULL;
 		g_autoptr(GInputStream) istream_tmp = NULL;
-		g_autoptr(XbBuilderSourceCtx) ctx = xb_builder_source_ctx_new (file, priv->istream);
+		g_autoptr(XbBuilderSourceCtx) ctx = xb_builder_source_ctx_new(file, priv->istream);
 
 		/* get the content type of the stream */
-		xb_builder_source_ctx_set_filename (ctx, basename);
-		content_type = xb_builder_source_ctx_get_content_type (ctx,
-								       cancellable,
-								       error);
+		xb_builder_source_ctx_set_filename(ctx, basename);
+		content_type = xb_builder_source_ctx_get_content_type(ctx, cancellable, error);
 		if (content_type == NULL)
 			return NULL;
-		if (g_strcmp0 (content_type, "application/xml") == 0)
+		if (g_strcmp0(content_type, "application/xml") == 0)
 			break;
 
 		/* convert the stream */
-		item = xb_builder_source_get_adapter_by_mime (self, content_type);
+		item = xb_builder_source_get_adapter_by_mime(self, content_type);
 		if (item == NULL || item->func_adapter == NULL) {
-			g_set_error (error,
-				     G_IO_ERROR,
-				     G_IO_ERROR_NOT_SUPPORTED,
-				     "cannot process content type %s",
-				     content_type);
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_SUPPORTED,
+				    "cannot process content type %s",
+				    content_type);
 			return NULL;
 		}
-		istream_tmp = item->func_adapter (self, ctx, item->user_data,
-						  cancellable, error);
+		istream_tmp = item->func_adapter(self, ctx, item->user_data, cancellable, error);
 		if (istream_tmp == NULL)
 			return NULL;
-		xb_builder_source_remove_last_extension (basename);
-		g_set_object (&priv->istream, istream_tmp);
+		xb_builder_source_remove_last_extension(basename);
+		g_set_object(&priv->istream, istream_tmp);
 
 		/* the #GFile is only useful for the outermost input stream,
 		 * for example it points to the .tar.gz file, while inner input
@@ -485,97 +483,104 @@ xb_builder_source_get_istream (XbBuilderSource *self,
 		if (item->is_simple)
 			break;
 	} while (TRUE);
-	return g_object_ref (priv->istream);
+	return g_object_ref(priv->istream);
 }
 
 GFile *
-xb_builder_source_get_file (XbBuilderSource *self)
+xb_builder_source_get_file(XbBuilderSource *self)
 {
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
-	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), NULL);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE(self);
+	g_return_val_if_fail(XB_IS_BUILDER_SOURCE(self), NULL);
 	return priv->file;
 }
 
 XbBuilderSourceFlags
-xb_builder_source_get_flags (XbBuilderSource *self)
+xb_builder_source_get_flags(XbBuilderSource *self)
 {
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
-	g_return_val_if_fail (XB_IS_BUILDER_SOURCE (self), 0);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE(self);
+	g_return_val_if_fail(XB_IS_BUILDER_SOURCE(self), 0);
 	return priv->flags;
 }
 
 static GInputStream *
-xb_builder_source_load_gzip_cb (XbBuilderSource *self,
-				XbBuilderSourceCtx *ctx,
-				gpointer user_data,
-				GCancellable *cancellable,
-				GError **error)
+xb_builder_source_load_gzip_cb(XbBuilderSource *self,
+			       XbBuilderSourceCtx *ctx,
+			       gpointer user_data,
+			       GCancellable *cancellable,
+			       GError **error)
 {
-	GInputStream *istream = xb_builder_source_ctx_get_stream (ctx);
+	GInputStream *istream = xb_builder_source_ctx_get_stream(ctx);
 	g_autoptr(GConverter) conv = NULL;
-	conv = G_CONVERTER (g_zlib_decompressor_new (G_ZLIB_COMPRESSOR_FORMAT_GZIP));
-	return g_converter_input_stream_new (istream, conv);
+	conv = G_CONVERTER(g_zlib_decompressor_new(G_ZLIB_COMPRESSOR_FORMAT_GZIP));
+	return g_converter_input_stream_new(istream, conv);
 }
 
 static GInputStream *
-xb_builder_source_load_lzma_cb (XbBuilderSource *self,
-				XbBuilderSourceCtx *ctx,
-				gpointer user_data,
-				GCancellable *cancellable,
-				GError **error)
+xb_builder_source_load_lzma_cb(XbBuilderSource *self,
+			       XbBuilderSourceCtx *ctx,
+			       gpointer user_data,
+			       GCancellable *cancellable,
+			       GError **error)
 {
-	GInputStream *istream = xb_builder_source_ctx_get_stream (ctx);
-	g_autoptr(GConverter) conv = G_CONVERTER (xb_lzma_decompressor_new ());
-	return g_converter_input_stream_new (istream, conv);
+	GInputStream *istream = xb_builder_source_ctx_get_stream(ctx);
+	g_autoptr(GConverter) conv = G_CONVERTER(xb_lzma_decompressor_new());
+	return g_converter_input_stream_new(istream, conv);
 }
 
 static void
-xb_builder_source_adapter_free (XbBuilderSourceAdapter *item)
+xb_builder_source_adapter_free(XbBuilderSourceAdapter *item)
 {
 	if (item->user_data_free != NULL)
-		item->user_data_free (item->user_data);
-	g_free (item->content_type);
-	g_slice_free (XbBuilderSourceAdapter, item);
+		item->user_data_free(item->user_data);
+	g_free(item->content_type);
+	g_slice_free(XbBuilderSourceAdapter, item);
 }
 
 static void
-xb_builder_source_finalize (GObject *obj)
+xb_builder_source_finalize(GObject *obj)
 {
-	XbBuilderSource *self = XB_BUILDER_SOURCE (obj);
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
+	XbBuilderSource *self = XB_BUILDER_SOURCE(obj);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE(self);
 
 	if (priv->istream != NULL)
-		g_object_unref (priv->istream);
+		g_object_unref(priv->istream);
 	if (priv->info != NULL)
-		g_object_unref (priv->info);
+		g_object_unref(priv->info);
 	if (priv->file != NULL)
-		g_object_unref (priv->file);
-	g_ptr_array_unref (priv->fixups);
-	g_ptr_array_unref (priv->adapters);
-	g_free (priv->guid);
-	g_free (priv->prefix);
-	g_free (priv->content_type);
+		g_object_unref(priv->file);
+	g_ptr_array_unref(priv->fixups);
+	g_ptr_array_unref(priv->adapters);
+	g_free(priv->guid);
+	g_free(priv->prefix);
+	g_free(priv->content_type);
 
-	G_OBJECT_CLASS (xb_builder_source_parent_class)->finalize (obj);
+	G_OBJECT_CLASS(xb_builder_source_parent_class)->finalize(obj);
 }
 
 static void
-xb_builder_source_class_init (XbBuilderSourceClass *klass)
+xb_builder_source_class_init(XbBuilderSourceClass *klass)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (klass);
+	GObjectClass *object_class = G_OBJECT_CLASS(klass);
 	object_class->finalize = xb_builder_source_finalize;
 }
 
 static void
-xb_builder_source_init (XbBuilderSource *self)
+xb_builder_source_init(XbBuilderSource *self)
 {
-	XbBuilderSourcePrivate *priv = GET_PRIVATE (self);
-	priv->fixups = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
-	priv->adapters = g_ptr_array_new_with_free_func ((GDestroyNotify) xb_builder_source_adapter_free);
-	xb_builder_source_add_adapter (self, "application/gzip,application/x-gzip",
-				       xb_builder_source_load_gzip_cb, NULL, NULL);
-	xb_builder_source_add_adapter (self, "application/x-xz",
-				       xb_builder_source_load_lzma_cb, NULL, NULL);
+	XbBuilderSourcePrivate *priv = GET_PRIVATE(self);
+	priv->fixups = g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
+	priv->adapters =
+	    g_ptr_array_new_with_free_func((GDestroyNotify)xb_builder_source_adapter_free);
+	xb_builder_source_add_adapter(self,
+				      "application/gzip,application/x-gzip",
+				      xb_builder_source_load_gzip_cb,
+				      NULL,
+				      NULL);
+	xb_builder_source_add_adapter(self,
+				      "application/x-xz",
+				      xb_builder_source_load_lzma_cb,
+				      NULL,
+				      NULL);
 }
 
 /**
@@ -588,7 +593,7 @@ xb_builder_source_init (XbBuilderSource *self)
  * Since: 0.1.1
  **/
 XbBuilderSource *
-xb_builder_source_new (void)
+xb_builder_source_new(void)
 {
-	return g_object_new (XB_TYPE_BUILDER_SOURCE, NULL);
+	return g_object_new(XB_TYPE_BUILDER_SOURCE, NULL);
 }

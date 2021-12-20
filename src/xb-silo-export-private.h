@@ -11,9 +11,7 @@
 
 G_BEGIN_DECLS
 
-GString		*xb_silo_export_with_root	(XbSilo		*self,
-						 XbSiloNode	*sroot,
-						 XbNodeExportFlags flags,
-						 GError		**error);
+GString *
+xb_silo_export_with_root(XbSilo *self, XbSiloNode *sroot, XbNodeExportFlags flags, GError **error);
 
 G_END_DECLS

@@ -10,9 +10,9 @@
 
 G_BEGIN_DECLS
 
-void		 xb_string_append_union			(GString	*xpath,
-							 const gchar	*fmt,
-							 ...) G_GNUC_PRINTF (2, 3);
-gchar		*xb_string_escape			(const gchar	*str);
+void
+xb_string_append_union(GString *xpath, const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
+gchar *
+xb_string_escape(const gchar *str);
 
 G_END_DECLS

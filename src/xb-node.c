@@ -4,24 +4,24 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#define G_LOG_DOMAIN				"XbNode"
+#define G_LOG_DOMAIN "XbNode"
 
 #include "config.h"
 
-#include <glib-object.h>
 #include <gio/gio.h>
+#include <glib-object.h>
 
 #include "xb-node-private.h"
 #include "xb-node-silo.h"
 #include "xb-silo-export-private.h"
 
 typedef struct {
-	XbSilo			*silo;
-	XbSiloNode		*sn;
+	XbSilo *silo;
+	XbSiloNode *sn;
 } XbNodePrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE (XbNode, xb_node, G_TYPE_OBJECT)
-#define GET_PRIVATE(o) (xb_node_get_instance_private (o))
+G_DEFINE_TYPE_WITH_PRIVATE(XbNode, xb_node, G_TYPE_OBJECT)
+#define GET_PRIVATE(o) (xb_node_get_instance_private(o))
 
 /**
  * XbNodeAttrIter:
@@ -36,17 +36,16 @@ G_DEFINE_TYPE_WITH_PRIVATE (XbNode, xb_node, G_TYPE_OBJECT)
  * Since: 0.3.4
  */
 
-typedef struct
-{
-  XbNode 	*node;
-  guint8	 position;
-  gpointer	 dummy3;
-  gpointer	 dummy4;
-  gpointer	 dummy5;
-  gpointer	 dummy6;
+typedef struct {
+	XbNode *node;
+	guint8 position;
+	gpointer dummy3;
+	gpointer dummy4;
+	gpointer dummy5;
+	gpointer dummy6;
 } RealAttrIter;
 
-G_STATIC_ASSERT (sizeof (XbNodeAttrIter) == sizeof (RealAttrIter));
+G_STATIC_ASSERT(sizeof(XbNodeAttrIter) == sizeof(RealAttrIter));
 
 /**
  * XbNodeChildIter:
@@ -59,17 +58,16 @@ G_STATIC_ASSERT (sizeof (XbNodeAttrIter) == sizeof (RealAttrIter));
  * Since: 0.3.4
  */
 
-typedef struct
-{
-  XbNode 	*node;
-  XbSiloNode	*position;
-  gboolean	 first_iter;
-  gpointer	 dummy4;
-  gpointer	 dummy5;
-  gpointer	 dummy6;
+typedef struct {
+	XbNode *node;
+	XbSiloNode *position;
+	gboolean first_iter;
+	gpointer dummy4;
+	gpointer dummy5;
+	gpointer dummy6;
 } RealChildIter;
 
-G_STATIC_ASSERT (sizeof (XbNodeChildIter) == sizeof (RealChildIter));
+G_STATIC_ASSERT(sizeof(XbNodeChildIter) == sizeof(RealChildIter));
 
 /**
  * xb_node_get_data:
@@ -88,13 +86,13 @@ G_STATIC_ASSERT (sizeof (XbNodeChildIter) == sizeof (RealChildIter));
  * Since: 0.1.0
  **/
 GBytes *
-xb_node_get_data (XbNode *self, const gchar *key)
+xb_node_get_data(XbNode *self, const gchar *key)
 {
-	XbNodePrivate *priv = GET_PRIVATE (self);
-	g_return_val_if_fail (XB_IS_NODE (self), NULL);
-	g_return_val_if_fail (key != NULL, NULL);
-	g_return_val_if_fail (priv->silo, NULL);
-	return g_object_get_data (G_OBJECT (self), key);
+	XbNodePrivate *priv = GET_PRIVATE(self);
+	g_return_val_if_fail(XB_IS_NODE(self), NULL);
+	g_return_val_if_fail(key != NULL, NULL);
+	g_return_val_if_fail(priv->silo, NULL);
+	return g_object_get_data(G_OBJECT(self), key);
 }
 
 /**
@@ -113,16 +111,17 @@ xb_node_get_data (XbNode *self, const gchar *key)
  * Since: 0.1.0
  **/
 void
-xb_node_set_data (XbNode *self, const gchar *key, GBytes *data)
+xb_node_set_data(XbNode *self, const gchar *key, GBytes *data)
 {
-	XbNodePrivate *priv = GET_PRIVATE (self);
-	g_return_if_fail (XB_IS_NODE (self));
-	g_return_if_fail (key != NULL);
-	g_return_if_fail (data != NULL);
-	g_return_if_fail (priv->silo);
-	g_object_set_data_full (G_OBJECT (self), key,
-				g_bytes_ref (data),
-				(GDestroyNotify) g_bytes_unref);
+	XbNodePrivate *priv = GET_PRIVATE(self);
+	g_return_if_fail(XB_IS_NODE(self));
+	g_return_if_fail(key != NULL);
+	g_return_if_fail(data != NULL);
+	g_return_if_fail(priv->silo);
+	g_object_set_data_full(G_OBJECT(self),
+			       key,
+			       g_bytes_ref(data),
+			       (GDestroyNotify)g_bytes_unref);
 }
 
 /**
@@ -136,9 +135,9 @@ xb_node_set_data (XbNode *self, const gchar *key, GBytes *data)
  * Since: 0.1.0
  **/
 XbSiloNode *
-xb_node_get_sn (XbNode *self)
+xb_node_get_sn(XbNode *self)
 {
-	XbNodePrivate *priv = GET_PRIVATE (self);
+	XbNodePrivate *priv = GET_PRIVATE(self);
 	return priv->sn;
 }
 
@@ -153,9 +152,9 @@ xb_node_get_sn (XbNode *self)
  * Since: 0.2.0
  **/
 XbSilo *
-xb_node_get_silo (XbNode *self)
+xb_node_get_silo(XbNode *self)
 {
-	XbNodePrivate *priv = GET_PRIVATE (self);
+	XbNodePrivate *priv = GET_PRIVATE(self);
 	return priv->silo;
 }
 
@@ -170,17 +169,17 @@ xb_node_get_silo (XbNode *self)
  * Since: 0.1.0
  **/
 XbNode *
-xb_node_get_root (XbNode *self)
+xb_node_get_root(XbNode *self)
 {
-	XbNodePrivate *priv = GET_PRIVATE (self);
+	XbNodePrivate *priv = GET_PRIVATE(self);
 	XbSiloNode *sn;
 
-	g_return_val_if_fail (XB_IS_NODE (self), NULL);
+	g_return_val_if_fail(XB_IS_NODE(self), NULL);
 
-	sn = xb_silo_get_root_node (priv->silo);
+	sn = xb_silo_get_root_node(priv->silo);
 	if (sn == NULL)
 		return NULL;
-	return xb_silo_create_node (priv->silo, sn, FALSE);
+	return xb_silo_create_node(priv->silo, sn, FALSE);
 }
 
 /**
@@ -194,17 +193,17 @@ xb_node_get_root (XbNode *self)
  * Since: 0.1.0
  **/
 XbNode *
-xb_node_get_parent (XbNode *self)
+xb_node_get_parent(XbNode *self)
 {
-	XbNodePrivate *priv = GET_PRIVATE (self);
+	XbNodePrivate *priv = GET_PRIVATE(self);
 	XbSiloNode *sn;
 
-	g_return_val_if_fail (XB_IS_NODE (self), NULL);
+	g_return_val_if_fail(XB_IS_NODE(self), NULL);
 
-	sn = xb_silo_get_parent_node (priv->silo, priv->sn);
+	sn = xb_silo_get_parent_node(priv->silo, priv->sn);
 	if (sn == NULL)
 		return NULL;
-	return xb_silo_create_node (priv->silo, sn, FALSE);
+	return xb_silo_create_node(priv->silo, sn, FALSE);
 }
 
 /**
@@ -218,17 +217,17 @@ xb_node_get_parent (XbNode *self)
  * Since: 0.1.0
  **/
 XbNode *
-xb_node_get_next (XbNode *self)
+xb_node_get_next(XbNode *self)
 {
-	XbNodePrivate *priv = GET_PRIVATE (self);
+	XbNodePrivate *priv = GET_PRIVATE(self);
 	XbSiloNode *sn;
 
-	g_return_val_if_fail (XB_IS_NODE (self), NULL);
+	g_return_val_if_fail(XB_IS_NODE(self), NULL);
 
-	sn = xb_silo_get_next_node (priv->silo, priv->sn);
+	sn = xb_silo_get_next_node(priv->silo, priv->sn);
 	if (sn == NULL)
 		return NULL;
-	return xb_silo_create_node (priv->silo, sn, FALSE);
+	return xb_silo_create_node(priv->silo, sn, FALSE);
 }
 
 /**
@@ -242,17 +241,17 @@ xb_node_get_next (XbNode *self)
  * Since: 0.1.0
  **/
 XbNode *
-xb_node_get_child (XbNode *self)
+xb_node_get_child(XbNode *self)
 {
-	XbNodePrivate *priv = GET_PRIVATE (self);
+	XbNodePrivate *priv = GET_PRIVATE(self);
 	XbSiloNode *sn;
 
-	g_return_val_if_fail (XB_IS_NODE (self), NULL);
+	g_return_val_if_fail(XB_IS_NODE(self), NULL);
 
-	sn = xb_silo_get_child_node (priv->silo, priv->sn);
+	sn = xb_silo_get_child_node(priv->silo, priv->sn);
 	if (sn == NULL)
 		return NULL;
-	return xb_silo_create_node (priv->silo, sn, FALSE);
+	return xb_silo_create_node(priv->silo, sn, FALSE);
 }
 
 /**
@@ -266,16 +265,16 @@ xb_node_get_child (XbNode *self)
  * Since: 0.1.0
  **/
 GPtrArray *
-xb_node_get_children (XbNode *self)
+xb_node_get_children(XbNode *self)
 {
 	XbNode *n;
-	GPtrArray *array = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+	GPtrArray *array = g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
 
 	/* add all children */
-	n = xb_node_get_child (self);
+	n = xb_node_get_child(self);
 	while (n != NULL) {
-		g_ptr_array_add (array, n);
-		n = xb_node_get_next (n);
+		g_ptr_array_add(array, n);
+		n = xb_node_get_next(n);
 	}
 	return array;
 }
@@ -293,16 +292,16 @@ xb_node_get_children (XbNode *self)
  * Since: 0.3.4
  */
 void
-xb_node_child_iter_init (XbNodeChildIter *iter, XbNode *self)
+xb_node_child_iter_init(XbNodeChildIter *iter, XbNode *self)
 {
-	XbNodePrivate *priv = GET_PRIVATE (self);
-	RealChildIter *ri = (RealChildIter *) iter;
+	XbNodePrivate *priv = GET_PRIVATE(self);
+	RealChildIter *ri = (RealChildIter *)iter;
 
-	g_return_if_fail (iter != NULL);
-	g_return_if_fail (XB_IS_NODE (self));
+	g_return_if_fail(iter != NULL);
+	g_return_if_fail(XB_IS_NODE(self));
 
 	ri->node = self;
-	ri->position = xb_silo_get_child_node (priv->silo, priv->sn);
+	ri->position = xb_silo_get_child_node(priv->silo, priv->sn);
 	ri->first_iter = TRUE;
 }
 
@@ -330,14 +329,14 @@ xb_node_child_iter_init (XbNodeChildIter *iter, XbNode *self)
  * Since: 0.3.4
  */
 gboolean
-xb_node_child_iter_next (XbNodeChildIter *iter, XbNode **child)
+xb_node_child_iter_next(XbNodeChildIter *iter, XbNode **child)
 {
 	XbNodePrivate *priv;
-	RealChildIter *ri = (RealChildIter *) iter;
+	RealChildIter *ri = (RealChildIter *)iter;
 
-	g_return_val_if_fail (iter != NULL, FALSE);
-	g_return_val_if_fail (child != NULL, FALSE);
-	priv = GET_PRIVATE (ri->node);
+	g_return_val_if_fail(iter != NULL, FALSE);
+	g_return_val_if_fail(child != NULL, FALSE);
+	priv = GET_PRIVATE(ri->node);
 
 	/* check if the iteration was finished */
 	if (ri->position == NULL) {
@@ -345,8 +344,8 @@ xb_node_child_iter_next (XbNodeChildIter *iter, XbNode **child)
 		return FALSE;
 	}
 
-	*child = xb_silo_create_node (priv->silo, ri->position, FALSE);
-	ri->position = xb_silo_get_next_node (priv->silo, ri->position);
+	*child = xb_silo_create_node(priv->silo, ri->position, FALSE);
+	ri->position = xb_silo_get_next_node(priv->silo, ri->position);
 
 	return TRUE;
 }
@@ -381,20 +380,20 @@ xb_node_child_iter_next (XbNodeChildIter *iter, XbNode **child)
  * Since: 0.3.4
  */
 gboolean
-xb_node_child_iter_loop (XbNodeChildIter *iter, XbNode **child)
+xb_node_child_iter_loop(XbNodeChildIter *iter, XbNode **child)
 {
 	XbNodePrivate *priv;
-	RealChildIter *ri = (RealChildIter *) iter;
+	RealChildIter *ri = (RealChildIter *)iter;
 
-	g_return_val_if_fail (iter != NULL, FALSE);
-	g_return_val_if_fail (child != NULL, FALSE);
-	priv = GET_PRIVATE (ri->node);
+	g_return_val_if_fail(iter != NULL, FALSE);
+	g_return_val_if_fail(child != NULL, FALSE);
+	priv = GET_PRIVATE(ri->node);
 
 	/* unref child from previous iterations, if there were any */
 	if (ri->first_iter)
 		ri->first_iter = FALSE;
 	else
-		g_object_unref (*child);
+		g_object_unref(*child);
 
 	/* check if the iteration was finished */
 	if (ri->position == NULL) {
@@ -402,8 +401,8 @@ xb_node_child_iter_loop (XbNodeChildIter *iter, XbNode **child)
 		return FALSE;
 	}
 
-	*child = xb_silo_create_node (priv->silo, ri->position, FALSE);
-	ri->position = xb_silo_get_next_node (priv->silo, ri->position);
+	*child = xb_silo_create_node(priv->silo, ri->position, FALSE);
+	ri->position = xb_silo_get_next_node(priv->silo, ri->position);
 
 	return TRUE;
 }
@@ -419,11 +418,11 @@ xb_node_child_iter_loop (XbNodeChildIter *iter, XbNode **child)
  * Since: 0.1.0
  **/
 const gchar *
-xb_node_get_text (XbNode *self)
+xb_node_get_text(XbNode *self)
 {
-	XbNodePrivate *priv = GET_PRIVATE (self);
-	g_return_val_if_fail (XB_IS_NODE (self), NULL);
-	return xb_silo_get_node_text (priv->silo, priv->sn);
+	XbNodePrivate *priv = GET_PRIVATE(self);
+	g_return_val_if_fail(XB_IS_NODE(self), NULL);
+	return xb_silo_get_node_text(priv->silo, priv->sn);
 }
 
 /**
@@ -437,19 +436,20 @@ xb_node_get_text (XbNode *self)
  * Since: 0.1.0
  **/
 guint64
-xb_node_get_text_as_uint (XbNode *self)
+xb_node_get_text_as_uint(XbNode *self)
 {
-	XbNodePrivate *priv = GET_PRIVATE (self);
+	XbNodePrivate *priv = GET_PRIVATE(self);
 	const gchar *tmp;
 
-	g_return_val_if_fail (XB_IS_NODE (self), G_MAXUINT64);
+	g_return_val_if_fail(XB_IS_NODE(self), G_MAXUINT64);
 
-	tmp = xb_silo_get_node_text (priv->silo, priv->sn);;
+	tmp = xb_silo_get_node_text(priv->silo, priv->sn);
+	;
 	if (tmp == NULL)
 		return G_MAXUINT64;
-	if (g_str_has_prefix (tmp, "0x"))
-		return g_ascii_strtoull (tmp + 2, NULL, 16);
-	return g_ascii_strtoull (tmp, NULL, 10);
+	if (g_str_has_prefix(tmp, "0x"))
+		return g_ascii_strtoull(tmp + 2, NULL, 16);
+	return g_ascii_strtoull(tmp, NULL, 10);
 }
 
 /**
@@ -463,11 +463,11 @@ xb_node_get_text_as_uint (XbNode *self)
  * Since: 0.1.12
  **/
 const gchar *
-xb_node_get_tail (XbNode *self)
+xb_node_get_tail(XbNode *self)
 {
-	XbNodePrivate *priv = GET_PRIVATE (self);
-	g_return_val_if_fail (XB_IS_NODE (self), NULL);
-	return xb_silo_get_node_tail (priv->silo, priv->sn);
+	XbNodePrivate *priv = GET_PRIVATE(self);
+	g_return_val_if_fail(XB_IS_NODE(self), NULL);
+	return xb_silo_get_node_tail(priv->silo, priv->sn);
 }
 
 /**
@@ -481,11 +481,11 @@ xb_node_get_tail (XbNode *self)
  * Since: 0.1.0
  **/
 const gchar *
-xb_node_get_element (XbNode *self)
+xb_node_get_element(XbNode *self)
 {
-	XbNodePrivate *priv = GET_PRIVATE (self);
-	g_return_val_if_fail (XB_IS_NODE (self), NULL);
-	return xb_silo_get_node_element (priv->silo, priv->sn);
+	XbNodePrivate *priv = GET_PRIVATE(self);
+	g_return_val_if_fail(XB_IS_NODE(self), NULL);
+	return xb_silo_get_node_element(priv->silo, priv->sn);
 }
 
 /**
@@ -500,18 +500,18 @@ xb_node_get_element (XbNode *self)
  * Since: 0.1.0
  **/
 const gchar *
-xb_node_get_attr (XbNode *self, const gchar *name)
+xb_node_get_attr(XbNode *self, const gchar *name)
 {
-	XbNodePrivate *priv = GET_PRIVATE (self);
+	XbNodePrivate *priv = GET_PRIVATE(self);
 	XbSiloNodeAttr *a;
 
-	g_return_val_if_fail (XB_IS_NODE (self), NULL);
-	g_return_val_if_fail (name != NULL, NULL);
+	g_return_val_if_fail(XB_IS_NODE(self), NULL);
+	g_return_val_if_fail(name != NULL, NULL);
 
-	a = xb_silo_get_node_attr_by_str (priv->silo, priv->sn, name);
+	a = xb_silo_get_node_attr_by_str(priv->silo, priv->sn, name);
 	if (a == NULL)
 		return NULL;
-	return xb_silo_from_strtab (priv->silo, a->attr_value);
+	return xb_silo_from_strtab(priv->silo, a->attr_value);
 }
 
 /**
@@ -526,19 +526,19 @@ xb_node_get_attr (XbNode *self, const gchar *name)
  * Since: 0.1.0
  **/
 guint64
-xb_node_get_attr_as_uint (XbNode *self, const gchar *name)
+xb_node_get_attr_as_uint(XbNode *self, const gchar *name)
 {
 	const gchar *tmp;
 
-	g_return_val_if_fail (XB_IS_NODE (self), G_MAXUINT64);
-	g_return_val_if_fail (name != NULL, G_MAXUINT64);
+	g_return_val_if_fail(XB_IS_NODE(self), G_MAXUINT64);
+	g_return_val_if_fail(name != NULL, G_MAXUINT64);
 
-	tmp = xb_node_get_attr (self, name);
+	tmp = xb_node_get_attr(self, name);
 	if (tmp == NULL)
 		return G_MAXUINT64;
-	if (g_str_has_prefix (tmp, "0x"))
-		return g_ascii_strtoull (tmp + 2, NULL, 16);
-	return g_ascii_strtoull (tmp, NULL, 10);
+	if (g_str_has_prefix(tmp, "0x"))
+		return g_ascii_strtoull(tmp + 2, NULL, 16);
+	return g_ascii_strtoull(tmp, NULL, 10);
 }
 
 /**
@@ -554,16 +554,16 @@ xb_node_get_attr_as_uint (XbNode *self, const gchar *name)
  * Since: 0.3.4
  */
 void
-xb_node_attr_iter_init (XbNodeAttrIter *iter, XbNode *self)
+xb_node_attr_iter_init(XbNodeAttrIter *iter, XbNode *self)
 {
-	XbNodePrivate *priv = GET_PRIVATE (self);
-	RealAttrIter *ri = (RealAttrIter *) iter;
+	XbNodePrivate *priv = GET_PRIVATE(self);
+	RealAttrIter *ri = (RealAttrIter *)iter;
 
-	g_return_if_fail (iter != NULL);
-	g_return_if_fail (XB_IS_NODE (self));
+	g_return_if_fail(iter != NULL);
+	g_return_if_fail(XB_IS_NODE(self));
 
 	ri->node = self;
-	ri->position = xb_silo_node_get_attr_count (priv->sn);
+	ri->position = xb_silo_node_get_attr_count(priv->sn);
 }
 
 /**
@@ -589,14 +589,14 @@ xb_node_attr_iter_init (XbNodeAttrIter *iter, XbNode *self)
  * Since: 0.3.4
  */
 gboolean
-xb_node_attr_iter_next (XbNodeAttrIter *iter, const gchar **name, const gchar **value)
+xb_node_attr_iter_next(XbNodeAttrIter *iter, const gchar **name, const gchar **value)
 {
 	XbSiloNodeAttr *a;
 	XbNodePrivate *priv;
-	RealAttrIter *ri = (RealAttrIter *) iter;
+	RealAttrIter *ri = (RealAttrIter *)iter;
 
-	g_return_val_if_fail (iter != NULL, FALSE);
-	priv = GET_PRIVATE (ri->node);
+	g_return_val_if_fail(iter != NULL, FALSE);
+	priv = GET_PRIVATE(ri->node);
 
 	/* check if the iteration was finished */
 	if (ri->position == 0) {
@@ -608,11 +608,11 @@ xb_node_attr_iter_next (XbNodeAttrIter *iter, const gchar **name, const gchar **
 	}
 
 	ri->position--;
-	a = xb_silo_node_get_attr (priv->sn, ri->position);
+	a = xb_silo_node_get_attr(priv->sn, ri->position);
 	if (name != NULL)
-		*name = xb_silo_from_strtab (priv->silo, a->attr_name);
+		*name = xb_silo_from_strtab(priv->silo, a->attr_name);
 	if (value != NULL)
-		*value = xb_silo_from_strtab (priv->silo, a->attr_value);
+		*value = xb_silo_from_strtab(priv->silo, a->attr_value);
 
 	return TRUE;
 }
@@ -628,11 +628,11 @@ xb_node_attr_iter_next (XbNodeAttrIter *iter, const gchar **name, const gchar **
  * Since: 0.1.0
  **/
 guint
-xb_node_get_depth (XbNode *self)
+xb_node_get_depth(XbNode *self)
 {
-	XbNodePrivate *priv = GET_PRIVATE (self);
-	g_return_val_if_fail (XB_IS_NODE (self), 0);
-	return xb_silo_get_node_depth (priv->silo, priv->sn);
+	XbNodePrivate *priv = GET_PRIVATE(self);
+	g_return_val_if_fail(XB_IS_NODE(self), 0);
+	return xb_silo_get_node_depth(priv->silo, priv->sn);
 }
 
 /**
@@ -648,15 +648,15 @@ xb_node_get_depth (XbNode *self)
  * Since: 0.1.0
  **/
 gchar *
-xb_node_export (XbNode *self, XbNodeExportFlags flags, GError **error)
+xb_node_export(XbNode *self, XbNodeExportFlags flags, GError **error)
 {
 	GString *xml;
-	g_return_val_if_fail (XB_IS_NODE (self), NULL);
-	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
-	xml = xb_silo_export_with_root (xb_node_get_silo (self), xb_node_get_sn (self), flags, error);
+	g_return_val_if_fail(XB_IS_NODE(self), NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+	xml = xb_silo_export_with_root(xb_node_get_silo(self), xb_node_get_sn(self), flags, error);
 	if (xml == NULL)
 		return NULL;
-	return g_string_free (xml, FALSE);
+	return g_string_free(xml, FALSE);
 }
 
 /**
@@ -678,62 +678,62 @@ xb_node_export (XbNode *self, XbNodeExportFlags flags, GError **error)
  * Since: 0.1.12
  **/
 gboolean
-xb_node_transmogrify (XbNode *self,
-		      XbNodeTransmogrifyFunc func_text,
-		      XbNodeTransmogrifyFunc func_tail,
-		      gpointer user_data)
+xb_node_transmogrify(XbNode *self,
+		     XbNodeTransmogrifyFunc func_text,
+		     XbNodeTransmogrifyFunc func_tail,
+		     gpointer user_data)
 {
 	g_autoptr(XbNode) n = NULL;
 
-	g_return_val_if_fail (XB_IS_NODE (self), FALSE);
+	g_return_val_if_fail(XB_IS_NODE(self), FALSE);
 
 	/* all siblings */
-	n = g_object_ref (self);
+	n = g_object_ref(self);
 	while (n != NULL) {
 		g_autoptr(XbNode) c = NULL;
 		g_autoptr(XbNode) tmp = NULL;
 
 		/* head */
 		if (func_text != NULL) {
-			if (func_text (n, user_data))
+			if (func_text(n, user_data))
 				return FALSE;
 		}
 
 		/* all children */
-		c = xb_node_get_child (n);
+		c = xb_node_get_child(n);
 		if (c != NULL) {
-			if (!xb_node_transmogrify (c, func_text, func_tail, user_data))
+			if (!xb_node_transmogrify(c, func_text, func_tail, user_data))
 				return FALSE;
 		}
 
 		/* tail */
 		if (func_tail != NULL) {
-			if (func_tail (n, user_data))
+			if (func_tail(n, user_data))
 				return FALSE;
 		}
 
 		/* next sibling */
-		tmp = xb_node_get_next (n);
-		g_set_object (&n, tmp);
+		tmp = xb_node_get_next(n);
+		g_set_object(&n, tmp);
 	}
 	return TRUE;
 }
 
 static void
-xb_node_init (XbNode *self)
+xb_node_init(XbNode *self)
 {
 }
 
 static void
-xb_node_finalize (GObject *obj)
+xb_node_finalize(GObject *obj)
 {
-	G_OBJECT_CLASS (xb_node_parent_class)->finalize (obj);
+	G_OBJECT_CLASS(xb_node_parent_class)->finalize(obj);
 }
 
 static void
-xb_node_class_init (XbNodeClass *klass)
+xb_node_class_init(XbNodeClass *klass)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (klass);
+	GObjectClass *object_class = G_OBJECT_CLASS(klass);
 	object_class->finalize = xb_node_finalize;
 }
 
@@ -749,10 +749,10 @@ xb_node_class_init (XbNodeClass *klass)
  * Since: 0.1.0
  **/
 XbNode *
-xb_node_new (XbSilo *silo, XbSiloNode *sn)
+xb_node_new(XbSilo *silo, XbSiloNode *sn)
 {
-	XbNode *self = g_object_new (XB_TYPE_NODE, NULL);
-	XbNodePrivate *priv = GET_PRIVATE (self);
+	XbNode *self = g_object_new(XB_TYPE_NODE, NULL);
+	XbNodePrivate *priv = GET_PRIVATE(self);
 	priv->silo = silo;
 	priv->sn = sn;
 	return self;

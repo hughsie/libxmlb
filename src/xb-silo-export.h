@@ -13,13 +13,13 @@
 
 G_BEGIN_DECLS
 
-gchar		*xb_silo_export			(XbSilo		*self,
-						 XbNodeExportFlags flags,
-						 GError		**error);
-gboolean	 xb_silo_export_file		(XbSilo		*self,
-						 GFile		*file,
-						 XbNodeExportFlags flags,
-						 GCancellable	*cancellable,
-						 GError		**error);
+gchar *
+xb_silo_export(XbSilo *self, XbNodeExportFlags flags, GError **error);
+gboolean
+xb_silo_export_file(XbSilo *self,
+		    GFile *file,
+		    XbNodeExportFlags flags,
+		    GCancellable *cancellable,
+		    GError **error);
 
 G_END_DECLS

@@ -10,12 +10,13 @@
 
 G_BEGIN_DECLS
 
-gboolean	 xb_machine_stack_pop_two	(XbMachine	*self,
-						 XbStack	*stack,
-						 XbOpcode	*opcode1_out,
-						 XbOpcode	*opcode2_out,
-						 GError		**error);
-void		 xb_machine_opcode_tokenize	(XbMachine	*self,
-						 XbOpcode	*op);
+gboolean
+xb_machine_stack_pop_two(XbMachine *self,
+			 XbStack *stack,
+			 XbOpcode *opcode1_out,
+			 XbOpcode *opcode2_out,
+			 GError **error);
+void
+xb_machine_opcode_tokenize(XbMachine *self, XbOpcode *op);
 
 G_END_DECLS
