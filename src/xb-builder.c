@@ -640,17 +640,25 @@ xb_builder_generate_guid (XbBuilder *self)
  *
  * Adds a node tree to the builder.
  *
+ * If you are manually adding dynamic data sourced from a non-static source then you MUST use
+ * xb_builder_append_guid() with the appropriate GUID value, e.g. the file name and mtime.
+ *
+ * If no appropriate value is available, the caller can use something like:
+ *
+ *     g_autofree gchar *tmp = xb_builder_node_export(bn, XB_NODE_EXPORT_FLAG_NONE, NULL);
+ *     xb_builder_append_guid(builder, tmp);
+ *
+ * Failure to include an appropriate GUID value would allow an out-of-data silo to be used.
+ *
  * Since: 0.1.0
  **/
 void
 xb_builder_import_node (XbBuilder *self, XbBuilderNode *bn)
 {
 	XbBuilderPrivate *priv = GET_PRIVATE (self);
-	g_autofree gchar *guid = g_strdup_printf ("bn@%p", bn);
 	g_return_if_fail (XB_IS_BUILDER (self));
 	g_return_if_fail (XB_IS_BUILDER_NODE (bn));
 	g_ptr_array_add (priv->nodes, g_object_ref (bn));
-	xb_builder_append_guid (self, guid);
 }
 
 /**
