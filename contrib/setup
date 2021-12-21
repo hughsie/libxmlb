@@ -1,0 +1,53 @@
+#!/bin/bash -e
+# Setup the repository and local system for development
+
+cd "$(dirname "$0")/.."
+
+rename_branch()
+{
+    OLD=master
+    NEW=main
+    if git log $OLD >/dev/null 2>&1 &&
+       git remote get-url origin 2>&1 | grep fwupd/fwupd.git >/dev/null 2>&1; then
+        read -p "Rename existing $OLD branch to $NEW? (y/N) " question
+        if [ "$question" = "y" ]; then
+            git branch -m $OLD $NEW
+            git fetch origin
+            git branch -u origin/$NEW $NEW
+            git remote set-head origin -a
+        fi
+    fi
+}
+
+setup_git()
+{
+    echo "Configuring git environment"
+    git config include.path ../.gitconfig
+}
+
+install_pip()
+{
+    package=$1
+    python3 -m pip install $package
+}
+
+setup_precommit()
+{
+    echo "Configuring pre-commit hooks"
+    python3 -m venv venv
+    source venv/bin/activate
+
+    install_pip pre-commit
+    pre-commit install
+}
+
+#always setup pre-commit
+setup_precommit
+
+#always setup git environment
+setup_git
+
+#if interactive
+if [ -t 2 ]; then
+    rename_branch
+fi
