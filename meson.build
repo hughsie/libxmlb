@@ -25,7 +25,7 @@ lt_version = '@0@.@1@.@2@'.format(lt_current, lt_age, lt_revision)
 
 configinc = include_directories('.')
 
-# get suported warning flags
+# get supported warning flags
 warning_flags = [
   '-Wno-aggregate-return',
   '-Wunused',

@@ -291,7 +291,7 @@ xb_builder_node_parse_literal_text(XbBuilderNode *self, const gchar *text, gssiz
 		}
 
 		/* if the line just before this one was not a newline
-		 * then seporate the words with a space */
+		 * then separate the words with a space */
 		if (newline_count == 1 && tmp->len > 0)
 			g_string_append(tmp, " ");
 

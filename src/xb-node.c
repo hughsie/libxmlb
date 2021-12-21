@@ -623,7 +623,7 @@ xb_node_attr_iter_next(XbNodeAttrIter *iter, const gchar **name, const gchar **v
  *
  * Gets the depth of the node to a root.
  *
- * Returns: a integer, where 0 is the root node iself.
+ * Returns: a integer, where 0 is the root node itself.
  *
  * Since: 0.1.0
  **/
