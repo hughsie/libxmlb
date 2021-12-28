@@ -393,7 +393,6 @@ xb_tool_builder_tokenize_cb (XbBuilderFixup *self,
 static gboolean
 xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 {
-	const gchar *const *locales = g_get_language_names ();
 	g_autoptr(XbBuilder) builder = xb_builder_new ();
 	g_autoptr(XbSilo) silo = NULL;
 	g_autoptr(GFile) file_dst = NULL;
@@ -410,8 +409,7 @@ xb_tool_compile (XbToolPrivate *priv, gchar **values, GError **error)
 	}
 
 	/* load file */
-	for (guint i = 0; locales[i] != NULL; i++)
-		xb_builder_add_locale (builder, locales[i]);
+	xb_builder_add_default_locales (builder);
 
 	for (guint i = 1; values[i] != NULL; i++) {
 		g_autoptr(GFile) file = g_file_new_for_path (values[i]);
