@@ -106,8 +106,6 @@ xb_opcode_to_string_internal(XbOpcode *self)
 		return g_strdup_printf("$'%s'", xb_opcode_get_str_for_display(self));
 	if (self->kind == XB_OPCODE_KIND_INTEGER)
 		return g_strdup_printf("%u", xb_opcode_get_val(self));
-	if (self->kind == XB_OPCODE_KIND_BOUND_INTEGER)
-		return g_strdup("?");
 	if (self->kind == XB_OPCODE_KIND_BOUND_TEXT)
 		return g_strdup_printf("?'%s'", xb_opcode_get_str_for_display(self));
 	if (self->kind == XB_OPCODE_KIND_BOUND_INTEGER)
