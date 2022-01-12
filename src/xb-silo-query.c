@@ -18,6 +18,7 @@
 #include "xb-silo-node.h"
 #include "xb-silo-query-private.h"
 #include "xb-stack-private.h"
+#include "xb-value-bindings-private.h"
 
 static gboolean
 xb_silo_query_node_matches(XbSilo *self,
@@ -511,17 +512,24 @@ xb_silo_query_with_root_full(XbSilo *self,
 	/* profile */
 	if (xb_silo_get_profile_flags(self) & XB_SILO_PROFILE_FLAG_XPATH) {
 		g_autofree gchar *tmp = xb_query_to_string(query);
+		g_autofree gchar *bindings_str = NULL;
 		G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 		guint limit = first_result_only	  ? 1
 			      : (context != NULL) ? xb_query_context_get_limit(context)
 						  : xb_query_get_limit(query);
 		G_GNUC_END_IGNORE_DEPRECATIONS
 
+		if (context != NULL) {
+			XbValueBindings *bindings = xb_query_context_get_bindings(context);
+			bindings_str = xb_value_bindings_to_string(bindings);
+		}
+
 		xb_silo_add_profile(self,
 				    timer,
-				    "query on %s with `%s` limit=%u -> %u results",
+				    "query on %s with `%s` [%s] limit=%u -> %u results",
 				    n != NULL ? xb_node_get_element(n) : "/",
 				    tmp,
+				    bindings_str != NULL ? bindings_str : "",
 				    limit,
 				    results->len);
 	}

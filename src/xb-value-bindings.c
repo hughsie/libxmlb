@@ -17,6 +17,7 @@
 #include <glib.h>
 
 #include "xb-opcode-private.h"
+#include "xb-value-bindings-private.h"
 
 typedef struct {
 	enum {
@@ -98,6 +99,27 @@ xb_value_bindings_clear(XbValueBindings *self)
 
 	for (gsize i = 0; i < G_N_ELEMENTS(_self->values); i++)
 		xb_value_bindings_clear_index(self, i);
+}
+
+/* private */
+gchar *
+xb_value_bindings_to_string(XbValueBindings *self)
+{
+	RealValueBindings *_self = (RealValueBindings *)self;
+	g_autoptr(GString) str = g_string_new("");
+
+	for (guint i = 0; i < G_N_ELEMENTS(_self->values); i++) {
+		BoundValue *value = &_self->values[i];
+		if (value->kind == KIND_NONE)
+			continue;
+		if (str->len > 0)
+			g_string_append(str, ", ");
+		if (value->kind == KIND_INTEGER)
+			g_string_append_printf(str, "?%u → %u", i, value->integer);
+		else if (value->kind == KIND_TEXT)
+			g_string_append_printf(str, "?%u → %s", i, value->text);
+	}
+	return g_string_free(g_steal_pointer(&str), FALSE);
 }
 
 /**
