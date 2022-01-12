@@ -169,8 +169,6 @@ xb_silo_query_section_root(XbSilo *self,
 			xb_silo_query_section_add_result(self, helper, parent);
 			return TRUE;
 		}
-		//		g_debug ("PARENT @%u",
-		//			 xb_silo_get_offset_for_node (self, parent));
 		return xb_silo_query_section_root(self,
 						  parent,
 						  i + 1,
@@ -216,15 +214,9 @@ xb_silo_query_section_root(XbSilo *self,
 			return FALSE;
 		if (result) {
 			if (i == helper->sections->len - 1) {
-				//				g_debug ("add result %u",
-				//					 xb_silo_get_offset_for_node (self,
-				//sn));
 				if (xb_silo_query_section_add_result(self, helper, sn))
 					break;
 			} else {
-				//				g_debug ("MATCH %s at @%u, deeper",
-				//					 xb_silo_get_node_element (self,
-				//sn), 					 xb_silo_get_offset_for_node (self, sn));
 				if (!xb_silo_query_section_root(self,
 								sn,
 								i + 1,

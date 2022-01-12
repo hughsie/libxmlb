@@ -447,8 +447,6 @@ xb_machine_parse_section(XbMachine *self,
 	if (text_len == 0)
 		return TRUE;
 
-	//	g_debug ("xb_machine_parse_section{%s} method=%i", g_strndup (text, text_len),
-	//is_method);
 	for (gssize i = 0; i < text_len; i++) {
 		for (guint j = 0; j < priv->operators->len; j++) {
 			XbMachineOperator *op = g_ptr_array_index(priv->operators, j);
@@ -529,10 +527,7 @@ xb_machine_parse_sections(XbMachine *self,
 	} else {
 		tmp = g_strndup(text, text_len);
 	}
-
-	//	g_debug ("xb_machine_parse_sections{%s} method=%i", tmp, is_method);
 	for (gint i = text_len - 1; i >= 0; i--) {
-		//		g_debug ("%u\t\t%c", i, tmp[i]);
 		if (tmp[i] == ',') {
 			tmp[i] = '\0';
 			if (is_method) {
@@ -712,8 +707,6 @@ xb_machine_parse_text(XbMachine *self,
 			    tmp);
 		return G_MAXSIZE;
 	}
-
-	// g_debug ("%u xb_machine_parse_text{%s}", level, g_strndup (text, text_len));
 	for (guint i = 0; i < text_len; i++) {
 		if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_PARSING)
 			g_debug("LVL %u\t%u:\t\t%c", level, i, text[i]);
