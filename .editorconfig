@@ -4,3 +4,6 @@ root = true
 [*]
 indent_style = tab
 indent_size = 8
+
+[*.py]
+indent_style = space
