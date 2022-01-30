@@ -150,8 +150,7 @@ configure_file(
   configuration : conf
 )
 
-python = import('python')
-python3 = python.find_installation()
+python3 = find_program('python3')
 
 subdir('data')
 subdir('src')
