@@ -14,7 +14,8 @@ XMLNS_C = "{http://www.gtk.org/introspection/c/1.0}"
 
 
 def parse_version(ver):
-    return tuple(map(int, ver.split('.')))
+    return tuple(map(int, ver.split(".")))
+
 
 def usage(return_code):
     """print usage and exit with the supplied return code"""
