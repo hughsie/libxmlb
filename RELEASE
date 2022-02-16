@@ -6,7 +6,7 @@ git shortlog 0.3.6.. | grep -i -v trivial | grep -v Merge > NEWS.new
 
 Version 0.3.7
 ~~~~~~~~~~~~~
-Released: 2021-xx-xx
+Released: 2022-xx-xx
 
 New Features:
 Bugfixes:
@@ -17,7 +17,7 @@ Commit changes to git:
 # MAKE SURE THESE ARE CORRECT
 export release_ver="0.3.7"
 
-git commit -a -m "Release libxmlb ${release_ver}"
+git commit -a -m "Release libxmlb ${release_ver}" --no-verify
 git tag -s -f -m "Release libxmlb ${release_ver}" "${release_ver}"
 git push --tags
 git push
@@ -36,5 +36,5 @@ scp meson-dist/libxmlb-${release_ver}.tar.* hughsient@people.freedesktop.org:~/p
 
 Do post release version bump in meson.build
 
-git commit -a -m "trivial: post release version bump"
+git commit -a -m "trivial: post release version bump" --no-verify
 git push

@@ -1,3 +1,13 @@
+Version 0.3.7
+~~~~~~~~~~~~~
+Released: 2022-02-16
+
+Bugfixes:
+ - Ensure reproducible results when importing a node (Richard Hughes)
+ - Ignore all hidden files when using _WATCH_DIRECTORY (Richard Hughes)
+ - Show the value bindings when using XB_SILO_PROFILE_FLAG_XPATH (Richard Hughes)
+ - Use the correct lookup method for the python3 script interpreter (Eli Schwartz)
+
 Version 0.3.6
 ~~~~~~~~~~~~~
 Released: 2021-12-06
