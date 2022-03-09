@@ -152,6 +152,8 @@ xb_silo_stem(XbSilo *self, const gchar *value)
 	g_autofree gchar *value_casefold = NULL;
 	g_autoptr(GMutexLocker) locker = g_mutex_locker_new(&priv->stemmer_mutex);
 
+	g_return_val_if_fail(locker != NULL, NULL);
+
 	/* not enabled */
 	value_casefold = g_utf8_casefold(value, -1);
 	if (priv->stemmer_ctx == NULL)
@@ -954,6 +956,8 @@ watch_file_cb(gpointer user_data)
 	g_autoptr(GFileMonitor) file_monitor = NULL;
 	g_autoptr(GError) error_local = NULL;
 	g_autoptr(GMutexLocker) locker = g_mutex_locker_new(&priv->file_monitors_mutex);
+
+	g_return_val_if_fail(locker != NULL, FALSE);
 
 	/* already exists */
 	item = g_hash_table_lookup(priv->file_monitors, file);
