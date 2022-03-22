@@ -1,3 +1,10 @@
+Version 0.3.8
+~~~~~~~~~~~~~
+Released: 2022-03-22
+
+Bugfixes:
+ - Fix building on macOS (Bobby Rong)
+
 Version 0.3.7
 ~~~~~~~~~~~~~
 Released: 2022-02-16
