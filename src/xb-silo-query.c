@@ -643,7 +643,7 @@ xb_silo_query_first_full(XbSilo *self, XbQuery *query, GError **error)
  *
  * Please note: Only a tiny subset of XPath 1.0 is supported.
  *
- * Returns: (transfer none): a #XbNode, or %NULL if unfound
+ * Returns: (transfer full): a #XbNode, or %NULL if unfound
  *
  * Since: 0.3.0
  **/
