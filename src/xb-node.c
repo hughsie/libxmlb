@@ -248,6 +248,8 @@ xb_node_get_child(XbNode *self)
 
 	g_return_val_if_fail(XB_IS_NODE(self), NULL);
 
+	if (priv->sn == NULL)
+		return NULL;
 	sn = xb_silo_get_child_node(priv->silo, priv->sn);
 	if (sn == NULL)
 		return NULL;

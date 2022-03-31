@@ -729,6 +729,46 @@ xb_builder_node_vfunc_error_func(void)
 }
 
 static gboolean
+xb_builder_ignore_cb(XbBuilderFixup *self, XbBuilderNode *bn, gpointer user_data, GError **error)
+{
+	xb_builder_node_add_flag(bn, XB_BUILDER_NODE_FLAG_IGNORE);
+	return TRUE;
+}
+
+static void
+xb_builder_node_vfunc_ignore_func(void)
+{
+	gboolean ret;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new();
+	g_autoptr(XbBuilderFixup) fixup = NULL;
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new();
+	g_autoptr(XbSilo) silo = NULL;
+	g_autoptr(XbNode) n = NULL;
+	g_autoptr(XbNode) c = NULL;
+
+	/* add fixup */
+	fixup = xb_builder_fixup_new("AlwaysIgnore", xb_builder_ignore_cb, NULL, NULL);
+	xb_builder_source_add_fixup(source, fixup);
+
+	/* import some XML */
+	ret = xb_builder_source_load_xml(source,
+					 "<component><id>gimp.desktop</id></component>",
+					 XB_BUILDER_SOURCE_FLAG_NONE,
+					 &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+	xb_builder_import_source(builder, source);
+	silo = xb_builder_compile(builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+	n = xb_silo_get_root(silo);
+	g_assert_nonnull(n);
+	c = xb_node_get_child(n);
+	g_assert_null(c);
+}
+
+static gboolean
 xb_builder_upgrade_appstream_cb(XbBuilderFixup *self,
 				XbBuilderNode *bn,
 				gpointer user_data,
@@ -2681,6 +2721,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/builder{node-vfunc-remove}", xb_builder_node_vfunc_remove_func);
 	g_test_add_func("/libxmlb/builder{node-vfunc-depth}", xb_builder_node_vfunc_depth_func);
 	g_test_add_func("/libxmlb/builder{node-vfunc-error}", xb_builder_node_vfunc_error_func);
+	g_test_add_func("/libxmlb/builder{node-vfunc-ignore}", xb_builder_node_vfunc_ignore_func);
 	g_test_add_func("/libxmlb/builder{ignore-invalid}", xb_builder_ignore_invalid_func);
 	g_test_add_func("/libxmlb/builder{custom-mime}", xb_builder_custom_mime_func);
 	g_test_add_func("/libxmlb/builder{chained-adapters}", xb_builder_chained_adapters_func);
