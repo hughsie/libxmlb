@@ -739,6 +739,7 @@ static void
 xb_builder_node_vfunc_ignore_func(void)
 {
 	gboolean ret;
+	const gchar *element;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new();
 	g_autoptr(XbBuilderFixup) fixup = NULL;
@@ -764,6 +765,8 @@ xb_builder_node_vfunc_ignore_func(void)
 	g_assert_nonnull(silo);
 	n = xb_silo_get_root(silo);
 	g_assert_nonnull(n);
+	element = xb_node_get_element(n);
+	g_assert_null(element);
 	c = xb_node_get_child(n);
 	g_assert_null(c);
 }
