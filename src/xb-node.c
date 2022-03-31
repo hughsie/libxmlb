@@ -478,7 +478,7 @@ xb_node_get_tail(XbNode *self)
  *
  * Gets the element name for a specific node.
  *
- * Returns: a string, or %NULL for unset
+ * Returns: a string, or %NULL for the root node
  *
  * Since: 0.1.0
  **/
@@ -487,6 +487,8 @@ xb_node_get_element(XbNode *self)
 {
 	XbNodePrivate *priv = GET_PRIVATE(self);
 	g_return_val_if_fail(XB_IS_NODE(self), NULL);
+	if (priv->sn == NULL)
+		return NULL;
 	return xb_silo_get_node_element(priv->silo, priv->sn);
 }
 
@@ -634,6 +636,8 @@ xb_node_get_depth(XbNode *self)
 {
 	XbNodePrivate *priv = GET_PRIVATE(self);
 	g_return_val_if_fail(XB_IS_NODE(self), 0);
+	if (priv->sn == NULL)
+		return 0;
 	return xb_silo_get_node_depth(priv->silo, priv->sn);
 }
 
