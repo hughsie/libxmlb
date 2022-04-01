@@ -745,6 +745,7 @@ xb_builder_node_vfunc_ignore_func(void)
 	g_autoptr(XbBuilder) builder = xb_builder_new();
 	g_autoptr(XbBuilderFixup) fixup = NULL;
 	g_autoptr(XbBuilderSource) source = xb_builder_source_new();
+	g_autoptr(XbBuilderNode) info = NULL;
 	g_autoptr(XbSilo) silo = NULL;
 	g_autoptr(XbNode) n = NULL;
 	g_autoptr(XbNode) c = NULL;
@@ -753,14 +754,19 @@ xb_builder_node_vfunc_ignore_func(void)
 	fixup = xb_builder_fixup_new("AlwaysIgnore", xb_builder_ignore_cb, NULL, NULL);
 	xb_builder_source_add_fixup(source, fixup);
 
-	/* import some XML */
+	/* import some XML with metadata */
 	ret = xb_builder_source_load_xml(source,
 					 "<component><id>gimp.desktop</id></component>",
 					 XB_BUILDER_SOURCE_FLAG_NONE,
 					 &error);
 	g_assert_no_error(error);
 	g_assert_true(ret);
+	info = xb_builder_node_insert(NULL, "info", NULL);
+	xb_builder_node_insert_text(info, "foo", "bar", NULL);
+	xb_builder_source_set_info(source, info);
 	xb_builder_import_source(builder, source);
+
+	/* compile */
 	silo = xb_builder_compile(builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
 	g_assert_no_error(error);
 	g_assert_nonnull(silo);
