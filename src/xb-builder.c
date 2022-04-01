@@ -254,6 +254,15 @@ xb_builder_compile_source(XbBuilderCompileHelper *helper,
 	if (!xb_builder_source_fixup(source, root_tmp, error))
 		return FALSE;
 
+	/* check to see if the root was ignored */
+	if (xb_builder_node_has_flag(root_tmp, XB_BUILDER_NODE_FLAG_IGNORE)) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "root node cannot be ignored");
+		return FALSE;
+	}
+
 	/* a single root with no siblings was required */
 	if (helper->compile_flags & XB_BUILDER_COMPILE_FLAG_SINGLE_ROOT) {
 		if (xb_builder_node_get_children(root_tmp)->len > 1) {
