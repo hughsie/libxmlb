@@ -731,7 +731,8 @@ xb_builder_node_vfunc_error_func(void)
 static gboolean
 xb_builder_ignore_cb(XbBuilderFixup *self, XbBuilderNode *bn, gpointer user_data, GError **error)
 {
-	xb_builder_node_add_flag(bn, XB_BUILDER_NODE_FLAG_IGNORE);
+	if (xb_builder_node_get_element(bn) != NULL)
+		xb_builder_node_add_flag(bn, XB_BUILDER_NODE_FLAG_IGNORE);
 	return TRUE;
 }
 
