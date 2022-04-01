@@ -280,7 +280,8 @@ xb_builder_compile_source(XbBuilderCompileHelper *helper,
 		children = xb_builder_node_get_children(helper->current);
 		for (guint i = 0; i < children->len; i++) {
 			XbBuilderNode *bn = g_ptr_array_index(children, i);
-			xb_builder_node_add_child(bn, info);
+			if (!xb_builder_node_has_flag(bn, XB_BUILDER_NODE_FLAG_IGNORE))
+				xb_builder_node_add_child(bn, info);
 		}
 	}
 
