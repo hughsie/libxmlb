@@ -739,6 +739,7 @@ xb_builder_ignore_cb(XbBuilderFixup *self, XbBuilderNode *bn, gpointer user_data
 static void
 xb_builder_node_vfunc_ignore_func(void)
 {
+	XbNodeChildIter iter;
 	gboolean ret;
 	const gchar *element;
 	g_autoptr(GError) error = NULL;
@@ -749,6 +750,7 @@ xb_builder_node_vfunc_ignore_func(void)
 	g_autoptr(XbSilo) silo = NULL;
 	g_autoptr(XbNode) n = NULL;
 	g_autoptr(XbNode) c = NULL;
+	g_autoptr(XbNode) c2 = NULL;
 
 	/* add fixup */
 	fixup = xb_builder_fixup_new("AlwaysIgnore", xb_builder_ignore_cb, NULL, NULL);
@@ -776,6 +778,12 @@ xb_builder_node_vfunc_ignore_func(void)
 	g_assert_null(element);
 	c = xb_node_get_child(n);
 	g_assert_null(c);
+	c = xb_node_get_next(n);
+	g_assert_null(c);
+	xb_node_child_iter_init(&iter, n);
+	ret = xb_node_child_iter_next(&iter, &c2);
+	g_assert_false(ret);
+	g_assert_null(c2);
 }
 
 static gboolean
