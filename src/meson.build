@@ -96,7 +96,14 @@ xb_tool = executable(
     libxmlb,
   ],
   install : true,
-  install_dir : libexecdir
+  install_dir : bindir
+)
+configure_file(
+  input : 'xb-tool.1',
+  output : 'xb-tool.1',
+  configuration : conf,
+  install: true,
+  install_dir: join_paths(mandir, 'man1'),
 )
 endif
 
