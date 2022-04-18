@@ -103,16 +103,18 @@ add_project_link_arguments(
 )
 
 if host_machine.system() == 'windows'
-  libexecdir = get_option('libexecdir')
+  bindir = get_option('bindir')
   installed_test_bindir = get_option('libexecdir')
   installed_test_datadir = get_option('datadir')
 else
   prefix = get_option('prefix')
   datadir = join_paths(prefix, get_option('datadir'))
+  bindir = join_paths(prefix, get_option('bindir'))
   libexecdir = join_paths(prefix, get_option('libexecdir'))
   installed_test_bindir = join_paths(libexecdir, 'installed-tests', meson.project_name())
   installed_test_datadir = join_paths(datadir, 'installed-tests', meson.project_name())
 endif
+mandir = join_paths(prefix, get_option('mandir'))
 
 gio = dependency('gio-2.0', version : '>= 2.45.8')
 giounix = dependency('gio-unix-2.0', version : '>= 2.45.8', required: false)
