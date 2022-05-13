@@ -813,6 +813,10 @@ xb_builder_compile(XbBuilder *self,
 			root = g_object_ref(helper->root);
 		}
 
+		/* watch the source */
+		if (!xb_builder_watch_source(self, source, cancellable, error))
+			return NULL;
+
 		if (priv->profile_flags & XB_SILO_PROFILE_FLAG_DEBUG)
 			g_debug("compiling %s…", source_guid);
 		if (!xb_builder_compile_source(helper, source, root, cancellable, &error_local)) {
@@ -828,10 +832,6 @@ xb_builder_compile(XbBuilder *self,
 						   source_guid);
 			return NULL;
 		}
-
-		/* watch the source */
-		if (!xb_builder_watch_source(self, source, cancellable, error))
-			return NULL;
 	}
 
 	/* run any node functions */
@@ -991,6 +991,10 @@ xb_builder_ensure(XbBuilder *self,
 	if (flags & XB_BUILDER_COMPILE_FLAG_WATCH_BLOB)
 		load_flags |= XB_SILO_LOAD_FLAG_WATCH_BLOB;
 
+	/* ensure all the sources are watched */
+	if (!xb_builder_watch_sources(self, cancellable, error))
+		return NULL;
+
 	/* profile new silo if needed */
 	xb_silo_set_profile_flags(silo_tmp, priv->profile_flags);
 
@@ -1024,19 +1028,16 @@ xb_builder_ensure(XbBuilder *self,
 		    (flags & XB_BUILDER_COMPILE_FLAG_IGNORE_GUID) > 0) {
 			g_autoptr(GBytes) blob = xb_silo_get_bytes(silo_tmp);
 
-			g_debug("loading silo with file contents");
-			if (!xb_silo_load_from_bytes(priv->silo, blob, load_flags, error))
-				return NULL;
-
-			/* ensure all the sources are watched */
-			if (!xb_builder_watch_sources(self, cancellable, error))
-				return NULL;
-
 			/* ensure backing file is watched for changes */
 			if (flags & XB_BUILDER_COMPILE_FLAG_WATCH_BLOB) {
 				if (!xb_silo_watch_file(priv->silo, file, cancellable, error))
 					return NULL;
 			}
+
+			g_debug("loading silo with file contents");
+			if (!xb_silo_load_from_bytes(priv->silo, blob, load_flags, error))
+				return NULL;
+
 			return g_object_ref(priv->silo);
 		}
 	}
