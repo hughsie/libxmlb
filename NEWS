@@ -1,3 +1,12 @@
+Version 0.3.9
+~~~~~~~~~~~~~
+Released: 2022-05-24
+
+Bugfixes:
+ - Fix the crash for when the root tree has no children (Richard Hughes)
+ - Fix the crash when getting the element for the [empty] root (Richard Hughes)
+ - Install xb-tool into bindir (Richard Hughes)
+
 Version 0.3.8
 ~~~~~~~~~~~~~
 Released: 2022-03-22
