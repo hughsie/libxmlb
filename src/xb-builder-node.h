@@ -58,7 +58,9 @@ typedef gint (*XbBuilderNodeSortFunc)(XbBuilderNode *bn1, XbBuilderNode *bn2, gp
 XbBuilderNode *
 xb_builder_node_new(const gchar *element);
 XbBuilderNode *
-xb_builder_node_insert(XbBuilderNode *parent, const gchar *element, ...) G_GNUC_NULL_TERMINATED;
+xb_builder_node_insert(XbBuilderNode *parent,
+		       const gchar *element,
+		       ...) G_GNUC_NULL_TERMINATED G_GNUC_WARN_UNUSED_RESULT;
 void
 xb_builder_node_insert_text(XbBuilderNode *parent, const gchar *element, const gchar *text, ...)
     G_GNUC_NULL_TERMINATED;
