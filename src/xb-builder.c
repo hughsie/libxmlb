@@ -442,7 +442,7 @@ xb_builder_xml_lang_prio_cb(XbBuilderNode *bn, gpointer user_data)
 	for (guint i = 0; i < nodes->len; i++) {
 		XbBuilderNode *bn2 = g_ptr_array_index(nodes, i);
 		if (xb_builder_node_get_priority(bn2) < prio_best)
-			g_ptr_array_add(nodes_to_destroy, bn2);
+			g_ptr_array_add(nodes_to_destroy, g_object_ref(bn2));
 
 		/* never visit this node again */
 		xb_builder_node_set_priority(bn2, -2);
@@ -765,7 +765,7 @@ xb_builder_compile(XbBuilder *self,
 	XbBuilderNodetabHelper nodetab_helper = {
 	    .buf = NULL,
 	};
-	g_autoptr(GPtrArray) nodes_to_destroy = g_ptr_array_new();
+	g_autoptr(GPtrArray) nodes_to_destroy = g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
 	g_autoptr(GTimer) timer = xb_silo_start_profile(priv->silo);
 	g_autoptr(XbBuilderCompileHelper) helper = NULL;
 
