@@ -1061,8 +1061,7 @@ xb_machine_run_with_bindings(XbMachine *self,
 			    tmp);
 		return FALSE;
 	}
-	if (result != NULL)
-		*result = xb_opcode_get_val(&opcode_success);
+	*result = xb_opcode_get_val(&opcode_success);
 
 	/* success */
 	return TRUE;
