@@ -188,7 +188,7 @@ xb_tool_dump(XbToolPrivate *priv, gchar **values, GError **error)
 	/* load blobs */
 	for (guint i = 0; values[i] != NULL; i++) {
 		g_autofree gchar *str = NULL;
-		g_autoptr(GFile) file = g_file_new_for_path(values[0]);
+		g_autoptr(GFile) file = g_file_new_for_path(values[i]);
 		g_autoptr(XbSilo) silo = xb_silo_new();
 		if (!xb_silo_load_from_file(silo, file, flags, NULL, error))
 			return FALSE;
@@ -223,7 +223,7 @@ xb_tool_export(XbToolPrivate *priv, gchar **values, GError **error)
 	/* load blobs */
 	for (guint i = 0; values[i] != NULL; i++) {
 		g_autofree gchar *str = NULL;
-		g_autoptr(GFile) file = g_file_new_for_path(values[0]);
+		g_autoptr(GFile) file = g_file_new_for_path(values[i]);
 		g_autoptr(XbSilo) silo = xb_silo_new();
 		if (!xb_silo_load_from_file(silo, file, flags, NULL, error))
 			return FALSE;
