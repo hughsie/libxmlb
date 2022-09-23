@@ -200,7 +200,7 @@ xb_silo_query_section_root(XbSilo *self,
 	/* continue matching children ".." */
 	do {
 		gboolean result = TRUE;
-		guint bindings_offset_end;
+		guint bindings_offset_end = 0;
 		query_data->sn = sn;
 		if (!xb_silo_query_node_matches(self,
 						machine,
