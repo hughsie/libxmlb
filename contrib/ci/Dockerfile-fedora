@@ -5,6 +5,7 @@ RUN dnf -y install \
 	diffutils \
 	gcovr \
 	xz-devel \
+	libzstd-devel \
 	git-core \
 	glib2-devel \
 	gobject-introspection-devel \
