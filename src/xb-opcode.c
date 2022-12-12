@@ -98,28 +98,45 @@ xb_opcode_get_str_for_display(XbOpcode *self)
 	return self->ptr;
 }
 
+void
+xb_opcode_set_level(XbOpcode *self, guint8 level)
+{
+	self->level = level;
+}
+
+guint8
+xb_opcode_get_level(XbOpcode *self)
+{
+	return self->level;
+}
+
 static gchar *
 xb_opcode_to_string_internal(XbOpcode *self)
 {
-	/* special cases */
-	if (self->kind == XB_OPCODE_KIND_INDEXED_TEXT)
-		return g_strdup_printf("$'%s'", xb_opcode_get_str_for_display(self));
-	if (self->kind == XB_OPCODE_KIND_INTEGER)
-		return g_strdup_printf("%u", xb_opcode_get_val(self));
-	if (self->kind == XB_OPCODE_KIND_BOUND_TEXT)
-		return g_strdup_printf("?'%s'", xb_opcode_get_str_for_display(self));
-	if (self->kind == XB_OPCODE_KIND_BOUND_INTEGER)
-		return g_strdup_printf("?%u", xb_opcode_get_val(self));
-	if (self->kind == XB_OPCODE_KIND_BOOLEAN)
-		return g_strdup(xb_opcode_get_val(self) ? "True" : "False");
+	g_autoptr(GString) str = g_string_new(NULL);
 
-	/* bitwise fallbacks */
-	if (self->kind & XB_OPCODE_FLAG_FUNCTION)
-		return g_strdup_printf("%s()", xb_opcode_get_str_for_display(self));
-	if (self->kind & XB_OPCODE_FLAG_TEXT)
-		return g_strdup_printf("'%s'", xb_opcode_get_str_for_display(self));
-	g_critical("no to_string for kind 0x%x", self->kind);
-	return NULL;
+	/* special cases then bitwise fallbacks */
+	if (self->kind == XB_OPCODE_KIND_INDEXED_TEXT)
+		g_string_append_printf(str, "$'%s'", xb_opcode_get_str_for_display(self));
+	else if (self->kind == XB_OPCODE_KIND_INTEGER)
+		g_string_append_printf(str, "%u", xb_opcode_get_val(self));
+	else if (self->kind == XB_OPCODE_KIND_BOUND_TEXT)
+		g_string_append_printf(str, "?'%s'", xb_opcode_get_str_for_display(self));
+	else if (self->kind == XB_OPCODE_KIND_BOUND_INTEGER)
+		g_string_append_printf(str, "?%u", xb_opcode_get_val(self));
+	else if (self->kind == XB_OPCODE_KIND_BOOLEAN)
+		return g_strdup(xb_opcode_get_val(self) ? "True" : "False");
+	else if (self->kind & XB_OPCODE_FLAG_FUNCTION)
+		g_string_append_printf(str, "%s()", xb_opcode_get_str_for_display(self));
+	else if (self->kind & XB_OPCODE_FLAG_TEXT)
+		g_string_append_printf(str, "'%s'", xb_opcode_get_str_for_display(self));
+	else
+		g_string_append_printf(str, "kind:0x%x", self->kind);
+
+	/* add level */
+	if (self->level > 0)
+		g_string_append_printf(str, "^%u", self->level);
+	return g_string_free(g_steal_pointer(&str), FALSE);
 }
 
 /**
@@ -336,6 +353,7 @@ xb_opcode_init(XbOpcode *opcode,
 	       guint32 val,
 	       GDestroyNotify destroy_func)
 {
+	opcode->level = G_MAXUINT8;
 	opcode->kind = kind;
 	opcode->ptr = (gpointer)str;
 	opcode->val = val;

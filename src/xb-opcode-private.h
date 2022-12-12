@@ -23,11 +23,12 @@ struct _XbOpcode {
 	guint8 tokens_len;
 	const gchar *tokens[XB_OPCODE_TOKEN_MAX + 1];
 	GDestroyNotify destroy_func;
+	guint8 level;
 };
 
 #define XB_OPCODE_INIT()                                                                           \
 	{                                                                                          \
-		0, 0, NULL, 0, {NULL}, NULL                                                        \
+		0, 0, NULL, 0, {NULL}, NULL, 0                                                     \
 	}
 
 /**
@@ -82,6 +83,11 @@ gboolean
 xb_opcode_has_flag(XbOpcode *self, XbOpcodeFlags flag);
 void
 xb_opcode_add_flag(XbOpcode *self, XbOpcodeFlags flag);
+
+void
+xb_opcode_set_level(XbOpcode *self, guint8 level);
+guint8
+xb_opcode_get_level(XbOpcode *self);
 
 G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC(XbOpcode, xb_opcode_clear)
 

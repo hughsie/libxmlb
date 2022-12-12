@@ -224,9 +224,9 @@ xb_predicate_func(void)
 		     {"@a=='b'", "'a',attr(),'b',eq()"},
 		     {"'a'<'b'", "'a','b',lt()"},
 		     {"999>=123", "999,123,ge()"},
-		     {"not(0)", "0,not()"},
+		     {"not(0)", "0^1,not()"},
 		     {"@a", "'a',attr(),'(null)',ne()"},
-		     {"not(@a)", "'a',attr(),not()"},
+		     {"not(@a)", "'a'^1,attr()^1,not()"},
 		     {"'a'=", "'a',eq()"},
 		     {"='b'", "'b',eq()"},
 		     {"999=\'b\'", "999,'b',eq()"},
@@ -235,9 +235,10 @@ xb_predicate_func(void)
 		     {"text()~='beef'", "text(),'beef'[beef],search()"},
 		     {"@type~='dead'", "'type',attr(),'dead',search()"},
 		     {"2", "2,position(),eq()"},
-		     {"text()=lower-case('firefox')", "text(),'firefox',lower-case(),eq()"},
+		     {"text()=lower-case('firefox')", "text(),'firefox'^1,lower-case(),eq()"},
 		     {"$'a'=$'b'", "$'a',$'b',eq()"},
-		     {"('a'='b')&&('c'='d')", "'a','b',eq(),'c','d',eq(),and()"},
+		     {"('a'='b')&&('c'='d')", "'a'^1,'b'^1,eq()^1,'c'^1,'d'^1,eq()^1,and()"},
+		     {"text()==('a','b','c')", "text(),'c'^1,'b'^1,'a'^1,in()"},
 		     /* sentinel */
 		     {NULL, NULL}};
 	const gchar *invalid[] = {"text(",
@@ -291,6 +292,7 @@ xb_predicate_optimize_func(void)
 		     {"lower-case('Fire')", "'fire'"},
 		     {"upper-case('Τάχιστη')", "'ΤΆΧΙΣΤΗ'"},
 		     {"upper-case(lower-case('Fire'))", "'FIRE'"}, /* 2nd pass */
+		     {"text()==('a','b','c')", "text(),'c'^1,'b'^1,'a'^1,in()"},
 		     /* sentinel */
 		     {NULL, NULL}};
 	const gchar *invalid[] = {"'a'='b'", "123>=999", "not(1)", NULL};
@@ -1363,6 +1365,25 @@ xb_xpath_func(void)
 	g_assert_no_error(error);
 	g_assert_nonnull(str);
 	g_debug("\n%s", str);
+
+	/* query with predicate 'in' */
+	xb_silo_set_profile_flags(silo, XB_SILO_PROFILE_FLAG_OPTIMIZER);
+	n = xb_silo_query_first(
+	    silo,
+	    "components/component/id[text()=('gimp.desktop','another.desktop','dave.desktop')]",
+	    &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(n);
+	g_assert_cmpstr(xb_node_get_text(n), ==, "gimp.desktop");
+	g_clear_object(&n);
+
+	/* query with predicate 'in' -- single-entry tuple */
+	xb_silo_set_profile_flags(silo, XB_SILO_PROFILE_FLAG_OPTIMIZER);
+	n = xb_silo_query_first(silo, "components/component/id[text()=('gimp.desktop')]", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(n);
+	g_assert_cmpstr(xb_node_get_text(n), ==, "gimp.desktop");
+	g_clear_object(&n);
 
 	/* query with predicate logical and */
 	n = xb_silo_query_first(
