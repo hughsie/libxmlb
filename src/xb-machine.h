@@ -65,12 +65,14 @@ typedef gboolean (*XbMachineOpcodeFixupFunc)(XbMachine *self,
 					     XbStack *opcodes,
 					     gpointer user_data,
 					     GError **error);
+/* when next breaking API add @level here */
 typedef gboolean (*XbMachineTextHandlerFunc)(XbMachine *self,
 					     XbStack *opcodes,
 					     const gchar *text,
 					     gboolean *handled,
 					     gpointer user_data,
 					     GError **error);
+/* when next breaking API add @level here */
 typedef gboolean (*XbMachineMethodFunc)(XbMachine *self,
 					XbStack *stack,
 					gboolean *result_unused,

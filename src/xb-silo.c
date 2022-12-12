@@ -1177,12 +1177,19 @@ xb_silo_machine_fixup_position_cb(XbMachine *self,
 {
 	XbOpcode *op1;
 	XbOpcode *op2;
+	XbOpcode *tail = xb_stack_peek_tail(opcodes);
 
 	if (!_xb_stack_push_two(opcodes, &op1, &op2, error))
 		return FALSE;
 
 	xb_machine_opcode_func_init(self, op1, "position");
 	xb_machine_opcode_func_init(self, op2, "eq");
+
+	/* always exists, but maybe a @level would be cleaner */
+	if (tail != NULL) {
+		xb_opcode_set_level(op1, xb_opcode_get_level(tail));
+		xb_opcode_set_level(op2, xb_opcode_get_level(tail));
+	}
 
 	return TRUE;
 }
@@ -1196,12 +1203,19 @@ xb_silo_machine_fixup_attr_exists_cb(XbMachine *self,
 {
 	XbOpcode *op1;
 	XbOpcode *op2;
+	XbOpcode *tail = xb_stack_peek_tail(opcodes);
 
 	if (!_xb_stack_push_two(opcodes, &op1, &op2, error))
 		return FALSE;
 
 	xb_opcode_text_init_static(op1, NULL);
 	xb_machine_opcode_func_init(self, op2, "ne");
+
+	/* always exists, but maybe a @level would be cleaner */
+	if (tail != NULL) {
+		xb_opcode_set_level(op1, xb_opcode_get_level(tail));
+		xb_opcode_set_level(op2, xb_opcode_get_level(tail));
+	}
 
 	return TRUE;
 }
