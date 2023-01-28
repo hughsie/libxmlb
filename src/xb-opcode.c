@@ -32,6 +32,8 @@ xb_opcode_kind_to_string(XbOpcodeKind kind)
 		return "BIND";
 	if (kind == XB_OPCODE_KIND_BOUND_TEXT)
 		return "?TXT";
+	if (kind == XB_OPCODE_KIND_BOUND_INDEXED_TEXT)
+		return "?ITX";
 	if (kind == XB_OPCODE_KIND_BOUND_INTEGER)
 		return "?INT";
 	if (kind == XB_OPCODE_KIND_INDEXED_TEXT)
@@ -70,6 +72,8 @@ xb_opcode_kind_from_string(const gchar *str)
 		return XB_OPCODE_KIND_BOUND_INTEGER;
 	if (g_strcmp0(str, "?TXT") == 0)
 		return XB_OPCODE_KIND_BOUND_TEXT;
+	if (g_strcmp0(str, "?ITX") == 0)
+		return XB_OPCODE_KIND_BOUND_INDEXED_TEXT;
 	if (g_strcmp0(str, "?INT") == 0)
 		return XB_OPCODE_KIND_BOUND_INTEGER;
 	if (g_strcmp0(str, "TEXI") == 0)
@@ -120,7 +124,8 @@ xb_opcode_to_string_internal(XbOpcode *self)
 		g_string_append_printf(str, "$'%s'", xb_opcode_get_str_for_display(self));
 	else if (self->kind == XB_OPCODE_KIND_INTEGER)
 		g_string_append_printf(str, "%u", xb_opcode_get_val(self));
-	else if (self->kind == XB_OPCODE_KIND_BOUND_TEXT)
+	else if (self->kind == XB_OPCODE_KIND_BOUND_TEXT ||
+		 self->kind == XB_OPCODE_KIND_BOUND_INDEXED_TEXT)
 		g_string_append_printf(str, "?'%s'", xb_opcode_get_str_for_display(self));
 	else if (self->kind == XB_OPCODE_KIND_BOUND_INTEGER)
 		g_string_append_printf(str, "?%u", xb_opcode_get_val(self));
@@ -225,6 +230,8 @@ inline gboolean
 xb_opcode_cmp_val(XbOpcode *self)
 {
 	return self->kind == XB_OPCODE_KIND_INTEGER || self->kind == XB_OPCODE_KIND_BOOLEAN ||
+	       self->kind == XB_OPCODE_KIND_INDEXED_TEXT ||
+	       self->kind == XB_OPCODE_KIND_BOUND_INDEXED_TEXT ||
 	       self->kind == XB_OPCODE_KIND_BOUND_INTEGER;
 }
 

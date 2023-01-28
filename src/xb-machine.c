@@ -1040,8 +1040,9 @@ xb_machine_run_with_bindings(XbMachine *self,
 		XbOpcodeKind kind = xb_opcode_get_kind(opcode);
 
 		/* replace post-0.3.0-style bound opcodes with their bound values */
-		if (bindings != NULL &&
-		    (kind == XB_OPCODE_KIND_BOUND_TEXT || kind == XB_OPCODE_KIND_BOUND_INTEGER)) {
+		if (bindings != NULL && (kind == XB_OPCODE_KIND_BOUND_TEXT ||
+					 kind == XB_OPCODE_KIND_BOUND_INDEXED_TEXT ||
+					 kind == XB_OPCODE_KIND_BOUND_INTEGER)) {
 			XbOpcode *machine_opcode;
 			if (!xb_machine_stack_push(self, stack, &machine_opcode, error))
 				return FALSE;
@@ -1084,8 +1085,9 @@ xb_machine_run_with_bindings(XbMachine *self,
 		 * the caller */
 		if (kind == XB_OPCODE_KIND_TEXT || kind == XB_OPCODE_KIND_BOOLEAN ||
 		    kind == XB_OPCODE_KIND_INTEGER || kind == XB_OPCODE_KIND_INDEXED_TEXT ||
-		    (bindings == NULL &&
-		     (kind == XB_OPCODE_KIND_BOUND_TEXT || kind == XB_OPCODE_KIND_BOUND_INTEGER))) {
+		    (bindings == NULL && (kind == XB_OPCODE_KIND_BOUND_TEXT ||
+					  kind == XB_OPCODE_KIND_BOUND_INDEXED_TEXT ||
+					  kind == XB_OPCODE_KIND_BOUND_INTEGER))) {
 			XbOpcode *machine_opcode;
 			if (!xb_machine_stack_push(self, stack, &machine_opcode, error))
 				return FALSE;
@@ -1542,6 +1544,7 @@ xb_machine_func_eq_cb(XbMachine *self,
 		      gpointer exec_data,
 		      GError **error)
 {
+	XbMachinePrivate *priv = GET_PRIVATE(self);
 	g_auto(XbOpcode) op1 = XB_OPCODE_INIT();
 	g_auto(XbOpcode) op2 = XB_OPCODE_INIT();
 
@@ -1560,17 +1563,28 @@ xb_machine_func_eq_cb(XbMachine *self,
 					  error);
 
 	/* TEXT:TEXT */
-	if (xb_opcode_cmp_str(&op1) && xb_opcode_cmp_str(&op2))
+	if (xb_opcode_cmp_str(&op1) && xb_opcode_cmp_str(&op2)) {
+		if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_SLOW_PATH) {
+			g_autofree gchar *str1 = xb_opcode_to_string(&op1);
+			g_autofree gchar *str2 = xb_opcode_to_string(&op2);
+			g_debug("slow strcmp fallback of %s:%s", str1, str2);
+		}
 		return xb_stack_push_bool(
 		    stack,
 		    g_strcmp0(xb_opcode_get_str(&op1), xb_opcode_get_str(&op2)) == 0,
 		    error);
+	}
 
 	/* INTE:TEXT */
 	if (xb_opcode_cmp_val(&op1) && xb_opcode_cmp_str(&op2)) {
 		guint64 val = 0;
 		if (xb_opcode_get_str(&op2) == NULL)
 			return xb_stack_push_bool(stack, FALSE, error);
+		if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_SLOW_PATH) {
+			g_autofree gchar *str1 = xb_opcode_to_string(&op1);
+			g_autofree gchar *str2 = xb_opcode_to_string(&op2);
+			g_debug("slow atoi fallback of %s:%s", str1, str2);
+		}
 		if (!g_ascii_string_to_unsigned(xb_opcode_get_str(&op2),
 						10,
 						0,
@@ -1587,6 +1601,11 @@ xb_machine_func_eq_cb(XbMachine *self,
 		guint64 val = 0;
 		if (xb_opcode_get_str(&op1) == NULL)
 			return xb_stack_push_bool(stack, FALSE, error);
+		if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_SLOW_PATH) {
+			g_autofree gchar *str1 = xb_opcode_to_string(&op1);
+			g_autofree gchar *str2 = xb_opcode_to_string(&op2);
+			g_debug("slow atoi fallback of %s:%s", str1, str2);
+		}
 		if (!g_ascii_string_to_unsigned(xb_opcode_get_str(&op1),
 						10,
 						0,

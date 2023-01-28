@@ -25,15 +25,19 @@ G_BEGIN_DECLS
  */
 typedef struct {
 	/*< private >*/
-	gint dummy0;
-	gpointer dummy1[2];
-	gint dummy2;
-	gpointer dummy3[2];
-	gint dummy4;
+	guint8 dummy0;
+	guint32 dummy1;
+	gpointer dummy2[2];
+	guint8 dummy3;
+	guint32 dummy4;
 	gpointer dummy5[2];
-	gint dummy6;
-	gpointer dummy7[2];
-	gpointer dummy8[3];
+	guint8 dummy6;
+	guint32 dummy7;
+	gpointer dummy8[2];
+	guint8 dummy9;
+	guint32 dummy10;
+	gpointer dummy11[2];
+	gpointer dummy12[3];
 } XbValueBindings;
 
 GType
@@ -56,7 +60,10 @@ xb_value_bindings_get_type(void);
  */
 #define XB_VALUE_BINDINGS_INIT()                                                                   \
 	{                                                                                          \
-		0, {NULL, NULL}, 0, {NULL, NULL}, 0, {NULL, NULL}, 0, {NULL, NULL}, { NULL, }      \
+		0, 0, {NULL, NULL}, 0, 0, {NULL, NULL}, 0, 0, {NULL, NULL}, 0, 0, {NULL, NULL},    \
+		{                                                                                  \
+			NULL,                                                                      \
+		}                                                                                  \
 	}
 
 void

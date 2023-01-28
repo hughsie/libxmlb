@@ -486,6 +486,13 @@ xb_silo_query_with_root_full(XbSilo *self,
 						     : xb_query_get_flags(query);
 	G_GNUC_END_IGNORE_DEPRECATIONS
 
+	/* convert the XB_OPCODE_KIND_BOUND_TEXT into a XB_OPCODE_KIND_BOUND_INDEXED_TEXT */
+	if (context != NULL && query_flags & XB_QUERY_FLAG_USE_INDEXES) {
+		XbValueBindings *bindings = xb_query_context_get_bindings(context);
+		if (!xb_value_bindings_indexed_text_lookup(bindings, self, error))
+			return NULL;
+	}
+
 	/* empty silo */
 	if (xb_silo_is_empty(self)) {
 		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "silo has no data");
