@@ -35,6 +35,7 @@ struct _XbMachineClass {
  * @XB_MACHINE_DEBUG_FLAG_SHOW_STACK:		Show the stack addition and removal
  * @XB_MACHINE_DEBUG_FLAG_SHOW_PARSING:		Show the XPath predicate parsing
  * @XB_MACHINE_DEBUG_FLAG_SHOW_OPTIMIZER:	Show the optimizer operation
+ * @XB_MACHINE_DEBUG_FLAG_SHOW_SLOW_PATH:	Show the query slow paths
  *
  * The flags to control the amount of debugging is generated.
  **/
@@ -43,6 +44,7 @@ typedef enum {
 	XB_MACHINE_DEBUG_FLAG_SHOW_STACK = 1 << 0,
 	XB_MACHINE_DEBUG_FLAG_SHOW_PARSING = 1 << 1,
 	XB_MACHINE_DEBUG_FLAG_SHOW_OPTIMIZER = 1 << 2,
+	XB_MACHINE_DEBUG_FLAG_SHOW_SLOW_PATH = 1 << 3,
 	/*< private >*/
 	XB_MACHINE_DEBUG_FLAG_LAST
 } XbMachineDebugFlags;

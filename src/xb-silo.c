@@ -811,7 +811,9 @@ xb_silo_set_profile_flags(XbSilo *self, XbSiloProfileFlags profile_flags)
 
 	/* proxy */
 	if (profile_flags & XB_SILO_PROFILE_FLAG_OPTIMIZER) {
-		xb_machine_set_debug_flags(priv->machine, XB_MACHINE_DEBUG_FLAG_SHOW_OPTIMIZER);
+		xb_machine_set_debug_flags(priv->machine,
+					   XB_MACHINE_DEBUG_FLAG_SHOW_OPTIMIZER |
+					       XB_MACHINE_DEBUG_FLAG_SHOW_SLOW_PATH);
 	}
 }
 
