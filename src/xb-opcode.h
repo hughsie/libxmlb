@@ -90,14 +90,14 @@ guint32
 xb_opcode_get_val(XbOpcode *self);
 
 void
-xb_opcode_func_init(XbOpcode *opcode, guint32 func);
+xb_opcode_func_init(XbOpcode *self, guint32 func);
 void
-xb_opcode_integer_init(XbOpcode *opcode, guint32 val);
+xb_opcode_integer_init(XbOpcode *self, guint32 val);
 void
-xb_opcode_text_init(XbOpcode *opcode, const gchar *str);
+xb_opcode_text_init(XbOpcode *self, const gchar *str);
 void
-xb_opcode_text_init_static(XbOpcode *opcode, const gchar *str);
+xb_opcode_text_init_static(XbOpcode *self, const gchar *str);
 void
-xb_opcode_text_init_steal(XbOpcode *opcode, gchar *str);
+xb_opcode_text_init_steal(XbOpcode *self, gchar *str);
 
 G_END_DECLS
