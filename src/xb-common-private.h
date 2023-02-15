@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <glib.h>
+#include <gio/gio.h>
 
 gchar *
 xb_content_type_guess(const gchar *filename, const guchar *buf, gsize bufsz);

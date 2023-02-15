@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <glib.h>
+#include "xb-value-bindings.h"
 
 gchar *
 xb_value_bindings_to_string(XbValueBindings *self);

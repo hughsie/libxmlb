@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include <glib-object.h>
-
 #include "xb-builder-source-ctx.h"
 
 G_BEGIN_DECLS
