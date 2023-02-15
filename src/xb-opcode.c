@@ -319,7 +319,7 @@ xb_opcode_clear(XbOpcode *self)
 
 /**
  * xb_opcode_text_init:
- * @opcode: a stack allocated #XbOpcode to initialise
+ * @self: a stack allocated #XbOpcode to initialise
  * @str: a string
  *
  * Initialises a stack allocated #XbOpcode to contain a text literal.
@@ -329,14 +329,14 @@ xb_opcode_clear(XbOpcode *self)
  * Since: 0.2.0
  **/
 void
-xb_opcode_text_init(XbOpcode *opcode, const gchar *str)
+xb_opcode_text_init(XbOpcode *self, const gchar *str)
 {
-	xb_opcode_init(opcode, XB_OPCODE_KIND_TEXT, g_strdup(str), 0, g_free);
+	xb_opcode_init(self, XB_OPCODE_KIND_TEXT, g_strdup(str), 0, g_free);
 }
 
 /**
  * xb_opcode_init:
- * @opcode: allocated opcode to fill
+ * @self: allocated opcode to fill
  * @kind: a #XbOpcodeKind, e.g. %XB_OPCODE_KIND_INTEGER
  * @str: a string
  * @val: a integer value
@@ -347,23 +347,23 @@ xb_opcode_text_init(XbOpcode *opcode, const gchar *str)
  * Since: 0.2.0
  **/
 void
-xb_opcode_init(XbOpcode *opcode,
+xb_opcode_init(XbOpcode *self,
 	       XbOpcodeKind kind,
 	       const gchar *str,
 	       guint32 val,
 	       GDestroyNotify destroy_func)
 {
-	opcode->level = G_MAXUINT8;
-	opcode->kind = kind;
-	opcode->ptr = (gpointer)str;
-	opcode->val = val;
-	opcode->tokens_len = 0;
-	opcode->destroy_func = destroy_func;
+	self->level = G_MAXUINT8;
+	self->kind = kind;
+	self->ptr = (gpointer)str;
+	self->val = val;
+	self->tokens_len = 0;
+	self->destroy_func = destroy_func;
 }
 
 /**
  * xb_opcode_text_init_static:
- * @opcode: a stack allocated #XbOpcode to initialise
+ * @self: a stack allocated #XbOpcode to initialise
  * @str: a string
  *
  * Initialises a stack allocated #XbOpcode to contain a text literal, where
@@ -372,14 +372,14 @@ xb_opcode_init(XbOpcode *opcode,
  * Since: 0.2.0
  **/
 void
-xb_opcode_text_init_static(XbOpcode *opcode, const gchar *str)
+xb_opcode_text_init_static(XbOpcode *self, const gchar *str)
 {
-	xb_opcode_init(opcode, XB_OPCODE_KIND_TEXT, str, 0, NULL);
+	xb_opcode_init(self, XB_OPCODE_KIND_TEXT, str, 0, NULL);
 }
 
 /**
  * xb_opcode_text_init_steal:
- * @opcode: a stack allocated #XbOpcode to initialise
+ * @self: a stack allocated #XbOpcode to initialise
  * @str: a string
  *
  * Initialises a stack allocated #XbOpcode to contain a text literal, stealing
@@ -388,14 +388,14 @@ xb_opcode_text_init_static(XbOpcode *opcode, const gchar *str)
  * Since: 0.2.0
  **/
 void
-xb_opcode_text_init_steal(XbOpcode *opcode, gchar *str)
+xb_opcode_text_init_steal(XbOpcode *self, gchar *str)
 {
-	xb_opcode_init(opcode, XB_OPCODE_KIND_TEXT, g_steal_pointer(&str), 0, g_free);
+	xb_opcode_init(self, XB_OPCODE_KIND_TEXT, g_steal_pointer(&str), 0, g_free);
 }
 
 /**
  * xb_opcode_func_init:
- * @opcode: a stack allocated #XbOpcode to initialise
+ * @self: a stack allocated #XbOpcode to initialise
  * @func: a function index
  *
  * Initialises a stack allocated #XbOpcode to contain a specific function.
@@ -405,14 +405,14 @@ xb_opcode_text_init_steal(XbOpcode *opcode, gchar *str)
  * Since: 0.2.0
  **/
 void
-xb_opcode_func_init(XbOpcode *opcode, guint32 func)
+xb_opcode_func_init(XbOpcode *self, guint32 func)
 {
-	xb_opcode_init(opcode, XB_OPCODE_KIND_FUNCTION, NULL, func, NULL);
+	xb_opcode_init(self, XB_OPCODE_KIND_FUNCTION, NULL, func, NULL);
 }
 
 /**
  * xb_opcode_bind_init:
- * @opcode: a stack allocated #XbOpcode to initialise
+ * @self: a stack allocated #XbOpcode to initialise
  *
  * Initialises a stack allocated #XbOpcode to contain a bind variable. A value
  * needs to be assigned to this opcode at runtime using
@@ -421,9 +421,9 @@ xb_opcode_func_init(XbOpcode *opcode, guint32 func)
  * Since: 0.2.0
  **/
 void
-xb_opcode_bind_init(XbOpcode *opcode)
+xb_opcode_bind_init(XbOpcode *self)
 {
-	xb_opcode_init(opcode, XB_OPCODE_KIND_BOUND_INTEGER, NULL, 0, NULL);
+	xb_opcode_init(self, XB_OPCODE_KIND_BOUND_INTEGER, NULL, 0, NULL);
 }
 
 /* private */
@@ -480,7 +480,7 @@ xb_opcode_set_kind(XbOpcode *self, XbOpcodeKind kind)
 
 /**
  * xb_opcode_integer_init:
- * @opcode: a stack allocated #XbOpcode to initialise
+ * @self: a stack allocated #XbOpcode to initialise
  * @val: a integer value
  *
  * Initialises a stack allocated #XbOpcode to contain an integer literal.
@@ -488,14 +488,14 @@ xb_opcode_set_kind(XbOpcode *self, XbOpcodeKind kind)
  * Since: 0.2.0
  **/
 void
-xb_opcode_integer_init(XbOpcode *opcode, guint32 val)
+xb_opcode_integer_init(XbOpcode *self, guint32 val)
 {
-	xb_opcode_init(opcode, XB_OPCODE_KIND_INTEGER, NULL, val, NULL);
+	xb_opcode_init(self, XB_OPCODE_KIND_INTEGER, NULL, val, NULL);
 }
 
 /* private */
 void
-xb_opcode_bool_init(XbOpcode *opcode, gboolean val)
+xb_opcode_bool_init(XbOpcode *self, gboolean val)
 {
-	xb_opcode_init(opcode, XB_OPCODE_KIND_BOOLEAN, NULL, !!val, NULL);
+	xb_opcode_init(self, XB_OPCODE_KIND_BOOLEAN, NULL, !!val, NULL);
 }

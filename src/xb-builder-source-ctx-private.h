@@ -15,7 +15,7 @@ G_BEGIN_DECLS
 XbBuilderSourceCtx *
 xb_builder_source_ctx_new(GFile *file, GInputStream *istream);
 void
-xb_builder_source_ctx_set_filename(XbBuilderSourceCtx *self, const gchar *filename);
+xb_builder_source_ctx_set_filename(XbBuilderSourceCtx *self, const gchar *basename);
 gchar *
 xb_builder_source_ctx_get_content_type(XbBuilderSourceCtx *self,
 				       GCancellable *cancellable,

@@ -50,15 +50,15 @@ xb_opcode_steal(XbOpcode *op_ptr)
 }
 
 void
-xb_opcode_init(XbOpcode *opcode,
+xb_opcode_init(XbOpcode *self,
 	       XbOpcodeKind kind,
 	       const gchar *str,
 	       guint32 val,
 	       GDestroyNotify destroy_func);
 void
-xb_opcode_clear(XbOpcode *opcode);
+xb_opcode_clear(XbOpcode *self);
 void
-xb_opcode_bind_init(XbOpcode *opcode);
+xb_opcode_bind_init(XbOpcode *self);
 gboolean
 xb_opcode_is_binding(XbOpcode *self);
 G_DEPRECATED_FOR(xb_value_bindings_bind_str)
@@ -78,7 +78,7 @@ xb_opcode_get_tokens(XbOpcode *self);
 gchar *
 xb_opcode_get_sig(XbOpcode *self);
 void
-xb_opcode_bool_init(XbOpcode *opcode, gboolean val);
+xb_opcode_bool_init(XbOpcode *self, gboolean val);
 gboolean
 xb_opcode_has_flag(XbOpcode *self, XbOpcodeFlags flag);
 void
