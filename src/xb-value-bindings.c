@@ -10,8 +10,6 @@
 
 #define G_LOG_DOMAIN "XbValueBindings"
 
-#include "xb-value-bindings.h"
-
 #include "config.h"
 
 #include <glib.h>
