@@ -1059,7 +1059,8 @@ xb_machine_run_with_bindings(XbMachine *self,
 				return FALSE;
 			}
 			continue;
-		} else if (kind == XB_OPCODE_KIND_BOUND_UNSET) {
+		}
+		if (kind == XB_OPCODE_KIND_BOUND_UNSET) {
 			g_autofree gchar *tmp1 = xb_stack_to_string(stack);
 			g_autofree gchar *tmp2 = xb_stack_to_string(opcodes);
 			g_set_error(error,
