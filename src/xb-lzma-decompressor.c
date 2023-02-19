@@ -117,8 +117,47 @@ xb_lzma_decompressor_convert(GConverter *converter,
 				    "Invalid compressed data");
 		return G_CONVERTER_ERROR;
 	}
+	if (res == LZMA_UNSUPPORTED_CHECK) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_SUPPORTED,
+				    "Cannot calculate the integrity check");
+		return G_CONVERTER_ERROR;
+	}
 	if (res == LZMA_MEM_ERROR) {
 		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Not enough memory");
+		return G_CONVERTER_ERROR;
+	}
+	if (res == LZMA_FORMAT_ERROR) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_SUPPORTED,
+				    "File format not recognized");
+		return G_CONVERTER_ERROR;
+	}
+	if (res == LZMA_OPTIONS_ERROR) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_SUPPORTED,
+				    "Invalid or unsupported options");
+		return G_CONVERTER_ERROR;
+	}
+	if (res == LZMA_DATA_ERROR) {
+		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA, "Data is corrupt");
+		return G_CONVERTER_ERROR;
+	}
+	if (res == LZMA_BUF_ERROR) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "No progress is possible");
+		return G_CONVERTER_ERROR;
+	}
+	if (res == LZMA_PROG_ERROR) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_ARGUMENT,
+				    "Programming error");
 		return G_CONVERTER_ERROR;
 	}
 	if (res == LZMA_OK || res == LZMA_STREAM_END) {
