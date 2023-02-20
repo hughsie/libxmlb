@@ -142,10 +142,6 @@ xb_lzma_decompressor_convert(GConverter *converter,
 				    "Invalid or unsupported options");
 		return G_CONVERTER_ERROR;
 	}
-	if (res == LZMA_DATA_ERROR) {
-		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA, "Data is corrupt");
-		return G_CONVERTER_ERROR;
-	}
 	if (res == LZMA_BUF_ERROR) {
 		g_set_error_literal(error,
 				    G_IO_ERROR,
@@ -168,7 +164,9 @@ xb_lzma_decompressor_convert(GConverter *converter,
 		return G_CONVERTER_CONVERTED;
 	}
 
-	g_assert_not_reached();
+	/* fallback */
+	g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Unhandled error code %u", res);
+	return G_CONVERTER_ERROR;
 }
 
 static void
