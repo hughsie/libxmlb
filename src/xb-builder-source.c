@@ -15,8 +15,9 @@
 #include "xb-builder-source-ctx-private.h"
 #include "xb-builder-source-private.h"
 #include "xb-lzma-decompressor.h"
+#ifdef ENABLE_ZSTD
 #include "xb-zstd-decompressor.h"
-
+#endif
 typedef struct {
 	GInputStream *istream;
 	GFile *file;
@@ -527,7 +528,7 @@ xb_builder_source_load_lzma_cb(XbBuilderSource *self,
 	g_autoptr(GConverter) conv = G_CONVERTER(xb_lzma_decompressor_new());
 	return g_converter_input_stream_new(istream, conv);
 }
-
+#ifdef ENABLE_ZSTD
 static GInputStream *
 xb_builder_source_load_zstd_cb(XbBuilderSource *self,
 			       XbBuilderSourceCtx *ctx,
@@ -539,7 +540,7 @@ xb_builder_source_load_zstd_cb(XbBuilderSource *self,
 	g_autoptr(GConverter) conv = G_CONVERTER(xb_zstd_decompressor_new());
 	return g_converter_input_stream_new(istream, conv);
 }
-
+#endif
 static void
 xb_builder_source_adapter_free(XbBuilderSourceAdapter *item)
 {
@@ -594,11 +595,13 @@ xb_builder_source_init(XbBuilderSource *self)
 				      xb_builder_source_load_lzma_cb,
 				      NULL,
 				      NULL);
+#ifdef ENABLE_ZSTD
 	xb_builder_source_add_adapter(self,
 				      "application/zstd",
 				      xb_builder_source_load_zstd_cb,
 				      NULL,
 				      NULL);
+#endif
 }
 
 /**

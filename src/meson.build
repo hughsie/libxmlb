@@ -39,6 +39,11 @@ subdir('libxmlb')
 
 mapfile = 'libxmlb.map'
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
+if get_option('zstd')
+    zstd_sources = ['xb-zstd-decompressor.c']
+else
+    zstd_sources = []
+endif
 libxmlb = library(
   'xmlb',
   sources : [
@@ -49,7 +54,6 @@ libxmlb = library(
     'xb-builder-source-ctx.c',
     'xb-common.c',
     'xb-lzma-decompressor.c',
-    'xb-zstd-decompressor.c',
     'xb-machine.c',
     'xb-opcode.c',
     'xb-node.c',
@@ -63,7 +67,7 @@ libxmlb = library(
     'xb-stack.c',
     'xb-string.c',
     'xb-value-bindings.c',
-  ],
+  ] + zstd_sources,
   soversion : lt_current,
   version : lt_version,
   include_directories : [
@@ -221,7 +225,6 @@ if get_option('tests')
       'xb-builder-source-ctx.c',
       'xb-common.c',
       'xb-lzma-decompressor.c',
-      'xb-zstd-decompressor.c',
       'xb-machine.c',
       'xb-node.c',
       'xb-node-query.c',
@@ -236,7 +239,7 @@ if get_option('tests')
       'xb-stack.c',
       'xb-string.c',
       'xb-value-bindings.c',
-    ],
+    ] + zstd_sources,
     include_directories : [
       configinc,
     ],
