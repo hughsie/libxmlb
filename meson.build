@@ -120,6 +120,12 @@ gio = dependency('gio-2.0', version : '>= 2.45.8')
 giounix = dependency('gio-unix-2.0', version : '>= 2.45.8', required: false)
 lzma = dependency('liblzma')
 zstd = dependency('libzstd')
+if get_option('zstd')
+    if not zstd.found() 
+        error('libzstd is missing, please install it to continue!')
+    endif
+        conf.set('HAVE_ZSTD', 1)
+endif
 if giounix.found()
   conf.set('HAVE_GIO_UNIX', '1')
 endif
@@ -132,10 +138,11 @@ add_project_arguments('-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_58', language: 
 
 libxmlb_deps = [
   gio,
-  lzma,
-  zstd,
+  lzma
 ]
-
+if get_option('zstd')
+    libxmlb_deps += zstd
+endif
 # support stemming of search tokens
 if get_option('stemmer')
   cc = meson.get_compiler('c')
