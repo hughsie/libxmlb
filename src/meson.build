@@ -39,10 +39,9 @@ subdir('libxmlb')
 
 mapfile = 'libxmlb.map'
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
+extra_sources = []
 if get_option('zstd')
-    extra_sources = ['xb-zstd-decompressor.c']
-else
-    extra_sources = []
+    extra_sources += ['xb-zstd-decompressor.c']
 endif
 libxmlb = library(
   'xmlb',
