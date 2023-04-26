@@ -124,7 +124,7 @@ if get_option('zstd')
     if not zstd.found() 
         error('libzstd is missing, please install it to continue!')
     endif
-      conf.set('HAVE_ZSTD', 1)
+        conf.set('HAVE_ZSTD', 1)
 endif
 if giounix.found()
   conf.set('HAVE_GIO_UNIX', '1')
