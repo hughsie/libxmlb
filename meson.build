@@ -102,12 +102,12 @@ add_project_link_arguments(
   language: 'c'
 )
 
+prefix = get_option('prefix')
 if host_machine.system() == 'windows'
   bindir = get_option('bindir')
   installed_test_bindir = get_option('libexecdir')
   installed_test_datadir = get_option('datadir')
 else
-  prefix = get_option('prefix')
   datadir = join_paths(prefix, get_option('datadir'))
   bindir = join_paths(prefix, get_option('bindir'))
   libexecdir = join_paths(prefix, get_option('libexecdir'))
