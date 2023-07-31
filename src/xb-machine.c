@@ -657,11 +657,11 @@ xb_machine_opcodes_optimize_fn(XbMachine *self,
 
 	/* run the method. it's only supposed to pop its arguments off the stack
 	 * if it can complete successfully */
-	stack_str = xb_stack_to_string(opcodes);
 	if (!item->method_cb(self, opcodes, NULL, item->user_data, NULL, &error_local)) {
 		XbOpcode *op_out;
 
 		if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_OPTIMIZER) {
+			stack_str = xb_stack_to_string(opcodes);
 			g_debug("ignoring optimized call to %s(%s): %s",
 				item->name,
 				stack_str,
@@ -693,11 +693,14 @@ xb_machine_opcodes_optimize_fn(XbMachine *self,
 	}
 
 	/* the predicate will always evalulate to FALSE */
-	g_set_error(error,
-		    G_IO_ERROR,
-		    G_IO_ERROR_INVALID_DATA,
-		    "the predicate will always evalulate to FALSE: %s",
-		    stack_str);
+	if (error != NULL) {
+		stack_str = xb_stack_to_string(opcodes);
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "the predicate will always evalulate to FALSE: %s",
+			    stack_str);
+	}
 	return FALSE;
 }
 
