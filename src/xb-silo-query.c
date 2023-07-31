@@ -543,12 +543,14 @@ xb_silo_query_with_root_full(XbSilo *self,
 
 	/* nothing found */
 	if (results->len == 0) {
-		g_autofree gchar *tmp = xb_query_to_string(query);
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_NOT_FOUND,
-			    "no results for XPath query '%s'",
-			    tmp);
+		if (error != NULL) {
+			g_autofree gchar *tmp = xb_query_to_string(query);
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_FOUND,
+				    "no results for XPath query '%s'",
+				    tmp);
+		}
 		return NULL;
 	}
 
