@@ -1189,8 +1189,8 @@ xb_silo_machine_fixup_position_cb(XbMachine *self,
 
 	/* always exists, but maybe a @level would be cleaner */
 	if (tail != NULL) {
-		xb_opcode_set_level(op1, xb_opcode_get_level(tail));
-		xb_opcode_set_level(op2, xb_opcode_get_level(tail));
+		xb_opcode_set_level(op1, _xb_opcode_get_level(tail));
+		xb_opcode_set_level(op2, _xb_opcode_get_level(tail));
 	}
 
 	return TRUE;
@@ -1215,8 +1215,8 @@ xb_silo_machine_fixup_attr_exists_cb(XbMachine *self,
 
 	/* always exists, but maybe a @level would be cleaner */
 	if (tail != NULL) {
-		xb_opcode_set_level(op1, xb_opcode_get_level(tail));
-		xb_opcode_set_level(op2, xb_opcode_get_level(tail));
+		xb_opcode_set_level(op1, _xb_opcode_get_level(tail));
+		xb_opcode_set_level(op2, _xb_opcode_get_level(tail));
 	}
 
 	return TRUE;
