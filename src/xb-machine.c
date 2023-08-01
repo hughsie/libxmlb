@@ -263,11 +263,13 @@ xb_machine_parse_add_func(XbMachine *self,
 
 	/* match opcode, which should always exist */
 	if (!xb_machine_opcode_func_init(self, opcode, func_name)) {
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_NOT_SUPPORTED,
-			    "built-in function not found: %s",
-			    func_name);
+		if (error != NULL) {
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_SUPPORTED,
+				    "built-in function not found: %s",
+				    func_name);
+		}
 		xb_stack_pop(opcodes, NULL, NULL);
 		return FALSE;
 	}
@@ -321,23 +323,27 @@ g_ascii_string_to_unsigned(const gchar *str,
 	if (g_ascii_isspace(str[0]) || str_has_sign(str) ||
 	    (base == 16 && str_has_hex_prefix(str)) ||
 	    (saved_errno != 0 && saved_errno != ERANGE) || end_ptr == NULL || *end_ptr != '\0') {
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_INVALID_DATA,
-			    "“%s” is not an unsigned number",
-			    str);
+		if (error != NULL) {
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "“%s” is not an unsigned number",
+				    str);
+		}
 		return FALSE;
 	}
 	if (saved_errno == ERANGE || number < min || number > max) {
-		g_autofree gchar *min_str = g_strdup_printf("%" G_GUINT64_FORMAT, min);
-		g_autofree gchar *max_str = g_strdup_printf("%" G_GUINT64_FORMAT, max);
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_INVALID_DATA,
-			    "Number “%s” is out of bounds [%s, %s]",
-			    str,
-			    min_str,
-			    max_str);
+		if (error != NULL) {
+			g_autofree gchar *min_str = g_strdup_printf("%" G_GUINT64_FORMAT, min);
+			g_autofree gchar *max_str = g_strdup_printf("%" G_GUINT64_FORMAT, max);
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "Number “%s” is out of bounds [%s, %s]",
+				    str,
+				    min_str,
+				    max_str);
+		}
 		return FALSE;
 	}
 	if (out_num != NULL)
@@ -443,11 +449,13 @@ xb_machine_parse_add_text(XbMachine *self,
 	}
 
 	/* not supported */
-	g_set_error(error,
-		    G_IO_ERROR,
-		    G_IO_ERROR_NOT_SUPPORTED,
-		    "cannot parse text or number `%s`",
-		    str);
+	if (error != NULL) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_NOT_SUPPORTED,
+			    "cannot parse text or number `%s`",
+			    str);
+	}
 	return FALSE;
 }
 
@@ -757,12 +765,14 @@ xb_machine_parse_text(XbMachine *self,
 
 	/* sanity check */
 	if (level > XB_MACHINE_STACK_LEVELS_MAX) {
-		g_autofree gchar *tmp = g_strndup(text, text_len);
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_INVALID_DATA,
-			    "nesting deeper than 20 levels supported: %s",
-			    tmp);
+		if (error != NULL) {
+			g_autofree gchar *tmp = g_strndup(text, text_len);
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "nesting deeper than 20 levels supported: %s",
+				    tmp);
+		}
 		return G_MAXSIZE;
 	}
 	for (guint i = 0; i < text_len; i++) {
@@ -803,12 +813,14 @@ xb_machine_parse_text(XbMachine *self,
 		}
 	}
 	if (tail != text_len && level > 0) {
-		g_autofree gchar *tmp = g_strndup(text, text_len);
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_INVALID_DATA,
-			    "brackets did not match: %s",
-			    tmp);
+		if (error != NULL) {
+			g_autofree gchar *tmp = g_strndup(text, text_len);
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "brackets did not match: %s",
+				    tmp);
+		}
 		return G_MAXSIZE;
 	}
 	if (!xb_machine_parse_sections(self,
@@ -953,12 +965,14 @@ xb_machine_run_func(XbMachine *self,
 
 	/* check we have enough stack elements */
 	if (item->n_opcodes > xb_stack_get_size(stack)) {
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_NOT_SUPPORTED,
-			    "function required %u arguments, stack only has %u",
-			    item->n_opcodes,
-			    xb_stack_get_size(stack));
+		if (error != NULL) {
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_SUPPORTED,
+				    "function required %u arguments, stack only has %u",
+				    item->n_opcodes,
+				    xb_stack_get_size(stack));
+		}
 		return FALSE;
 	}
 	if (!item->method_cb(self, stack, NULL, item->user_data, exec_data, error)) {
@@ -1052,6 +1066,22 @@ xb_machine_run_with_bindings(XbMachine *self,
 			if (!xb_value_bindings_lookup_opcode(bindings,
 							     bound_opcode_idx++,
 							     machine_opcode)) {
+				if (error != NULL) {
+					g_autofree gchar *tmp1 = xb_stack_to_string(stack);
+					g_autofree gchar *tmp2 = xb_stack_to_string(opcodes);
+					g_set_error(error,
+						    G_IO_ERROR,
+						    G_IO_ERROR_INVALID_DATA,
+						    "opcode was not bound at runtime, stack:%s, opcodes:%s",
+						    tmp1,
+						    tmp2);
+				}
+				return FALSE;
+			}
+			continue;
+		}
+		if (kind == XB_OPCODE_KIND_BOUND_UNSET) {
+			if (error != NULL) {
 				g_autofree gchar *tmp1 = xb_stack_to_string(stack);
 				g_autofree gchar *tmp2 = xb_stack_to_string(opcodes);
 				g_set_error(error,
@@ -1060,19 +1090,7 @@ xb_machine_run_with_bindings(XbMachine *self,
 					    "opcode was not bound at runtime, stack:%s, opcodes:%s",
 					    tmp1,
 					    tmp2);
-				return FALSE;
 			}
-			continue;
-		}
-		if (kind == XB_OPCODE_KIND_BOUND_UNSET) {
-			g_autofree gchar *tmp1 = xb_stack_to_string(stack);
-			g_autofree gchar *tmp2 = xb_stack_to_string(opcodes);
-			g_set_error(error,
-				    G_IO_ERROR,
-				    G_IO_ERROR_INVALID_DATA,
-				    "opcode was not bound at runtime, stack:%s, opcodes:%s",
-				    tmp1,
-				    tmp2);
 			return FALSE;
 		}
 
@@ -1100,34 +1118,40 @@ xb_machine_run_with_bindings(XbMachine *self,
 		}
 
 		/* invalid */
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_INVALID_DATA,
-			    "opcode kind %u not recognised",
-			    kind);
+		if (error != NULL) {
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "opcode kind %u not recognised",
+				    kind);
+		}
 		return FALSE;
 	}
 
 	/* the stack should have one boolean left on the stack */
 	if (xb_stack_get_size(stack) != 1) {
-		g_autofree gchar *tmp = xb_stack_to_string(stack);
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_INVALID_DATA,
-			    "%u opcodes remain on the stack (%s)",
-			    xb_stack_get_size(stack),
-			    tmp);
+		if (error != NULL) {
+			g_autofree gchar *tmp = xb_stack_to_string(stack);
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "%u opcodes remain on the stack (%s)",
+				    xb_stack_get_size(stack),
+				    tmp);
+		}
 		return FALSE;
 	}
 	if (!xb_stack_pop(stack, &opcode_success, error))
 		return FALSE;
 	if (xb_opcode_get_kind(&opcode_success) != XB_OPCODE_KIND_BOOLEAN) {
-		g_autofree gchar *tmp = xb_stack_to_string(stack);
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_INVALID_DATA,
-			    "Expected boolean, got: %s",
-			    tmp);
+		if (error != NULL) {
+			g_autofree gchar *tmp = xb_stack_to_string(stack);
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "Expected boolean, got: %s",
+				    tmp);
+		}
 		return FALSE;
 	}
 	*result = xb_opcode_get_val(&opcode_success);
@@ -1461,12 +1485,14 @@ xb_machine_check_one_arg(XbStack *stack, OpcodeCheckFunc f, GError **error)
 
 	head = xb_stack_peek_tail(stack);
 	if (head == NULL || !f(head)) {
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_NOT_SUPPORTED,
-			    "%s type not supported",
-			    (head != NULL) ? xb_opcode_kind_to_string(xb_opcode_get_kind(head))
-					   : "(null)");
+		if (error != NULL) {
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_SUPPORTED,
+				    "%s type not supported",
+				    (head != NULL) ? xb_opcode_kind_to_string(xb_opcode_get_kind(head))
+						   : "(null)");
+		}
 		return FALSE;
 	}
 
@@ -1485,14 +1511,16 @@ xb_machine_check_two_args(XbStack *stack, OpcodeCheckFunc f1, OpcodeCheckFunc f2
 		head2 = xb_stack_peek(stack, stack_size - 2);
 	}
 	if (head1 == NULL || head2 == NULL || !f1(head1) || !f2(head2)) {
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_NOT_SUPPORTED,
-			    "%s:%s types not supported",
-			    (head1 != NULL) ? xb_opcode_kind_to_string(xb_opcode_get_kind(head1))
-					    : "(null)",
-			    (head2 != NULL) ? xb_opcode_kind_to_string(xb_opcode_get_kind(head2))
-					    : "(null)");
+		if (error != NULL) {
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_SUPPORTED,
+				    "%s:%s types not supported",
+				    (head1 != NULL) ? xb_opcode_kind_to_string(xb_opcode_get_kind(head1))
+						    : "(null)",
+				    (head2 != NULL) ? xb_opcode_kind_to_string(xb_opcode_get_kind(head2))
+						    : "(null)");
+		}
 		return FALSE;
 	}
 
@@ -1621,12 +1649,14 @@ xb_machine_func_eq_cb(XbMachine *self,
 	}
 
 	/* should have been checked above */
-	g_set_error(error,
-		    G_IO_ERROR,
-		    G_IO_ERROR_NOT_SUPPORTED,
-		    "cannot compare %s and %s",
-		    xb_opcode_kind_to_string(xb_opcode_get_kind(&op1)),
-		    xb_opcode_kind_to_string(xb_opcode_get_kind(&op2)));
+	if (error != NULL) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_NOT_SUPPORTED,
+			    "cannot compare %s and %s",
+			    xb_opcode_kind_to_string(xb_opcode_get_kind(&op1)),
+			    xb_opcode_kind_to_string(xb_opcode_get_kind(&op2)));
+	}
 	return FALSE;
 }
 
@@ -1697,12 +1727,14 @@ xb_machine_func_ne_cb(XbMachine *self,
 	}
 
 	/* should have been checked above */
-	g_set_error(error,
-		    G_IO_ERROR,
-		    G_IO_ERROR_NOT_SUPPORTED,
-		    "cannot compare %s and %s",
-		    xb_opcode_kind_to_string(xb_opcode_get_kind(&op1)),
-		    xb_opcode_kind_to_string(xb_opcode_get_kind(&op2)));
+	if (error != NULL) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_NOT_SUPPORTED,
+			    "cannot compare %s and %s",
+			    xb_opcode_kind_to_string(xb_opcode_get_kind(&op1)),
+			    xb_opcode_kind_to_string(xb_opcode_get_kind(&op2)));
+	}
 	return FALSE;
 }
 
@@ -1773,12 +1805,14 @@ xb_machine_func_lt_cb(XbMachine *self,
 	}
 
 	/* should have been checked above */
-	g_set_error(error,
-		    G_IO_ERROR,
-		    G_IO_ERROR_NOT_SUPPORTED,
-		    "cannot compare %s and %s",
-		    xb_opcode_kind_to_string(xb_opcode_get_kind(&op1)),
-		    xb_opcode_kind_to_string(xb_opcode_get_kind(&op2)));
+	if (error != NULL) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_NOT_SUPPORTED,
+			    "cannot compare %s and %s",
+			    xb_opcode_kind_to_string(xb_opcode_get_kind(&op1)),
+			    xb_opcode_kind_to_string(xb_opcode_get_kind(&op2)));
+	}
 	return FALSE;
 }
 
@@ -1849,12 +1883,14 @@ xb_machine_func_gt_cb(XbMachine *self,
 	}
 
 	/* should have been checked above */
-	g_set_error(error,
-		    G_IO_ERROR,
-		    G_IO_ERROR_NOT_SUPPORTED,
-		    "cannot compare %s and %s",
-		    xb_opcode_kind_to_string(xb_opcode_get_kind(&op1)),
-		    xb_opcode_kind_to_string(xb_opcode_get_kind(&op2)));
+	if (error != NULL) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_NOT_SUPPORTED,
+			    "cannot compare %s and %s",
+			    xb_opcode_kind_to_string(xb_opcode_get_kind(&op1)),
+			    xb_opcode_kind_to_string(xb_opcode_get_kind(&op2)));
+	}
 	return FALSE;
 }
 
@@ -1926,12 +1962,14 @@ xb_machine_func_le_cb(XbMachine *self,
 	}
 
 	/* should have been checked above */
-	g_set_error(error,
-		    G_IO_ERROR,
-		    G_IO_ERROR_NOT_SUPPORTED,
-		    "cannot compare %s and %s",
-		    xb_opcode_kind_to_string(xb_opcode_get_kind(&op1)),
-		    xb_opcode_kind_to_string(xb_opcode_get_kind(&op2)));
+	if (error != NULL) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_NOT_SUPPORTED,
+			    "cannot compare %s and %s",
+			    xb_opcode_kind_to_string(xb_opcode_get_kind(&op1)),
+			    xb_opcode_kind_to_string(xb_opcode_get_kind(&op2)));
+	}
 	return FALSE;
 }
 
@@ -2003,11 +2041,13 @@ xb_machine_func_not_cb(XbMachine *self,
 		return xb_stack_push_bool(stack, xb_opcode_get_val(&op) == 0, error);
 
 	/* should have been checked above */
-	g_set_error(error,
-		    G_IO_ERROR,
-		    G_IO_ERROR_NOT_SUPPORTED,
-		    "cannot invert %s",
-		    xb_opcode_kind_to_string(xb_opcode_get_kind(&op)));
+	if (error != NULL) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_NOT_SUPPORTED,
+			    "cannot invert %s",
+			    xb_opcode_kind_to_string(xb_opcode_get_kind(&op)));
+	}
 	return FALSE;
 }
 
@@ -2078,12 +2118,14 @@ xb_machine_func_ge_cb(XbMachine *self,
 	}
 
 	/* should have been checked above */
-	g_set_error(error,
-		    G_IO_ERROR,
-		    G_IO_ERROR_NOT_SUPPORTED,
-		    "cannot compare %s and %s",
-		    xb_opcode_kind_to_string(xb_opcode_get_kind(&op1)),
-		    xb_opcode_kind_to_string(xb_opcode_get_kind(&op2)));
+	if (error != NULL) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_NOT_SUPPORTED,
+			    "cannot compare %s and %s",
+			    xb_opcode_kind_to_string(xb_opcode_get_kind(&op1)),
+			    xb_opcode_kind_to_string(xb_opcode_get_kind(&op2)));
+	}
 	return FALSE;
 }
 
@@ -2249,11 +2291,13 @@ xb_machine_func_in_cb(XbMachine *self,
 			level = xb_opcode_get_level(op_tmp);
 		}
 		if (!xb_opcode_cmp_str(op_tmp)) {
-			g_set_error(error,
-				    G_IO_ERROR,
-				    G_IO_ERROR_NOT_SUPPORTED,
-				    "%s type not supported",
-				    xb_opcode_kind_to_string(xb_opcode_get_kind(op_tmp)));
+			if (error != NULL) {
+				g_set_error(error,
+					    G_IO_ERROR,
+					    G_IO_ERROR_NOT_SUPPORTED,
+					    "%s type not supported",
+					    xb_opcode_kind_to_string(xb_opcode_get_kind(op_tmp)));
+			}
 			return FALSE;
 		}
 		nr_args++;
@@ -2262,11 +2306,13 @@ xb_machine_func_in_cb(XbMachine *self,
 	/* ensure the needle is also a string */
 	op_needle = xb_stack_peek(stack, xb_stack_get_size(stack) - (nr_args + 1));
 	if (!xb_opcode_cmp_str(op_needle)) {
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_NOT_SUPPORTED,
-			    "%s type not supported",
-			    xb_opcode_kind_to_string(xb_opcode_get_kind(op_needle)));
+		if (error != NULL) {
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_SUPPORTED,
+				    "%s type not supported",
+				    xb_opcode_kind_to_string(xb_opcode_get_kind(op_needle)));
+		}
 		return FALSE;
 	}
 
