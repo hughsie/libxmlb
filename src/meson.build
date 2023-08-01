@@ -73,6 +73,7 @@ libxmlb = library(
     configinc,
   ],
   dependencies : libxmlb_deps,
+  c_args : release_args,
   link_args : cc.get_supported_link_arguments([vflag]),
   link_depends : mapfile,
   install : true

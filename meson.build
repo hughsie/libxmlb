@@ -88,10 +88,18 @@ endif
 # enable full RELRO where possible
 # FIXME: until https://github.com/mesonbuild/meson/issues/1140 is fixed
 global_link_args = []
+release_args = []
 test_link_args = [
   '-Wl,-z,relro',
   '-Wl,-z,now',
 ]
+if not get_option('debug')
+  release_args += ['-DG_DISABLE_CAST_CHECKS', '-DG_DISABLE_ASSERT']
+  test_link_args += [
+    '-Wl,-Bsymbolic',
+    '-fno-plt',
+  ]
+endif
 foreach link_arg: test_link_args
   if cc.has_link_argument(link_arg)
     global_link_args += link_arg
