@@ -1831,7 +1831,6 @@ xb_silo_lookup_query(XbSilo *self, const gchar *xpath)
 
 	if (result != NULL) {
 		g_object_ref(result);
-		g_debug("Found cached query ‘%s’ (%p) in silo %p", xpath, result, self);
 	} else {
 		g_autoptr(XbQuery) query = NULL;
 
@@ -1840,7 +1839,6 @@ xb_silo_lookup_query(XbSilo *self, const gchar *xpath)
 		result = g_hash_table_lookup(priv->query_cache, xpath);
 		if (result != NULL) {
 			g_object_ref(result);
-			g_debug("Found cached query ‘%s’ (%p) in silo %p", xpath, result, self);
 		} else {
 			g_autoptr(GError) error_local = NULL;
 
