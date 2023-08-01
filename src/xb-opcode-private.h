@@ -89,6 +89,45 @@ xb_opcode_set_level(XbOpcode *self, guint8 level);
 guint8
 xb_opcode_get_level(XbOpcode *self);
 
+static inline gboolean
+_xb_opcode_has_flag(const XbOpcode *self, XbOpcodeFlags flag)
+{
+	return (self->kind & flag) > 0;
+}
+
+static inline XbOpcodeKind
+_xb_opcode_get_kind(const XbOpcode *self)
+{
+	return self->kind & ~XB_OPCODE_FLAG_TOKENIZED;
+}
+
+static inline const gchar *
+_xb_opcode_get_str(const XbOpcode *self)
+{
+	return self->ptr;
+}
+
+static inline guint8
+_xb_opcode_get_level(const XbOpcode *self)
+{
+	return self->level;
+}
+
+static inline guint32
+_xb_opcode_get_val(const XbOpcode *self)
+{
+	return self->val;
+}
+
+static inline gboolean
+_xb_opcode_cmp_val(XbOpcode *self)
+{
+	return self->kind == XB_OPCODE_KIND_INTEGER || self->kind == XB_OPCODE_KIND_BOOLEAN ||
+	       self->kind == XB_OPCODE_KIND_INDEXED_TEXT ||
+	       self->kind == XB_OPCODE_KIND_BOUND_INDEXED_TEXT ||
+	       self->kind == XB_OPCODE_KIND_BOUND_INTEGER;
+}
+
 G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC(XbOpcode, xb_opcode_clear)
 
 G_END_DECLS

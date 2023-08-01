@@ -108,12 +108,6 @@ xb_opcode_set_level(XbOpcode *self, guint8 level)
 	self->level = level;
 }
 
-guint8
-xb_opcode_get_level(XbOpcode *self)
-{
-	return self->level;
-}
-
 static gchar *
 xb_opcode_to_string_internal(XbOpcode *self)
 {
@@ -229,10 +223,7 @@ xb_opcode_add_flag(XbOpcode *self, XbOpcodeFlags flag)
 inline gboolean
 xb_opcode_cmp_val(XbOpcode *self)
 {
-	return self->kind == XB_OPCODE_KIND_INTEGER || self->kind == XB_OPCODE_KIND_BOOLEAN ||
-	       self->kind == XB_OPCODE_KIND_INDEXED_TEXT ||
-	       self->kind == XB_OPCODE_KIND_BOUND_INDEXED_TEXT ||
-	       self->kind == XB_OPCODE_KIND_BOUND_INTEGER;
+  return _xb_opcode_cmp_val(self);
 }
 
 /**
@@ -288,7 +279,7 @@ xb_opcode_get_val(XbOpcode *self)
 const gchar *
 xb_opcode_get_str(XbOpcode *self)
 {
-	return self->ptr;
+  return _xb_opcode_get_str(self);
 }
 
 /**

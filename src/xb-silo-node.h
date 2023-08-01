@@ -36,21 +36,88 @@ typedef struct __attribute__((packed)) {
 	guint32 attr_value; /* from strtab */
 } XbSiloNodeAttr;
 
-guint32
-xb_silo_node_get_size(XbSiloNode *self);
-guint32
-xb_silo_node_get_text_idx(XbSiloNode *self);
-guint32
-xb_silo_node_get_tail_idx(XbSiloNode *self);
-guint8
-xb_silo_node_get_token_count(XbSiloNode *self);
-guint32
-xb_silo_node_get_token_idx(XbSiloNode *self, guint idx);
-guint8
-xb_silo_node_get_flags(XbSiloNode *self);
-gboolean
-xb_silo_node_has_flag(XbSiloNode *self, XbSiloNodeFlag flags);
-guint8
-xb_silo_node_get_attr_count(XbSiloNode *self);
-XbSiloNodeAttr *
-xb_silo_node_get_attr(XbSiloNode *self, guint8 idx);
+/* private */
+static inline gboolean
+xb_silo_node_has_flag(const XbSiloNode *self, XbSiloNodeFlag flag)
+{
+	return (self->flags & flag) > 0;
+}
+
+static inline guint32
+xb_silo_node_get_size(const XbSiloNode *self)
+{
+	if (xb_silo_node_has_flag(self, XB_SILO_NODE_FLAG_IS_ELEMENT)) {
+		guint8 sz = sizeof(XbSiloNode);
+		sz += self->attr_count * sizeof(XbSiloNodeAttr);
+		sz += self->token_count * sizeof(guint32);
+		return sz;
+	}
+
+	/* sentinel */
+	return sizeof(guint8);
+}
+
+/* private */
+static inline guint8
+xb_silo_node_get_flags(const XbSiloNode *self)
+{
+	return self->flags;
+}
+
+/* private */
+static inline guint32
+xb_silo_node_get_text_idx(const XbSiloNode *self)
+{
+	return self->text;
+}
+
+/* private */
+static inline guint32
+xb_silo_node_get_tail_idx(const XbSiloNode *self)
+{
+	return self->tail;
+}
+
+/* private */
+static inline guint8
+xb_silo_node_get_attr_count(const XbSiloNode *self)
+{
+	return self->attr_count;
+}
+
+/* private */
+static inline XbSiloNodeAttr *
+xb_silo_node_get_attr(const XbSiloNode *self, guint8 idx)
+{
+	guint32 off = sizeof(XbSiloNode);
+	off += sizeof(XbSiloNodeAttr) * idx;
+	return (XbSiloNodeAttr *)(((guint8 *)self) + off);
+}
+
+/* private */
+static inline guint8
+xb_silo_node_get_token_count(const XbSiloNode *self)
+{
+	return self->token_count;
+}
+
+/* private */
+static inline guint32
+xb_silo_node_get_token_idx(const XbSiloNode *self, guint idx)
+{
+	guint32 off = 0;
+	guint32 stridx;
+
+	/* not valid */
+	if (!xb_silo_node_has_flag(self, XB_SILO_NODE_FLAG_IS_ELEMENT))
+		return XB_SILO_UNSET;
+	if (!xb_silo_node_has_flag(self, XB_SILO_NODE_FLAG_IS_TOKENIZED))
+		return XB_SILO_UNSET;
+
+	/* calculate offset to token */
+	off += sizeof(XbSiloNode);
+	off += self->attr_count * sizeof(XbSiloNodeAttr);
+	off += idx * sizeof(guint32);
+	memcpy(&stridx, (guint8 *)self + off, sizeof(stridx));
+	return stridx;
+}
