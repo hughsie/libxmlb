@@ -29,10 +29,14 @@ xb_content_type_guess_from_fn(const gchar *filename)
 		return "application/gzip";
 	if (g_strcmp0(ext, ".xz") == 0)
 		return "application/x-xz";
+	if (g_strcmp0(ext, ".zst") == 0)
+		return "application/zstd";
 	if (g_strcmp0(ext, ".txt") == 0 || g_strcmp0(ext, ".xml") == 0)
 		return "application/xml";
 	if (g_strcmp0(ext, ".desktop") == 0)
 		return "application/x-desktop";
+	if (g_strcmp0(ext, ".quirk") == 0)
+		return "text/plain";
 	return NULL;
 }
 
@@ -76,6 +80,8 @@ xb_content_type_guess(const gchar *filename, const guchar *buf, gsize bufsz)
 				return g_strdup("application/gzip");
 			if (xb_content_type_match(buf, bufsz, 0x0, "\xfd\x37\x7a\x58\x5a\x00", 6))
 				return g_strdup("application/x-xz");
+			if (xb_content_type_match(buf, bufsz, 0x0, "\x28\xb5\x2f\xfd", 4))
+				return g_strdup("application/zstd");
 			if (xb_content_type_match(buf, bufsz, 0x0, "<?xml", 5))
 				return g_strdup("application/xml");
 			if (xb_content_type_match(buf, bufsz, 0x0, "[Desktop Entry]", 15))

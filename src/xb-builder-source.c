@@ -586,12 +586,12 @@ xb_builder_source_init(XbBuilderSource *self)
 	priv->adapters =
 	    g_ptr_array_new_with_free_func((GDestroyNotify)xb_builder_source_adapter_free);
 	xb_builder_source_add_adapter(self,
-				      "application/gzip,application/x-gzip",
+				      "application/gzip,application/x-gzip,org.gnu.gnu-zip-archive",
 				      xb_builder_source_load_gzip_cb,
 				      NULL,
 				      NULL);
 	xb_builder_source_add_adapter(self,
-				      "application/x-xz",
+				      "application/x-xz,org.tukaani.xz-archive",
 				      xb_builder_source_load_lzma_cb,
 				      NULL,
 				      NULL);

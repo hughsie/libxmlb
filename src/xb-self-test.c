@@ -11,6 +11,7 @@
 
 #include "xb-builder-node.h"
 #include "xb-builder.h"
+#include "xb-common-private.h"
 #include "xb-machine.h"
 #include "xb-node-query.h"
 #include "xb-opcode-private.h"
@@ -161,6 +162,34 @@ xb_common_func(void)
 	g_assert_false(xb_string_token_valid(""));
 	g_assert_false(xb_string_token_valid("a"));
 	g_assert_false(xb_string_token_valid("ab"));
+}
+
+static void
+xb_common_content_type_func(void)
+{
+	struct {
+		const gchar *fn;
+		const gchar *ctype;
+	} items[] = {{"test.desktop", "application/x-desktop"},
+		     {"test.quirk", "text/plain"},
+		     {"test.xml", "application/xml"},
+		     {"test.xml.gz.gz.gz", "application/gzip"},
+		     {"test.xml.xz", "application/x-xz"},
+		     {"test.xml.zstd", "application/zstd"},
+		     {NULL, NULL}};
+	for (guint i = 0; items[i].fn != NULL; i++) {
+		gboolean ret;
+		gsize bufsz = 0;
+		g_autofree gchar *buf = NULL;
+		g_autofree gchar *ctype = NULL;
+		g_autofree gchar *fn = g_test_build_filename(G_TEST_DIST, items[i].fn, NULL);
+		g_autoptr(GError) error = NULL;
+		ret = g_file_get_contents(fn, &buf, &bufsz, &error);
+		g_assert_no_error(error);
+		g_assert_true(ret);
+		ctype = xb_content_type_guess(fn, (const guchar *)buf, bufsz);
+		g_assert_cmpstr(ctype, ==, items[i].ctype);
+	}
 }
 
 static void
@@ -2771,6 +2800,7 @@ main(int argc, char **argv)
 
 	/* tests go here */
 	g_test_add_func("/libxmlb/common", xb_common_func);
+	g_test_add_func("/libxmlb/common{content-type}", xb_common_content_type_func);
 	g_test_add_func("/libxmlb/common{searchv}", xb_common_searchv_func);
 	g_test_add_func("/libxmlb/common{union}", xb_common_union_func);
 	g_test_add_func("/libxmlb/opcodes", xb_predicate_func);
