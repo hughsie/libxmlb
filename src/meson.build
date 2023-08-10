@@ -211,7 +211,7 @@ endif
 
 if get_option('tests')
   testdatadirs = environment()
-  testdatadirs.set('G_TEST_SRCDIR', join_paths(meson.source_root(), 'data'))
+  testdatadirs.set('G_TEST_SRCDIR', join_paths(meson.project_source_root(), 'data'))
   testdatadirs.set('G_TEST_BUILDDIR', meson.current_build_dir())
   e = executable(
     'xb-self-test',
