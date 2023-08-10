@@ -245,6 +245,9 @@ if get_option('tests')
       gio,
       libxmlb_dep,
     ],
+    c_args: [
+      '-DSRCDIR="' + join_paths(meson.project_source_root(), 'data') + '"',
+    ],
     install : true,
     install_dir : installed_test_bindir
   )
