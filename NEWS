@@ -1,3 +1,17 @@
+Version 0.3.12
+~~~~~~~~~~~~~~
+Released: 2023-10-10
+
+New Features:
+ - Use indexes when binding value (Richard Hughes)
+
+Bugfixes:
+ - Avoid building errors and debug strings when possible to make XbQuery faster (Christian Hergert)
+ - Fix content type detection on macOS (Richard Hughes)
+ - Inline a number of machine internals to make queries faster (Christian Hergert)
+ - Make zstd support optional (sulincix, aliriza)
+ - Setup various release build options (Christian Hergert)
+
 Version 0.3.11
 ~~~~~~~~~~~~~~
 Released: 2023-02-20
