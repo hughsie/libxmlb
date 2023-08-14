@@ -308,6 +308,10 @@ xb_builder_source_init_adapter(XbBuilderSource *self,
  * Adds a function that can be used to convert streams loaded with
  * xb_builder_source_load_xml().
  *
+ * This will decompress multiple layers of content, for instance decompressing a gzip stream into a
+ * different content type that can then be parsed. Use xb_builder_source_add_simple_adapter() when
+ * this recursive behaviour is not desired.
+ *
  * Since: 0.1.7
  **/
 void
@@ -330,6 +334,10 @@ xb_builder_source_add_adapter(XbBuilderSource *self,
  *
  * Adds a function that can be used to convert streams loaded with
  * xb_builder_source_load_xml().
+ *
+ * This function is similar to xb_builder_source_add_adapter() but is limited to one "layer" of
+ * content, for instance handling application/xml or a single simple type added using
+ * xb_builder_source_add_adapter().
  *
  * Since: 0.1.15
  **/
