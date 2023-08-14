@@ -1720,6 +1720,77 @@ xb_xpath_func(void)
 }
 
 static void
+xb_manual_token_search_func(void)
+{
+	XbNode *n;
+	g_autoptr(XbNode) cpt_node = NULL;
+	g_autoptr(XbBuilder) builder = NULL;
+	g_autoptr(XbBuilderNode) bn_root = NULL;
+	g_autoptr(XbBuilderNode) bn = NULL;
+	g_autoptr(XbSilo) silo = NULL;
+	g_autofree gchar *str = NULL;
+	g_autoptr(XbQuery) query = NULL;
+	g_autoptr(GPtrArray) result = NULL;
+	g_autoptr(GError) error = NULL;
+	g_auto(XbQueryContext) context = XB_QUERY_CONTEXT_INIT();
+
+	/* create node tree and add a dummy token manually */
+	bn_root = xb_builder_node_new("component");
+	bn = xb_builder_node_new("summary");
+	xb_builder_node_set_text(bn, "A strategy game", -1);
+	xb_builder_node_add_token(bn, "strategi");
+	xb_builder_node_add_child(bn_root, bn);
+
+	builder = xb_builder_new();
+	xb_builder_import_node(builder, bn_root);
+
+	silo = xb_builder_compile(builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	/* dump to screen */
+	str = xb_silo_to_string(silo, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(str);
+	g_debug("\n%s", str);
+
+	/* get component node */
+	cpt_node = xb_silo_query_first(silo, "component", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(cpt_node);
+
+	/* search using the slow, token-less path (works) */
+	query = xb_query_new(silo, "summary[text()~=?]", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(query);
+
+	xb_value_bindings_bind_str(xb_query_context_get_bindings(&context), 0, "strategy", NULL);
+	result = xb_node_query_with_context(cpt_node, query, &context, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(result);
+
+	n = XB_NODE(g_ptr_array_index(result, 0));
+	g_assert_nonnull(n);
+	g_assert_cmpstr(xb_node_get_text(n), ==, "A strategy game");
+	g_clear_object(&query);
+	g_ptr_array_unref(g_steal_pointer(&result));
+
+	/* search for token (fails) */
+	query = xb_query_new(silo, "summary[text()~=?]", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(query);
+
+	xb_value_bindings_bind_str(xb_query_context_get_bindings(&context), 0, "strategi", NULL);
+	result = xb_node_query_with_context(cpt_node, query, &context, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(result);
+
+	n = XB_NODE(g_ptr_array_index(result, 0));
+	g_assert_nonnull(n);
+	g_assert_cmpstr(xb_node_get_text(n), ==, "A strategy game");
+}
+
+static void
 xb_builder_native_lang_func(void)
 {
 	gboolean ret;
@@ -2838,6 +2909,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/builder-node{literal-text}", xb_builder_node_literal_text_func);
 	g_test_add_func("/libxmlb/builder-node{source-text}", xb_builder_node_source_text_func);
 	g_test_add_func("/libxmlb/markup", xb_markup_func);
+	g_test_add_func("/libxmlb/token-search", xb_manual_token_search_func);
 	g_test_add_func("/libxmlb/xpath", xb_xpath_func);
 	g_test_add_func("/libxmlb/xpath-query", xb_xpath_query_func);
 	g_test_add_func("/libxmlb/xpath-query{reverse}", xb_xpath_query_reverse_func);
