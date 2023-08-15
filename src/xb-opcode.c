@@ -357,6 +357,7 @@ xb_opcode_init(XbOpcode *self,
 	self->val = val;
 	self->tokens_len = 0;
 	self->destroy_func = destroy_func;
+	memset(self->tokens, 0, sizeof(self->tokens));
 }
 
 /**
