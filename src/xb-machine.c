@@ -1078,6 +1078,10 @@ xb_machine_run_with_bindings(XbMachine *self,
 				}
 				return FALSE;
 			}
+
+			/* this cannot be optimized away when constructing the query */
+			if (_xb_opcode_get_kind(machine_opcode) == XB_OPCODE_KIND_BOUND_TEXT)
+				xb_machine_opcode_tokenize(self, machine_opcode);
 			continue;
 		}
 		if (kind == XB_OPCODE_KIND_BOUND_UNSET) {
