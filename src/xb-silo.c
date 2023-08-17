@@ -1517,6 +1517,16 @@ xb_silo_machine_func_search_cb(XbMachine *self,
 	if (!xb_machine_stack_pop_two(self, stack, &op1, &op2, error))
 		return FALSE;
 
+	/* this cannot be optimized away when constructing the query */
+	if (!_xb_opcode_has_flag(&op1, XB_OPCODE_FLAG_TOKENIZED) &&
+	    _xb_opcode_get_kind(&op1) == XB_OPCODE_KIND_BOUND_TEXT) {
+		xb_machine_opcode_tokenize(self, &op1);
+	}
+	if (!_xb_opcode_has_flag(&op2, XB_OPCODE_FLAG_TOKENIZED) &&
+	    _xb_opcode_get_kind(&op2) == XB_OPCODE_KIND_BOUND_TEXT) {
+		xb_machine_opcode_tokenize(self, &op2);
+	}
+
 	/* TOKN:TOKN */
 	if (xb_opcode_has_flag(&op1, XB_OPCODE_FLAG_TOKENIZED) &&
 	    xb_opcode_has_flag(&op2, XB_OPCODE_FLAG_TOKENIZED)) {
