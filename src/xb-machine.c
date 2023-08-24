@@ -1475,7 +1475,7 @@ typedef gboolean (*OpcodeCheckFunc)(XbOpcode *op);
 static gboolean
 _xb_opcode_cmp_val_or_str(XbOpcode *op)
 {
-	return xb_opcode_cmp_str(op) || _xb_opcode_cmp_val(op);
+	return xb_opcode_cmp_str(op) || _xb_opcode_cmp_int(op) || _xb_opcode_cmp_itx(op);
 }
 
 static gboolean
@@ -1538,7 +1538,7 @@ xb_machine_func_and_cb(XbMachine *self,
 	g_auto(XbOpcode) op1 = XB_OPCODE_INIT();
 	g_auto(XbOpcode) op2 = XB_OPCODE_INIT();
 
-	if (!xb_machine_check_two_args(stack, _xb_opcode_cmp_val, _xb_opcode_cmp_val, error))
+	if (!xb_machine_check_two_args(stack, _xb_opcode_cmp_int, _xb_opcode_cmp_int, error))
 		return FALSE;
 	if (!xb_machine_stack_pop_two(self, stack, &op1, &op2, error))
 		return FALSE;
@@ -1558,7 +1558,7 @@ xb_machine_func_or_cb(XbMachine *self,
 	g_auto(XbOpcode) op1 = XB_OPCODE_INIT();
 	g_auto(XbOpcode) op2 = XB_OPCODE_INIT();
 
-	if (!xb_machine_check_two_args(stack, _xb_opcode_cmp_val, _xb_opcode_cmp_val, error))
+	if (!xb_machine_check_two_args(stack, _xb_opcode_cmp_int, _xb_opcode_cmp_int, error))
 		return FALSE;
 	if (!xb_machine_stack_pop_two(self, stack, &op1, &op2, error))
 		return FALSE;
@@ -1588,7 +1588,8 @@ xb_machine_func_eq_cb(XbMachine *self,
 		return FALSE;
 
 	/* INTE:INTE */
-	if (_xb_opcode_cmp_val(&op1) && _xb_opcode_cmp_val(&op2))
+	if ((_xb_opcode_cmp_int(&op1) && _xb_opcode_cmp_int(&op2)) ||
+	    (_xb_opcode_cmp_itx(&op1) && _xb_opcode_cmp_itx(&op2)))
 		return xb_stack_push_bool(stack,
 					  _xb_opcode_get_val(&op1) == _xb_opcode_get_val(&op2),
 					  error);
@@ -1607,7 +1608,7 @@ xb_machine_func_eq_cb(XbMachine *self,
 	}
 
 	/* INTE:TEXT */
-	if (_xb_opcode_cmp_val(&op1) && xb_opcode_cmp_str(&op2)) {
+	if (_xb_opcode_cmp_int(&op1) && xb_opcode_cmp_str(&op2)) {
 		guint64 val = 0;
 		if (_xb_opcode_get_str(&op2) == NULL)
 			return xb_stack_push_bool(stack, FALSE, error);
@@ -1628,7 +1629,7 @@ xb_machine_func_eq_cb(XbMachine *self,
 	}
 
 	/* TEXT:INTE */
-	if (xb_opcode_cmp_str(&op1) && _xb_opcode_cmp_val(&op2)) {
+	if (xb_opcode_cmp_str(&op1) && _xb_opcode_cmp_int(&op2)) {
 		guint64 val = 0;
 		if (_xb_opcode_get_str(&op1) == NULL)
 			return xb_stack_push_bool(stack, FALSE, error);
@@ -1680,7 +1681,8 @@ xb_machine_func_ne_cb(XbMachine *self,
 		return FALSE;
 
 	/* INTE:INTE */
-	if (_xb_opcode_cmp_val(&op1) && _xb_opcode_cmp_val(&op2)) {
+	if ((_xb_opcode_cmp_int(&op1) && _xb_opcode_cmp_int(&op2)) ||
+	    (_xb_opcode_cmp_itx(&op1) && _xb_opcode_cmp_itx(&op2))) {
 		return xb_stack_push_bool(stack,
 					  _xb_opcode_get_val(&op1) != _xb_opcode_get_val(&op2),
 					  error);
@@ -1695,7 +1697,7 @@ xb_machine_func_ne_cb(XbMachine *self,
 	}
 
 	/* INTE:TEXT */
-	if (_xb_opcode_cmp_val(&op1) && xb_opcode_cmp_str(&op2)) {
+	if (_xb_opcode_cmp_int(&op1) && xb_opcode_cmp_str(&op2)) {
 		guint64 val = 0;
 		if (_xb_opcode_get_str(&op2) == NULL)
 			return xb_stack_push_bool(stack, FALSE, error);
@@ -1711,7 +1713,7 @@ xb_machine_func_ne_cb(XbMachine *self,
 	}
 
 	/* TEXT:INTE */
-	if (xb_opcode_cmp_str(&op1) && _xb_opcode_cmp_val(&op2)) {
+	if (xb_opcode_cmp_str(&op1) && _xb_opcode_cmp_int(&op2)) {
 		guint64 val = 0;
 		if (_xb_opcode_get_str(&op1) == NULL)
 			return xb_stack_push_bool(stack, FALSE, error);
@@ -1758,7 +1760,7 @@ xb_machine_func_lt_cb(XbMachine *self,
 		return FALSE;
 
 	/* INTE:INTE */
-	if (_xb_opcode_cmp_val(&op1) && _xb_opcode_cmp_val(&op2)) {
+	if (_xb_opcode_cmp_int(&op1) && _xb_opcode_cmp_int(&op2)) {
 		return xb_stack_push_bool(stack,
 					  _xb_opcode_get_val(&op2) < _xb_opcode_get_val(&op1),
 					  error);
@@ -1773,7 +1775,7 @@ xb_machine_func_lt_cb(XbMachine *self,
 	}
 
 	/* INTE:TEXT */
-	if (_xb_opcode_cmp_val(&op1) && xb_opcode_cmp_str(&op2)) {
+	if (_xb_opcode_cmp_int(&op1) && xb_opcode_cmp_str(&op2)) {
 		guint64 val = 0;
 		if (_xb_opcode_get_str(&op2) == NULL)
 			return xb_stack_push_bool(stack, FALSE, error);
@@ -1789,7 +1791,7 @@ xb_machine_func_lt_cb(XbMachine *self,
 	}
 
 	/* TEXT:INTE */
-	if (xb_opcode_cmp_str(&op1) && _xb_opcode_cmp_val(&op2)) {
+	if (xb_opcode_cmp_str(&op1) && _xb_opcode_cmp_int(&op2)) {
 		guint64 val = 0;
 		if (_xb_opcode_get_str(&op1) == NULL)
 			return xb_stack_push_bool(stack, FALSE, error);
@@ -1836,7 +1838,7 @@ xb_machine_func_gt_cb(XbMachine *self,
 		return FALSE;
 
 	/* INTE:INTE */
-	if (_xb_opcode_cmp_val(&op1) && _xb_opcode_cmp_val(&op2)) {
+	if (_xb_opcode_cmp_int(&op1) && _xb_opcode_cmp_int(&op2)) {
 		return xb_stack_push_bool(stack,
 					  _xb_opcode_get_val(&op2) > _xb_opcode_get_val(&op1),
 					  error);
@@ -1851,7 +1853,7 @@ xb_machine_func_gt_cb(XbMachine *self,
 	}
 
 	/* INTE:TEXT */
-	if (_xb_opcode_cmp_val(&op1) && xb_opcode_cmp_str(&op2)) {
+	if (_xb_opcode_cmp_int(&op1) && xb_opcode_cmp_str(&op2)) {
 		guint64 val = 0;
 		if (_xb_opcode_get_str(&op2) == NULL)
 			return xb_stack_push_bool(stack, FALSE, error);
@@ -1867,7 +1869,7 @@ xb_machine_func_gt_cb(XbMachine *self,
 	}
 
 	/* TEXT:INTE */
-	if (xb_opcode_cmp_str(&op1) && _xb_opcode_cmp_val(&op2)) {
+	if (xb_opcode_cmp_str(&op1) && _xb_opcode_cmp_int(&op2)) {
 		guint64 val = 0;
 		if (_xb_opcode_get_str(&op1) == NULL)
 			return xb_stack_push_bool(stack, FALSE, error);
@@ -1914,7 +1916,7 @@ xb_machine_func_le_cb(XbMachine *self,
 		return FALSE;
 
 	/* INTE:INTE */
-	if (_xb_opcode_cmp_val(&op1) && _xb_opcode_cmp_val(&op2)) {
+	if (_xb_opcode_cmp_int(&op1) && _xb_opcode_cmp_int(&op2)) {
 		return xb_stack_push_bool(stack,
 					  _xb_opcode_get_val(&op2) <= _xb_opcode_get_val(&op1),
 					  error);
@@ -1930,7 +1932,7 @@ xb_machine_func_le_cb(XbMachine *self,
 	}
 
 	/* INTE:TEXT */
-	if (_xb_opcode_cmp_val(&op1) && xb_opcode_cmp_str(&op2)) {
+	if (_xb_opcode_cmp_int(&op1) && xb_opcode_cmp_str(&op2)) {
 		guint64 val = 0;
 		if (_xb_opcode_get_str(&op2) == NULL)
 			return xb_stack_push_bool(stack, FALSE, error);
@@ -1946,7 +1948,7 @@ xb_machine_func_le_cb(XbMachine *self,
 	}
 
 	/* TEXT:INTE */
-	if (xb_opcode_cmp_str(&op1) && _xb_opcode_cmp_val(&op2)) {
+	if (xb_opcode_cmp_str(&op1) && _xb_opcode_cmp_int(&op2)) {
 		guint64 val = 0;
 		if (_xb_opcode_get_str(&op1) == NULL)
 			return xb_stack_push_bool(stack, FALSE, error);
@@ -2037,7 +2039,7 @@ xb_machine_func_not_cb(XbMachine *self,
 		return xb_stack_push_bool(stack, _xb_opcode_get_str(&op) == NULL, error);
 
 	/* INTE */
-	if (_xb_opcode_cmp_val(&op))
+	if (_xb_opcode_cmp_int(&op))
 		return xb_stack_push_bool(stack, _xb_opcode_get_val(&op) == 0, error);
 
 	/* should have been checked above */
@@ -2079,14 +2081,14 @@ xb_machine_func_ge_cb(XbMachine *self,
 	}
 
 	/* INTE:INTE */
-	if (_xb_opcode_cmp_val(&op1) && _xb_opcode_cmp_val(&op2)) {
+	if (_xb_opcode_cmp_int(&op1) && _xb_opcode_cmp_int(&op2)) {
 		return xb_stack_push_bool(stack,
 					  _xb_opcode_get_val(&op2) >= _xb_opcode_get_val(&op1),
 					  error);
 	}
 
 	/* INTE:TEXT */
-	if (_xb_opcode_cmp_val(&op1) && xb_opcode_cmp_str(&op2)) {
+	if (_xb_opcode_cmp_int(&op1) && xb_opcode_cmp_str(&op2)) {
 		guint64 val = 0;
 		if (_xb_opcode_get_str(&op2) == NULL)
 			return xb_stack_push_bool(stack, FALSE, error);
@@ -2102,7 +2104,7 @@ xb_machine_func_ge_cb(XbMachine *self,
 	}
 
 	/* TEXT:INTE */
-	if (xb_opcode_cmp_str(&op1) && _xb_opcode_cmp_val(&op2)) {
+	if (xb_opcode_cmp_str(&op1) && _xb_opcode_cmp_int(&op2)) {
 		guint64 val = 0;
 		if (_xb_opcode_get_str(&op1) == NULL)
 			return xb_stack_push_bool(stack, FALSE, error);
@@ -2255,7 +2257,7 @@ xb_machine_func_string_cb(XbMachine *self,
 	gchar *tmp;
 	g_auto(XbOpcode) op = XB_OPCODE_INIT();
 
-	if (!xb_machine_check_one_arg(stack, _xb_opcode_cmp_val, error))
+	if (!xb_machine_check_one_arg(stack, _xb_opcode_cmp_int, error))
 		return FALSE;
 	if (!xb_machine_stack_pop(self, stack, &op, error))
 		return FALSE;

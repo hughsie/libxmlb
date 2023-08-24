@@ -223,7 +223,7 @@ xb_opcode_add_flag(XbOpcode *self, XbOpcodeFlags flag)
 inline gboolean
 xb_opcode_cmp_val(XbOpcode *self)
 {
-  return _xb_opcode_cmp_val(self);
+	return _xb_opcode_cmp_int(self) || _xb_opcode_cmp_itx(self);
 }
 
 /**
