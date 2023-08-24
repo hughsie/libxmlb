@@ -1285,7 +1285,7 @@ xb_xpath_query_func(void)
 	g_autoptr(XbNode) n = NULL;
 	g_autoptr(XbSilo) silo = NULL;
 	const gchar *xml = "<components>\n"
-			   "  <component>\n"
+			   "  <component timestamp=\"1631923200\">\n"
 			   "    <id>n/a</id>\n"
 			   "  </component>\n"
 			   "</components>\n";
@@ -1314,6 +1314,13 @@ xb_xpath_query_func(void)
 	g_assert_no_error(error);
 	g_assert_nonnull(n);
 	g_assert_cmpstr(xb_node_get_text(n), ==, "n/a");
+	g_clear_object(&n);
+
+	/* query using an integer */
+	n = xb_silo_query_first(silo, "components/component[@timestamp=1631923200]", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(n);
+	g_assert_cmpstr(xb_node_get_attr(n, "timestamp"), ==, "1631923200");
 	g_clear_object(&n);
 
 	/* query with an OR, all sections contains an unknown element */
