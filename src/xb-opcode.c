@@ -220,7 +220,7 @@ xb_opcode_add_flag(XbOpcode *self, XbOpcodeFlags flag)
  *
  * Since: 0.1.1
  **/
-inline gboolean
+gboolean
 xb_opcode_cmp_val(XbOpcode *self)
 {
 	return _xb_opcode_cmp_int(self) || _xb_opcode_cmp_itx(self);
@@ -236,7 +236,7 @@ xb_opcode_cmp_val(XbOpcode *self)
  *
  * Since: 0.1.1
  **/
-inline gboolean
+gboolean
 xb_opcode_cmp_str(XbOpcode *self)
 {
 	return xb_opcode_has_flag(self, XB_OPCODE_FLAG_TEXT);

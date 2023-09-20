@@ -215,7 +215,7 @@ xb_silo_strtab_index_lookup(XbSilo *self, const gchar *str)
 }
 
 /* private */
-inline XbSiloNode *
+XbSiloNode *
 xb_silo_get_node(XbSilo *self, guint32 off)
 {
 	XbSiloPrivate *priv = GET_PRIVATE(self);
