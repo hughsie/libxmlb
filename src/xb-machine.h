@@ -86,9 +86,8 @@ XbMachine *
 xb_machine_new(void);
 void
 xb_machine_set_debug_flags(XbMachine *self, XbMachineDebugFlags flags);
-XbStack *
-xb_machine_parse(XbMachine *self, const gchar *text, gssize text_len, GError **error)
-    G_DEPRECATED_FOR(xb_machine_parse_full);
+G_DEPRECATED_FOR(xb_machine_parse_full) XbStack *
+xb_machine_parse(XbMachine *self, const gchar *text, gssize text_len, GError **error);
 XbStack *
 xb_machine_parse_full(XbMachine *self,
 		      const gchar *text,
