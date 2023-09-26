@@ -43,6 +43,20 @@ extra_sources = []
 if get_option('zstd')
     extra_sources += ['xb-zstd-decompressor.c']
 endif
+
+def_file_target = custom_target(
+  'libxmlb-defile',
+  input: mapfile,
+  output: 'libxmlb.def',
+  command: [
+    python3,
+    join_paths(meson.current_source_dir(), 'gen-def-from-map.py'),
+    '@INPUT@',
+    'LIBXMLB',
+    '@OUTPUT@',
+  ],
+)
+
 libxmlb = library(
   'xmlb',
   sources : [
@@ -74,6 +88,7 @@ libxmlb = library(
   dependencies : libxmlb_deps,
   c_args : release_args,
   link_args : cc.get_supported_link_arguments([vflag]),
+  vs_module_defs: def_file_target,
   link_depends : mapfile,
   install : true
 )
