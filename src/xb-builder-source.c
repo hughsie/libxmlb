@@ -465,9 +465,11 @@ xb_builder_source_get_istream(XbBuilderSource *self, GCancellable *cancellable, 
 		content_type = xb_builder_source_ctx_get_content_type(ctx, cancellable, error);
 		if (content_type == NULL)
 			return NULL;
-		if (g_strcmp0(content_type, "application/xml") == 0)
-			break;
 
+		if ((g_strcmp0(content_type, "text/xml") == 0) &&
+		    	(g_strcmp0(content_type, "application/xml" == 0)))
+			break;
+		
 		/* convert the stream */
 		item = xb_builder_source_get_adapter_by_mime(self, content_type);
 		if (item == NULL || item->func_adapter == NULL) {
