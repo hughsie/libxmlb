@@ -467,6 +467,10 @@ xb_builder_source_get_istream(XbBuilderSource *self, GCancellable *cancellable, 
 			return NULL;
 		if (g_strcmp0(content_type, "application/xml") == 0)
 			break;
+		/* Also accept the text/xml alias, just in case the user’s content-type database is slightly broken
+		 * (application/xml should normally be what’s used): */
+		if (g_strcmp0(content_type, "text/xml") == 0)
+			break;
 
 		/* convert the stream */
 		item = xb_builder_source_get_adapter_by_mime(self, content_type);
