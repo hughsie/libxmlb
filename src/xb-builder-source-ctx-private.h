@@ -11,12 +11,13 @@
 G_BEGIN_DECLS
 
 XbBuilderSourceCtx *
-xb_builder_source_ctx_new(GFile *file, GInputStream *istream);
+xb_builder_source_ctx_new(GFile *file, GInputStream *istream) G_GNUC_NON_NULL(2);
 void
-xb_builder_source_ctx_set_filename(XbBuilderSourceCtx *self, const gchar *basename);
+xb_builder_source_ctx_set_filename(XbBuilderSourceCtx *self, const gchar *basename)
+    G_GNUC_NON_NULL(1);
 gchar *
 xb_builder_source_ctx_get_content_type(XbBuilderSourceCtx *self,
 				       GCancellable *cancellable,
-				       GError **error);
+				       GError **error) G_GNUC_NON_NULL(1);
 
 G_END_DECLS

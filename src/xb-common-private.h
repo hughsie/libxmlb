@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <gio/gio.h>
+#include "xb-compile.h"
 
 gchar *
 xb_content_type_guess(const gchar *filename, const guchar *buf, gsize bufsz);
@@ -15,4 +15,4 @@ xb_file_set_contents(GFile *file,
 		     const guint8 *buf,
 		     gsize bufsz,
 		     GCancellable *cancellable,
-		     GError **error);
+		     GError **error) G_GNUC_NON_NULL(1);

@@ -15,8 +15,8 @@ xb_machine_stack_pop_two(XbMachine *self,
 			 XbStack *stack,
 			 XbOpcode *opcode1_out,
 			 XbOpcode *opcode2_out,
-			 GError **error);
+			 GError **error) G_GNUC_NON_NULL(1, 2, 3, 4);
 void
-xb_machine_opcode_tokenize(XbMachine *self, XbOpcode *op);
+xb_machine_opcode_tokenize(XbMachine *self, XbOpcode *op) G_GNUC_NON_NULL(1, 2);
 
 G_END_DECLS

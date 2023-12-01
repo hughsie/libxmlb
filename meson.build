@@ -27,6 +27,7 @@ configinc = include_directories('.')
 
 # get supported warning flags
 warning_flags = [
+  '-Wno-nonnull-compare',
   '-Wno-aggregate-return',
   '-Wunused',
   '-Warray-bounds',

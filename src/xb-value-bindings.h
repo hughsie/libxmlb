@@ -67,36 +67,37 @@ xb_value_bindings_get_type(void);
 	}
 
 void
-xb_value_bindings_init(XbValueBindings *self);
+xb_value_bindings_init(XbValueBindings *self) G_GNUC_NON_NULL(1);
 void
-xb_value_bindings_clear(XbValueBindings *self);
+xb_value_bindings_clear(XbValueBindings *self) G_GNUC_NON_NULL(1);
 
 G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC(XbValueBindings, xb_value_bindings_clear)
 
 XbValueBindings *
-xb_value_bindings_copy(XbValueBindings *self);
+xb_value_bindings_copy(XbValueBindings *self) G_GNUC_NON_NULL(1);
 void
-xb_value_bindings_free(XbValueBindings *self);
+xb_value_bindings_free(XbValueBindings *self) G_GNUC_NON_NULL(1);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(XbValueBindings, xb_value_bindings_free)
 
 gboolean
-xb_value_bindings_is_bound(XbValueBindings *self, guint idx);
+xb_value_bindings_is_bound(XbValueBindings *self, guint idx) G_GNUC_NON_NULL(1);
 void
 xb_value_bindings_bind_str(XbValueBindings *self,
 			   guint idx,
 			   const gchar *str,
-			   GDestroyNotify destroy_func);
+			   GDestroyNotify destroy_func) G_GNUC_NON_NULL(1);
 void
-xb_value_bindings_bind_val(XbValueBindings *self, guint idx, guint32 val);
+xb_value_bindings_bind_val(XbValueBindings *self, guint idx, guint32 val) G_GNUC_NON_NULL(1);
 
 gboolean
-xb_value_bindings_lookup_opcode(XbValueBindings *self, guint idx, XbOpcode *opcode_out);
+xb_value_bindings_lookup_opcode(XbValueBindings *self, guint idx, XbOpcode *opcode_out)
+    G_GNUC_NON_NULL(1, 3);
 
 gboolean
 xb_value_bindings_copy_binding(XbValueBindings *self,
 			       guint idx,
 			       XbValueBindings *dest,
-			       guint dest_idx);
+			       guint dest_idx) G_GNUC_NON_NULL(1, 3);
 
 G_END_DECLS

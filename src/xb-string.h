@@ -6,13 +6,14 @@
 
 #pragma once
 
-#include <glib-object.h>
+#include "xb-compile.h"
 
 G_BEGIN_DECLS
 
 void
-xb_string_append_union(GString *xpath, const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
+xb_string_append_union(GString *xpath, const gchar *fmt, ...) G_GNUC_PRINTF(2, 3)
+    G_GNUC_NON_NULL(1);
 gchar *
-xb_string_escape(const gchar *str);
+xb_string_escape(const gchar *str) G_GNUC_NON_NULL(1);
 
 G_END_DECLS

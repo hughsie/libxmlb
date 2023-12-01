@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include <glib-object.h>
-
 #include "xb-opcode.h"
 #include "xb-stack.h"
 #include "xb-value-bindings.h"
@@ -85,15 +83,17 @@ typedef gboolean (*XbMachineMethodFunc)(XbMachine *self,
 XbMachine *
 xb_machine_new(void);
 void
-xb_machine_set_debug_flags(XbMachine *self, XbMachineDebugFlags flags);
-G_DEPRECATED_FOR(xb_machine_parse_full) XbStack *
-xb_machine_parse(XbMachine *self, const gchar *text, gssize text_len, GError **error);
+xb_machine_set_debug_flags(XbMachine *self, XbMachineDebugFlags flags) G_GNUC_NON_NULL(1);
+G_DEPRECATED_FOR(xb_machine_parse_full)
+XbStack *
+xb_machine_parse(XbMachine *self, const gchar *text, gssize text_len, GError **error)
+    G_GNUC_NON_NULL(1, 2);
 XbStack *
 xb_machine_parse_full(XbMachine *self,
 		      const gchar *text,
 		      gssize text_len,
 		      XbMachineParseFlags flags,
-		      GError **error);
+		      GError **error) G_GNUC_NON_NULL(1, 2);
 
 G_DEPRECATED_FOR(xb_machine_run_with_bindings)
 gboolean
@@ -101,57 +101,62 @@ xb_machine_run(XbMachine *self,
 	       XbStack *opcodes,
 	       gboolean *result,
 	       gpointer exec_data,
-	       GError **error);
+	       GError **error) G_GNUC_NON_NULL(1, 2, 3);
 gboolean
 xb_machine_run_with_bindings(XbMachine *self,
 			     XbStack *opcodes,
 			     XbValueBindings *bindings,
 			     gboolean *result,
 			     gpointer exec_data,
-			     GError **error);
+			     GError **error) G_GNUC_NON_NULL(1, 2);
 
 void
 xb_machine_add_opcode_fixup(XbMachine *self,
 			    const gchar *opcodes_sig,
 			    XbMachineOpcodeFixupFunc fixup_cb,
 			    gpointer user_data,
-			    GDestroyNotify user_data_free);
+			    GDestroyNotify user_data_free) G_GNUC_NON_NULL(1, 2, 3);
 void
 xb_machine_add_text_handler(XbMachine *self,
 			    XbMachineTextHandlerFunc handler_cb,
 			    gpointer user_data,
-			    GDestroyNotify user_data_free);
+			    GDestroyNotify user_data_free) G_GNUC_NON_NULL(1, 2);
 void
 xb_machine_add_method(XbMachine *self,
 		      const gchar *name,
 		      guint n_opcodes,
 		      XbMachineMethodFunc method_cb,
 		      gpointer user_data,
-		      GDestroyNotify user_data_free);
+		      GDestroyNotify user_data_free) G_GNUC_NON_NULL(1, 2, 4);
 void
-xb_machine_add_operator(XbMachine *self, const gchar *str, const gchar *name);
+xb_machine_add_operator(XbMachine *self, const gchar *str, const gchar *name)
+    G_GNUC_NON_NULL(1, 2, 3);
 
 gboolean
-xb_machine_opcode_func_init(XbMachine *self, XbOpcode *opcode, const gchar *func_name);
+xb_machine_opcode_func_init(XbMachine *self, XbOpcode *opcode, const gchar *func_name)
+    G_GNUC_NON_NULL(1, 2, 3);
 
 gboolean
-xb_machine_stack_pop(XbMachine *self, XbStack *stack, XbOpcode *opcode_out, GError **error);
+xb_machine_stack_pop(XbMachine *self, XbStack *stack, XbOpcode *opcode_out, GError **error)
+    G_GNUC_NON_NULL(1, 2, 3);
 gboolean
-xb_machine_stack_push(XbMachine *self, XbStack *stack, XbOpcode **opcode_out, GError **error);
+xb_machine_stack_push(XbMachine *self, XbStack *stack, XbOpcode **opcode_out, GError **error)
+    G_GNUC_NON_NULL(1, 2, 3);
 gboolean
-xb_machine_stack_push_text(XbMachine *self, XbStack *stack, const gchar *str, GError **error);
+xb_machine_stack_push_text(XbMachine *self, XbStack *stack, const gchar *str, GError **error)
+    G_GNUC_NON_NULL(1, 2);
 gboolean
-xb_machine_stack_push_text_static(XbMachine *self,
-				  XbStack *stack,
-				  const gchar *str,
-				  GError **error);
+xb_machine_stack_push_text_static(XbMachine *self, XbStack *stack, const gchar *str, GError **error)
+    G_GNUC_NON_NULL(1, 2);
 gboolean
-xb_machine_stack_push_text_steal(XbMachine *self, XbStack *stack, gchar *str, GError **error);
+xb_machine_stack_push_text_steal(XbMachine *self, XbStack *stack, gchar *str, GError **error)
+    G_GNUC_NON_NULL(1, 2, 3);
 gboolean
-xb_machine_stack_push_integer(XbMachine *self, XbStack *stack, guint32 val, GError **error);
+xb_machine_stack_push_integer(XbMachine *self, XbStack *stack, guint32 val, GError **error)
+    G_GNUC_NON_NULL(1, 2);
 void
-xb_machine_set_stack_size(XbMachine *self, guint stack_size);
+xb_machine_set_stack_size(XbMachine *self, guint stack_size) G_GNUC_NON_NULL(1);
 guint
-xb_machine_get_stack_size(XbMachine *self);
+xb_machine_get_stack_size(XbMachine *self) G_GNUC_NON_NULL(1);
 
 G_END_DECLS
