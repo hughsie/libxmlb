@@ -921,7 +921,7 @@ xb_builder_fixup_ignore_node_cb(XbBuilderFixup *self,
 {
 	if (g_strcmp0(xb_builder_node_get_element(bn), "component") == 0) {
 		g_autoptr(XbBuilderNode) id = xb_builder_node_get_child(bn, "id", NULL);
-		if (g_strcmp0(xb_builder_node_get_text(id), "gimp.desktop") == 0)
+		if (id != NULL && g_strcmp0(xb_builder_node_get_text(id), "gimp.desktop") == 0)
 			xb_builder_node_add_flag(bn, XB_BUILDER_NODE_FLAG_IGNORE);
 	} else {
 		g_debug("ignoring %s", xb_builder_node_get_element(bn));
