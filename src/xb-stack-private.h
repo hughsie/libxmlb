@@ -56,23 +56,24 @@ struct _XbStack {
 XbStack *
 xb_stack_new(guint max_size);
 void
-xb_stack_unref(XbStack *self);
+xb_stack_unref(XbStack *self) G_GNUC_NON_NULL(1);
 XbStack *
-xb_stack_ref(XbStack *self);
+xb_stack_ref(XbStack *self) G_GNUC_NON_NULL(1);
 guint
-xb_stack_get_size(XbStack *self);
+xb_stack_get_size(XbStack *self) G_GNUC_NON_NULL(1);
 guint
-xb_stack_get_max_size(XbStack *self);
+xb_stack_get_max_size(XbStack *self) G_GNUC_NON_NULL(1);
 gboolean
-xb_stack_pop_two(XbStack *self, XbOpcode *opcode1_out, XbOpcode *opcode2_out, GError **error);
+xb_stack_pop_two(XbStack *self, XbOpcode *opcode1_out, XbOpcode *opcode2_out, GError **error)
+    G_GNUC_NON_NULL(1);
 gboolean
-xb_stack_push_bool(XbStack *self, gboolean val, GError **error);
+xb_stack_push_bool(XbStack *self, gboolean val, GError **error) G_GNUC_NON_NULL(1);
 XbOpcode *
-xb_stack_peek(XbStack *self, guint idx);
+xb_stack_peek(XbStack *self, guint idx) G_GNUC_NON_NULL(1);
 XbOpcode *
-xb_stack_peek_head(XbStack *self);
+xb_stack_peek_head(XbStack *self) G_GNUC_NON_NULL(1);
 XbOpcode *
-xb_stack_peek_tail(XbStack *self);
+xb_stack_peek_tail(XbStack *self) G_GNUC_NON_NULL(1);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(XbStack, xb_stack_unref)
 

@@ -68,46 +68,49 @@ typedef enum {
 XbSilo *
 xb_silo_new(void);
 XbSilo *
-xb_silo_new_from_xml(const gchar *xml, GError **error);
+xb_silo_new_from_xml(const gchar *xml, GError **error) G_GNUC_NON_NULL(1);
 GBytes *
-xb_silo_get_bytes(XbSilo *self);
+xb_silo_get_bytes(XbSilo *self) G_GNUC_NON_NULL(1);
 gboolean
-xb_silo_load_from_bytes(XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GError **error);
+xb_silo_load_from_bytes(XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GError **error)
+    G_GNUC_NON_NULL(1, 2);
 gboolean
 xb_silo_load_from_file(XbSilo *self,
 		       GFile *file,
 		       XbSiloLoadFlags flags,
 		       GCancellable *cancellable,
-		       GError **error);
+		       GError **error) G_GNUC_NON_NULL(1, 2);
 gboolean
-xb_silo_save_to_file(XbSilo *self, GFile *file, GCancellable *cancellable, GError **error);
+xb_silo_save_to_file(XbSilo *self, GFile *file, GCancellable *cancellable, GError **error)
+    G_GNUC_NON_NULL(1, 2);
 gchar *
-xb_silo_to_string(XbSilo *self, GError **error);
+xb_silo_to_string(XbSilo *self, GError **error) G_GNUC_NON_NULL(1);
 guint
-xb_silo_get_size(XbSilo *self);
+xb_silo_get_size(XbSilo *self) G_GNUC_NON_NULL(1);
 const gchar *
-xb_silo_get_guid(XbSilo *self);
+xb_silo_get_guid(XbSilo *self) G_GNUC_NON_NULL(1);
 XbNode *
-xb_silo_get_root(XbSilo *self);
+xb_silo_get_root(XbSilo *self) G_GNUC_NON_NULL(1);
 void
-xb_silo_invalidate(XbSilo *self);
+xb_silo_invalidate(XbSilo *self) G_GNUC_NON_NULL(1);
 gboolean
-xb_silo_is_valid(XbSilo *self);
+xb_silo_is_valid(XbSilo *self) G_GNUC_NON_NULL(1);
 gboolean
-xb_silo_watch_file(XbSilo *self, GFile *file, GCancellable *cancellable, GError **error);
+xb_silo_watch_file(XbSilo *self, GFile *file, GCancellable *cancellable, GError **error)
+    G_GNUC_NON_NULL(1, 2);
 void
-xb_silo_set_profile_flags(XbSilo *self, XbSiloProfileFlags profile_flags);
+xb_silo_set_profile_flags(XbSilo *self, XbSiloProfileFlags profile_flags) G_GNUC_NON_NULL(1);
 const gchar *
-xb_silo_get_profile_string(XbSilo *self);
+xb_silo_get_profile_string(XbSilo *self) G_GNUC_NON_NULL(1);
 
 gboolean
-xb_silo_get_enable_node_cache(XbSilo *self);
+xb_silo_get_enable_node_cache(XbSilo *self) G_GNUC_NON_NULL(1);
 void
-xb_silo_set_enable_node_cache(XbSilo *self, gboolean enable_node_cache);
+xb_silo_set_enable_node_cache(XbSilo *self, gboolean enable_node_cache) G_GNUC_NON_NULL(1);
 
 #include "xb-query.h"
 
 XbQuery *
-xb_silo_lookup_query(XbSilo *self, const gchar *xpath);
+xb_silo_lookup_query(XbSilo *self, const gchar *xpath) G_GNUC_NON_NULL(1, 2);
 
 G_END_DECLS

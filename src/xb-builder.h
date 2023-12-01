@@ -6,11 +6,10 @@
 
 #pragma once
 
-#include <gio/gio.h>
-
 #include "xb-builder-fixup.h"
 #include "xb-builder-node.h"
 #include "xb-builder-source.h"
+#include "xb-compile.h"
 #include "xb-silo.h"
 
 G_BEGIN_DECLS
@@ -58,27 +57,27 @@ typedef enum {
 XbBuilder *
 xb_builder_new(void);
 void
-xb_builder_append_guid(XbBuilder *self, const gchar *guid);
+xb_builder_append_guid(XbBuilder *self, const gchar *guid) G_GNUC_NON_NULL(1, 2);
 void
-xb_builder_import_source(XbBuilder *self, XbBuilderSource *source);
+xb_builder_import_source(XbBuilder *self, XbBuilderSource *source) G_GNUC_NON_NULL(1, 2);
 void
-xb_builder_import_node(XbBuilder *self, XbBuilderNode *bn);
+xb_builder_import_node(XbBuilder *self, XbBuilderNode *bn) G_GNUC_NON_NULL(1, 2);
 XbSilo *
 xb_builder_compile(XbBuilder *self,
 		   XbBuilderCompileFlags flags,
 		   GCancellable *cancellable,
-		   GError **error);
+		   GError **error) G_GNUC_NON_NULL(1);
 XbSilo *
 xb_builder_ensure(XbBuilder *self,
 		  GFile *file,
 		  XbBuilderCompileFlags flags,
 		  GCancellable *cancellable,
-		  GError **error);
+		  GError **error) G_GNUC_NON_NULL(1, 2);
 void
-xb_builder_add_locale(XbBuilder *self, const gchar *locale);
+xb_builder_add_locale(XbBuilder *self, const gchar *locale) G_GNUC_NON_NULL(1, 2);
 void
-xb_builder_add_fixup(XbBuilder *self, XbBuilderFixup *fixup);
+xb_builder_add_fixup(XbBuilder *self, XbBuilderFixup *fixup) G_GNUC_NON_NULL(1, 2);
 void
-xb_builder_set_profile_flags(XbBuilder *self, XbSiloProfileFlags profile_flags);
+xb_builder_set_profile_flags(XbBuilder *self, XbSiloProfileFlags profile_flags) G_GNUC_NON_NULL(1);
 
 G_END_DECLS

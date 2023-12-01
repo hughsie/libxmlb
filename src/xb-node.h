@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <glib-object.h>
+#include "xb-compile.h"
 
 G_BEGIN_DECLS
 
@@ -75,50 +75,51 @@ gboolean
 xb_node_transmogrify(XbNode *self,
 		     XbNodeTransmogrifyFunc func_text,
 		     XbNodeTransmogrifyFunc func_tail,
-		     gpointer user_data);
+		     gpointer user_data) G_GNUC_NON_NULL(1);
 
 gchar *
-xb_node_export(XbNode *self, XbNodeExportFlags flags, GError **error);
+xb_node_export(XbNode *self, XbNodeExportFlags flags, GError **error) G_GNUC_NON_NULL(1);
 GBytes *
-xb_node_get_data(XbNode *self, const gchar *key);
+xb_node_get_data(XbNode *self, const gchar *key) G_GNUC_NON_NULL(1, 2);
 void
-xb_node_set_data(XbNode *self, const gchar *key, GBytes *data);
+xb_node_set_data(XbNode *self, const gchar *key, GBytes *data) G_GNUC_NON_NULL(1, 2);
 
 XbNode *
-xb_node_get_root(XbNode *self);
+xb_node_get_root(XbNode *self) G_GNUC_NON_NULL(1);
 XbNode *
-xb_node_get_parent(XbNode *self);
+xb_node_get_parent(XbNode *self) G_GNUC_NON_NULL(1);
 XbNode *
-xb_node_get_next(XbNode *self);
+xb_node_get_next(XbNode *self) G_GNUC_NON_NULL(1);
 XbNode *
-xb_node_get_child(XbNode *self);
+xb_node_get_child(XbNode *self) G_GNUC_NON_NULL(1);
 GPtrArray *
-xb_node_get_children(XbNode *self);
+xb_node_get_children(XbNode *self) G_GNUC_NON_NULL(1);
 const gchar *
-xb_node_get_element(XbNode *self);
+xb_node_get_element(XbNode *self) G_GNUC_NON_NULL(1);
 const gchar *
-xb_node_get_text(XbNode *self);
+xb_node_get_text(XbNode *self) G_GNUC_NON_NULL(1);
 guint64
-xb_node_get_text_as_uint(XbNode *self);
+xb_node_get_text_as_uint(XbNode *self) G_GNUC_NON_NULL(1);
 const gchar *
-xb_node_get_tail(XbNode *self);
+xb_node_get_tail(XbNode *self) G_GNUC_NON_NULL(1);
 const gchar *
-xb_node_get_attr(XbNode *self, const gchar *name);
+xb_node_get_attr(XbNode *self, const gchar *name) G_GNUC_NON_NULL(1, 2);
 guint64
-xb_node_get_attr_as_uint(XbNode *self, const gchar *name);
+xb_node_get_attr_as_uint(XbNode *self, const gchar *name) G_GNUC_NON_NULL(1, 2);
 guint
-xb_node_get_depth(XbNode *self);
+xb_node_get_depth(XbNode *self) G_GNUC_NON_NULL(1);
 
 void
-xb_node_attr_iter_init(XbNodeAttrIter *iter, XbNode *self);
+xb_node_attr_iter_init(XbNodeAttrIter *iter, XbNode *self) G_GNUC_NON_NULL(1, 2);
 gboolean
-xb_node_attr_iter_next(XbNodeAttrIter *iter, const gchar **name, const gchar **value);
+xb_node_attr_iter_next(XbNodeAttrIter *iter, const gchar **name, const gchar **value)
+    G_GNUC_NON_NULL(1);
 
 void
-xb_node_child_iter_init(XbNodeChildIter *iter, XbNode *self);
+xb_node_child_iter_init(XbNodeChildIter *iter, XbNode *self) G_GNUC_NON_NULL(1, 2);
 gboolean
-xb_node_child_iter_next(XbNodeChildIter *iter, XbNode **child);
+xb_node_child_iter_next(XbNodeChildIter *iter, XbNode **child) G_GNUC_NON_NULL(1, 2);
 gboolean
-xb_node_child_iter_loop(XbNodeChildIter *iter, XbNode **child);
+xb_node_child_iter_loop(XbNodeChildIter *iter, XbNode **child) G_GNUC_NON_NULL(1, 2);
 
 G_END_DECLS

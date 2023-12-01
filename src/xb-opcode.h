@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <glib-object.h>
+#include "xb-compile.h"
 
 G_BEGIN_DECLS
 
@@ -74,33 +74,33 @@ typedef enum {
 typedef struct _XbOpcode XbOpcode;
 
 gboolean
-xb_opcode_cmp_val(XbOpcode *self);
+xb_opcode_cmp_val(XbOpcode *self) G_GNUC_NON_NULL(1);
 gboolean
-xb_opcode_cmp_str(XbOpcode *self);
+xb_opcode_cmp_str(XbOpcode *self) G_GNUC_NON_NULL(1);
 
 gchar *
-xb_opcode_to_string(XbOpcode *self);
+xb_opcode_to_string(XbOpcode *self) G_GNUC_NON_NULL(1);
 const gchar *
 xb_opcode_kind_to_string(XbOpcodeKind kind);
 XbOpcodeKind
 xb_opcode_kind_from_string(const gchar *str);
 
 XbOpcodeKind
-xb_opcode_get_kind(XbOpcode *self);
+xb_opcode_get_kind(XbOpcode *self) G_GNUC_NON_NULL(1);
 const gchar *
-xb_opcode_get_str(XbOpcode *self);
+xb_opcode_get_str(XbOpcode *self) G_GNUC_NON_NULL(1);
 guint32
-xb_opcode_get_val(XbOpcode *self);
+xb_opcode_get_val(XbOpcode *self) G_GNUC_NON_NULL(1);
 
 void
-xb_opcode_func_init(XbOpcode *self, guint32 func);
+xb_opcode_func_init(XbOpcode *self, guint32 func) G_GNUC_NON_NULL(1);
 void
-xb_opcode_integer_init(XbOpcode *self, guint32 val);
+xb_opcode_integer_init(XbOpcode *self, guint32 val) G_GNUC_NON_NULL(1);
 void
-xb_opcode_text_init(XbOpcode *self, const gchar *str);
+xb_opcode_text_init(XbOpcode *self, const gchar *str) G_GNUC_NON_NULL(1);
 void
-xb_opcode_text_init_static(XbOpcode *self, const gchar *str);
+xb_opcode_text_init_static(XbOpcode *self, const gchar *str) G_GNUC_NON_NULL(1);
 void
-xb_opcode_text_init_steal(XbOpcode *self, gchar *str);
+xb_opcode_text_init_steal(XbOpcode *self, gchar *str) G_GNUC_NON_NULL(1);
 
 G_END_DECLS

@@ -13,7 +13,7 @@
 G_BEGIN_DECLS
 
 guint
-xb_string_replace(GString *str, const gchar *search, const gchar *replace);
+xb_string_replace(GString *str, const gchar *search, const gchar *replace) G_GNUC_NON_NULL(1);
 gboolean
 xb_string_contains(const gchar *text, const gchar *search);
 gboolean
@@ -36,8 +36,8 @@ typedef struct __attribute__((packed)) {
 } XbGuid;
 
 gchar *
-xb_guid_to_string(XbGuid *guid);
+xb_guid_to_string(XbGuid *guid) G_GNUC_NON_NULL(1);
 void
-xb_guid_compute_for_data(XbGuid *out, const guint8 *buf, gsize bufsz);
+xb_guid_compute_for_data(XbGuid *out, const guint8 *buf, gsize bufsz) G_GNUC_NON_NULL(1);
 
 G_END_DECLS

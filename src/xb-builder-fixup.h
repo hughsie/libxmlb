@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include <gio/gio.h>
-
 #include "xb-builder-node.h"
 
 G_BEGIN_DECLS
@@ -37,10 +35,10 @@ XbBuilderFixup *
 xb_builder_fixup_new(const gchar *id,
 		     XbBuilderFixupFunc func,
 		     gpointer user_data,
-		     GDestroyNotify user_data_free);
+		     GDestroyNotify user_data_free) G_GNUC_NON_NULL(1, 2);
 gint
-xb_builder_fixup_get_max_depth(XbBuilderFixup *self);
+xb_builder_fixup_get_max_depth(XbBuilderFixup *self) G_GNUC_NON_NULL(1);
 void
-xb_builder_fixup_set_max_depth(XbBuilderFixup *self, gint max_depth);
+xb_builder_fixup_set_max_depth(XbBuilderFixup *self, gint max_depth) G_GNUC_NON_NULL(1);
 
 G_END_DECLS

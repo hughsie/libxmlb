@@ -54,40 +54,40 @@ xb_opcode_init(XbOpcode *self,
 	       XbOpcodeKind kind,
 	       const gchar *str,
 	       guint32 val,
-	       GDestroyNotify destroy_func);
+	       GDestroyNotify destroy_func) G_GNUC_NON_NULL(1);
 void
-xb_opcode_clear(XbOpcode *self);
+xb_opcode_clear(XbOpcode *self) G_GNUC_NON_NULL(1);
 void
-xb_opcode_bind_init(XbOpcode *self);
+xb_opcode_bind_init(XbOpcode *self) G_GNUC_NON_NULL(1);
 gboolean
-xb_opcode_is_binding(XbOpcode *self);
+xb_opcode_is_binding(XbOpcode *self) G_GNUC_NON_NULL(1);
 G_DEPRECATED_FOR(xb_value_bindings_bind_str)
 void
-xb_opcode_bind_str(XbOpcode *self, gchar *str, GDestroyNotify destroy_func);
+xb_opcode_bind_str(XbOpcode *self, gchar *str, GDestroyNotify destroy_func) G_GNUC_NON_NULL(1);
 G_DEPRECATED_FOR(xb_value_bindings_bind_val)
 void
-xb_opcode_bind_val(XbOpcode *self, guint32 val);
+xb_opcode_bind_val(XbOpcode *self, guint32 val) G_GNUC_NON_NULL(1);
 void
-xb_opcode_set_kind(XbOpcode *self, XbOpcodeKind kind);
+xb_opcode_set_kind(XbOpcode *self, XbOpcodeKind kind) G_GNUC_NON_NULL(1);
 void
-xb_opcode_set_val(XbOpcode *self, guint32 val);
+xb_opcode_set_val(XbOpcode *self, guint32 val) G_GNUC_NON_NULL(1);
 gboolean
-xb_opcode_append_token(XbOpcode *self, const gchar *val);
+xb_opcode_append_token(XbOpcode *self, const gchar *val) G_GNUC_NON_NULL(1, 2);
 const gchar **
-xb_opcode_get_tokens(XbOpcode *self);
+xb_opcode_get_tokens(XbOpcode *self) G_GNUC_NON_NULL(1);
 gchar *
-xb_opcode_get_sig(XbOpcode *self);
+xb_opcode_get_sig(XbOpcode *self) G_GNUC_NON_NULL(1);
 void
-xb_opcode_bool_init(XbOpcode *self, gboolean val);
+xb_opcode_bool_init(XbOpcode *self, gboolean val) G_GNUC_NON_NULL(1);
 gboolean
-xb_opcode_has_flag(XbOpcode *self, XbOpcodeFlags flag);
+xb_opcode_has_flag(XbOpcode *self, XbOpcodeFlags flag) G_GNUC_NON_NULL(1);
 void
-xb_opcode_add_flag(XbOpcode *self, XbOpcodeFlags flag);
+xb_opcode_add_flag(XbOpcode *self, XbOpcodeFlags flag) G_GNUC_NON_NULL(1);
 
 void
-xb_opcode_set_level(XbOpcode *self, guint8 level);
+xb_opcode_set_level(XbOpcode *self, guint8 level) G_GNUC_NON_NULL(1);
 guint8
-xb_opcode_get_level(XbOpcode *self);
+xb_opcode_get_level(XbOpcode *self) G_GNUC_NON_NULL(1);
 
 static inline gboolean
 _xb_opcode_has_flag(const XbOpcode *self, XbOpcodeFlags flag)

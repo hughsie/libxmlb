@@ -6,14 +6,12 @@
 
 #pragma once
 
-#include <glib-object.h>
-
 #include "xb-node.h"
 #include "xb-silo.h"
 
 G_BEGIN_DECLS
 
 XbSilo *
-xb_node_get_silo(XbNode *self);
+xb_node_get_silo(XbNode *self) G_GNUC_NON_NULL(1);
 
 G_END_DECLS

@@ -57,30 +57,30 @@ xb_query_context_get_type(void);
 	}
 
 void
-xb_query_context_init(XbQueryContext *self);
+xb_query_context_init(XbQueryContext *self) G_GNUC_NON_NULL(1);
 void
-xb_query_context_clear(XbQueryContext *self);
+xb_query_context_clear(XbQueryContext *self) G_GNUC_NON_NULL(1);
 
 G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC(XbQueryContext, xb_query_context_clear)
 
 XbQueryContext *
-xb_query_context_copy(XbQueryContext *self);
+xb_query_context_copy(XbQueryContext *self) G_GNUC_NON_NULL(1);
 void
-xb_query_context_free(XbQueryContext *self);
+xb_query_context_free(XbQueryContext *self) G_GNUC_NON_NULL(1);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(XbQueryContext, xb_query_context_free)
 
 XbValueBindings *
-xb_query_context_get_bindings(XbQueryContext *self);
+xb_query_context_get_bindings(XbQueryContext *self) G_GNUC_NON_NULL(1);
 
 guint
-xb_query_context_get_limit(XbQueryContext *self);
+xb_query_context_get_limit(XbQueryContext *self) G_GNUC_NON_NULL(1);
 void
-xb_query_context_set_limit(XbQueryContext *self, guint limit);
+xb_query_context_set_limit(XbQueryContext *self, guint limit) G_GNUC_NON_NULL(1);
 
 XbQueryFlags
-xb_query_context_get_flags(XbQueryContext *self);
+xb_query_context_get_flags(XbQueryContext *self) G_GNUC_NON_NULL(1);
 void
-xb_query_context_set_flags(XbQueryContext *self, XbQueryFlags flags);
+xb_query_context_set_flags(XbQueryContext *self, XbQueryFlags flags) G_GNUC_NON_NULL(1);
 
 G_END_DECLS

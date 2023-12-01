@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <gio/gio.h>
+#include "xb-compile.h"
 
 G_BEGIN_DECLS
 
@@ -26,12 +26,11 @@ struct _XbBuilderSourceCtxClass {
 };
 
 GInputStream *
-xb_builder_source_ctx_get_stream(XbBuilderSourceCtx *self);
+xb_builder_source_ctx_get_stream(XbBuilderSourceCtx *self) G_GNUC_NON_NULL(1);
 const gchar *
-xb_builder_source_ctx_get_filename(XbBuilderSourceCtx *self);
+xb_builder_source_ctx_get_filename(XbBuilderSourceCtx *self) G_GNUC_NON_NULL(1);
 GBytes *
-xb_builder_source_ctx_get_bytes(XbBuilderSourceCtx *self,
-				GCancellable *cancellable,
-				GError **error);
+xb_builder_source_ctx_get_bytes(XbBuilderSourceCtx *self, GCancellable *cancellable, GError **error)
+    G_GNUC_NON_NULL(1);
 
 G_END_DECLS

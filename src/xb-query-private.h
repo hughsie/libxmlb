@@ -27,8 +27,8 @@ typedef struct {
 } XbQuerySection;
 
 GPtrArray *
-xb_query_get_sections(XbQuery *self);
+xb_query_get_sections(XbQuery *self) G_GNUC_NON_NULL(1);
 gchar *
-xb_query_to_string(XbQuery *self);
+xb_query_to_string(XbQuery *self) G_GNUC_NON_NULL(1);
 
 G_END_DECLS
