@@ -1206,9 +1206,9 @@ xb_xpath_parent_subnode_func(void)
 
 	/* import from XML */
 	silo = xb_silo_new_from_xml(xml, &error);
-	xb_silo_set_enable_node_cache(silo, TRUE);
 	g_assert_no_error(error);
 	g_assert_nonnull(silo);
+	xb_silo_set_enable_node_cache(silo, TRUE);
 
 	/* get node */
 	n = xb_silo_query_first(silo, "components/component", &error);
