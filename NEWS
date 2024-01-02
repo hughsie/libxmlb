@@ -1,3 +1,18 @@
+Version 0.3.15
+~~~~~~~~~~~~~~
+Released: 2024-01-02
+
+New Features:
+ - Sprinkle __attribute__((nonnull)) to give a little more compile-time safety (Richard Hughes)
+
+Bugfixes:
+ - Accept text/xml as an alternative to application/xml (peigongdsd)
+ - Do not inline shared code (Chun-wei Fan)
+ - Fix compiling with Visual Studio (Chun-wei Fan)
+ - Fix the exported api test on Windows (Chun-wei Fan)
+ - Generate and use .def file for clang-cl builds (Chun-wei Fan)
+ - Release source file handles early (Milan Crha)
+
 Version 0.3.14
 ~~~~~~~~~~~~~~
 Released: 2023-10-24
