@@ -117,3 +117,11 @@ libxmlb is a standard meson project.  It can be compiled using the following bas
 This will by default install the library into `/usr/local`. On some Linux distributions you may
 need to configure the linker path in `/etc/ld.so.conf` to be able to locate it.
 The call to `ldconfig` is needed to refresh the linker cache.
+
+`meson build` has options that can be used to disable certain features, e.g.
+
+```
+# meson build -Dintrospection=false -Dgtkdoc=false -Dcli=false
+```
+
+will remove support for GObject introspection, Gtk documentation, and will only build the library without the command line tool. As a result, fewer libraries are needed for building and running the project.
