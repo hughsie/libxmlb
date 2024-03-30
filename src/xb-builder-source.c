@@ -14,7 +14,9 @@
 #include "xb-builder-fixup-private.h"
 #include "xb-builder-source-ctx-private.h"
 #include "xb-builder-source-private.h"
+#ifdef HAVE_LZMA
 #include "xb-lzma-decompressor.h"
+#endif
 #ifdef HAVE_ZSTD
 #include "xb-zstd-decompressor.h"
 #endif
@@ -530,6 +532,7 @@ xb_builder_source_load_gzip_cb(XbBuilderSource *self,
 	return g_converter_input_stream_new(istream, conv);
 }
 
+#ifdef HAVE_LZMA
 static GInputStream *
 xb_builder_source_load_lzma_cb(XbBuilderSource *self,
 			       XbBuilderSourceCtx *ctx,
@@ -541,6 +544,8 @@ xb_builder_source_load_lzma_cb(XbBuilderSource *self,
 	g_autoptr(GConverter) conv = G_CONVERTER(xb_lzma_decompressor_new());
 	return g_converter_input_stream_new(istream, conv);
 }
+#endif
+
 #ifdef HAVE_ZSTD
 static GInputStream *
 xb_builder_source_load_zstd_cb(XbBuilderSource *self,
@@ -603,11 +608,13 @@ xb_builder_source_init(XbBuilderSource *self)
 				      xb_builder_source_load_gzip_cb,
 				      NULL,
 				      NULL);
+#ifdef HAVE_LZMA
 	xb_builder_source_add_adapter(self,
 				      "application/x-xz,org.tukaani.xz-archive",
 				      xb_builder_source_load_lzma_cb,
 				      NULL,
 				      NULL);
+#endif
 #ifdef HAVE_ZSTD
 	xb_builder_source_add_adapter(self,
 				      "application/zstd",

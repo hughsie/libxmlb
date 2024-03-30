@@ -131,7 +131,10 @@ mandir = join_paths(prefix, get_option('mandir'))
 
 gio = dependency('gio-2.0', version : '>= 2.45.8')
 giounix = dependency('gio-unix-2.0', version : '>= 2.45.8', required: false)
-lzma = dependency('liblzma')
+lzma = dependency('liblzma', required: get_option('lzma'))
+if lzma.found()
+  conf.set('HAVE_LZMA', 1)
+endif
 zstd = dependency('libzstd', required: false)
 if get_option('zstd')
     if not zstd.found() 
@@ -151,8 +154,10 @@ add_project_arguments('-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_58', language: 
 
 libxmlb_deps = [
   gio,
-  lzma
 ]
+if lzma.found()
+  libxmlb_deps += lzma
+endif
 if get_option('zstd')
     libxmlb_deps += zstd
 endif
