@@ -137,6 +137,10 @@ pkgg.generate(libxmlb,
   name : 'libxmlb',
   filebase : 'xmlb',
   description : 'libxmlb is a library to create or query compressed XML files',
+  variables : {
+    'lzma': '@0@'.format(lzma.found()),
+    'zstd': '@0@'.format(zstd.found()),
+  },
 )
 
 if get_option('introspection')
