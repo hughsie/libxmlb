@@ -7,4 +7,11 @@ option('lzma',
   type: 'feature',
   description : 'enable lzma (xz) support',
 )
-option('zstd', type : 'boolean', value : true, description : 'enable zstd support')
+option('zstd',
+  type: 'feature',
+  description: 'enable zstd support',
+  deprecated: {
+    'true': 'enabled',
+    'false': 'disabled',
+  },
+)

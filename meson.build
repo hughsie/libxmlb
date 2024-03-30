@@ -135,12 +135,9 @@ lzma = dependency('liblzma', required: get_option('lzma'))
 if lzma.found()
   conf.set('HAVE_LZMA', 1)
 endif
-zstd = dependency('libzstd', required: false)
-if get_option('zstd')
-    if not zstd.found() 
-        error('libzstd is missing, please install it to continue!')
-    endif
-        conf.set('HAVE_ZSTD', 1)
+zstd = dependency('libzstd', required: get_option('zstd'))
+if zstd.found()
+  conf.set('HAVE_ZSTD', 1)
 endif
 if giounix.found()
   conf.set('HAVE_GIO_UNIX', '1')
@@ -158,8 +155,8 @@ libxmlb_deps = [
 if lzma.found()
   libxmlb_deps += lzma
 endif
-if get_option('zstd')
-    libxmlb_deps += zstd
+if zstd.found()
+  libxmlb_deps += zstd
 endif
 # support stemming of search tokens
 if get_option('stemmer')
