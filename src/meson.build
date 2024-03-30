@@ -44,6 +44,9 @@ extra_sources = []
 if get_option('zstd')
     extra_sources += ['xb-zstd-decompressor.c']
 endif
+if lzma.found()
+  extra_sources += ['xb-lzma-decompressor.c']
+endif
 
 def_file_target = custom_target(
   'libxmlb-defile',
@@ -67,7 +70,6 @@ libxmlb = library(
     'xb-builder-source.c',
     'xb-builder-source-ctx.c',
     'xb-common.c',
-    'xb-lzma-decompressor.c',
     'xb-machine.c',
     'xb-opcode.c',
     'xb-node.c',
@@ -239,7 +241,6 @@ if get_option('tests')
       'xb-builder-source.c',
       'xb-builder-source-ctx.c',
       'xb-common.c',
-      'xb-lzma-decompressor.c',
       'xb-machine.c',
       'xb-node.c',
       'xb-node-query.c',
