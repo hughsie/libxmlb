@@ -1,6 +1,9 @@
 libxmlb
 =======
 
+[![Coverity Scan Build Status](https://scan.coverity.com/projects/17055/badge.svg)](https://scan.coverity.com/projects/17055)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/hughsie/libxmlb/badge)](https://securityscorecards.dev/viewer/?uri=github.com/hughsie/libxmlb)
+
 Introduction
 ------------
 
