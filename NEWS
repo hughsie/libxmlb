@@ -1,3 +1,13 @@
+Version 0.3.16
+~~~~~~~~~~~~~~
+Released: 2024-04-03
+
+New Features:
+ - Add the lzma and zstd support to the pkgconfig file (Richard Hughes)
+
+Bugfixes:
+ - Make the LZMA support optional (Richard Hughes)
+
 Version 0.3.15
 ~~~~~~~~~~~~~~
 Released: 2024-01-02
