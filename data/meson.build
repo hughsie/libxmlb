@@ -13,7 +13,7 @@ if get_option('tests') and host_machine.system() != 'windows'
     'test.xml',
     'test.xml.gz.gz.gz',
     'test.xml.xz',
-    'test.xml.zstd',
+    'test.xml.zst',
   ],
     install_dir: installed_test_bindir,
   )

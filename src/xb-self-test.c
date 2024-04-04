@@ -175,7 +175,7 @@ xb_common_content_type_func(void)
 		     {"test.xml", "application/xml"},
 		     {"test.xml.gz.gz.gz", "application/gzip"},
 		     {"test.xml.xz", "application/x-xz"},
-		     {"test.xml.zstd", "application/zstd"},
+		     {"test.xml.zst", "application/zstd"},
 		     {NULL, NULL}};
 	for (guint i = 0; items[i].fn != NULL; i++) {
 		gboolean ret;
@@ -538,7 +538,7 @@ xb_builder_source_zstd_func(void)
 	g_autoptr(XbSilo) silo = NULL;
 
 	/* import a source file */
-	path = g_test_build_filename(G_TEST_DIST, "test.xml.zstd", NULL);
+	path = g_test_build_filename(G_TEST_DIST, "test.xml.zst", NULL);
 	file_src = g_file_new_for_path(path);
 	if (!g_file_query_exists(file_src, NULL)) {
 		g_test_skip("does not work in subproject test");
