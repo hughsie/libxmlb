@@ -90,8 +90,6 @@ xb_zstd_decompressor_convert(GConverter *converter,
 	size_t res;
 
 	res = ZSTD_decompressStream(self->zstdstream, &output, &input);
-	if (res == 0)
-		return G_CONVERTER_FINISHED;
 	if (ZSTD_isError(res)) {
 		g_set_error(error,
 			    G_IO_ERROR,
@@ -102,7 +100,15 @@ xb_zstd_decompressor_convert(GConverter *converter,
 	}
 	*bytes_read = input.pos;
 	*bytes_written = output.pos;
-	return G_CONVERTER_CONVERTED;
+
+	/* decoder has more to convert */
+	if (input.pos < input.size)
+		return G_CONVERTER_CONVERTED;
+	if (output.pos >= output.size)
+		return G_CONVERTER_CONVERTED;
+
+	/* success */
+	return G_CONVERTER_FINISHED;
 }
 
 static void
