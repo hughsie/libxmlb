@@ -1,3 +1,12 @@
+Version 0.3.17
+~~~~~~~~~~~~~~
+Released: 2024-04-05
+
+Bugfixes:
+ - Create SECURITY.md for the OpenSSF scorecard (Richard Hughes)
+ - Fix decompressing large zstd files (Richard Hughes)
+ - Use zst as the file extension for zstd (Richard Hughes)
+
 Version 0.3.16
 ~~~~~~~~~~~~~~
 Released: 2024-04-03
