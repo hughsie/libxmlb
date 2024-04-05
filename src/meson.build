@@ -99,7 +99,11 @@ libxmlb = library(
 libxmlb_dep = declare_dependency(
   link_with : libxmlb,
   include_directories : include_directories('.'),
-  dependencies : libxmlb_deps
+  dependencies : libxmlb_deps,
+  variables : {
+    'lzma': '@0@'.format(lzma.found()),
+    'zstd': '@0@'.format(zstd.found()),
+  },
 )
 
 if get_option('cli')
