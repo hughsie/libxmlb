@@ -101,14 +101,8 @@ xb_zstd_decompressor_convert(GConverter *converter,
 	*bytes_read = input.pos;
 	*bytes_written = output.pos;
 
-	/* decoder has more to convert */
-	if (input.pos < input.size)
-		return G_CONVERTER_CONVERTED;
-	if (output.pos >= output.size)
-		return G_CONVERTER_CONVERTED;
-
 	/* success */
-	return G_CONVERTER_FINISHED;
+	return res == 0 ? G_CONVERTER_FINISHED : G_CONVERTER_CONVERTED;
 }
 
 static void
