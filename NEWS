@@ -1,3 +1,11 @@
+Version 0.3.18
+~~~~~~~~~~~~~~
+Released: 2024-04-09
+
+Bugfixes:
+ - Fix decompressing large zstd files, harder (Richard Hughes)
+ - Include the pkgconfig variables in the subproject declared dependency (Richard Hughes)
+
 Version 0.3.17
 ~~~~~~~~~~~~~~
 Released: 2024-04-05
