@@ -18,6 +18,7 @@
 #include "xb-opcode-private.h"
 #include "xb-silo-private.h"
 #include "xb-string-private.h"
+#include "xb-version.h"
 
 typedef struct {
 	GPtrArray *sources; /* of XbBuilderSource */
@@ -1155,7 +1156,7 @@ xb_builder_init(XbBuilder *self)
 	priv->fixups = g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
 	priv->locales = g_ptr_array_new_with_free_func(g_free);
 	priv->silo = xb_silo_new();
-	priv->guid = g_string_new(NULL);
+	priv->guid = g_string_new(xb_version_string());
 }
 
 /**
