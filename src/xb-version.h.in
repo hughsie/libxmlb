@@ -11,12 +11,9 @@
  * depending on the version of libxmlb installed.
  */
 
-#if !defined (__LIBXMLB_H_INSIDE__) && !defined (LIBXMLB_COMPILATION)
-#error "Only <libxmlb.h> can be included directly."
-#endif
+#pragma once
 
-#ifndef __LIBXMLB_VERSION_H
-#define __LIBXMLB_VERSION_H
+#include <glib.h>
 
 /**
  * XMLB_MAJOR_VERSION:
@@ -59,5 +56,3 @@
      (XMLB_MAJOR_VERSION == (major) && XMLB_MINOR_VERSION > (minor)) || \
      (XMLB_MAJOR_VERSION == (major) && XMLB_MINOR_VERSION == (minor) && \
       XMLB_MICRO_VERSION >= (micro)))
-
-#endif /* __LIBXMLB_VERSION_H */
