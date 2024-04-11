@@ -270,3 +270,9 @@ LIBXMLB_0.3.4 {
     xb_node_child_iter_next;
   local: *;
 } LIBXMLB_0.3.1;
+
+LIBXMLB_0.3.19 {
+  global:
+    xb_version_string;
+  local: *;
+} LIBXMLB_0.3.4;
