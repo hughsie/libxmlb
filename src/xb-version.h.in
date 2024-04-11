@@ -56,3 +56,9 @@
      (XMLB_MAJOR_VERSION == (major) && XMLB_MINOR_VERSION > (minor)) || \
      (XMLB_MAJOR_VERSION == (major) && XMLB_MINOR_VERSION == (minor) && \
       XMLB_MICRO_VERSION >= (micro)))
+
+G_BEGIN_DECLS
+
+const gchar	*xb_version_string	(void);
+
+G_END_DECLS
