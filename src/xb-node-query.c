@@ -6,13 +6,12 @@
 
 #define G_LOG_DOMAIN "XbNode"
 
-#include "xb-node-query.h"
-
 #include "config.h"
 
 #include <gio/gio.h>
 #include <glib.h>
 
+#include "xb-node-query.h"
 #include "xb-node-silo.h"
 #include "xb-silo-export-private.h"
 #include "xb-silo-query-private.h"

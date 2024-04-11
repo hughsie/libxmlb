@@ -6,9 +6,8 @@
 
 #pragma once
 
-#include "xb-value-bindings.h"
-
 #include "xb-silo.h"
+#include "xb-value-bindings.h"
 
 gchar *
 xb_value_bindings_to_string(XbValueBindings *self) G_GNUC_NON_NULL(1);

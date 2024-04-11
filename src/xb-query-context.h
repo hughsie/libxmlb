@@ -53,7 +53,10 @@ xb_query_context_get_type(void);
  */
 #define XB_QUERY_CONTEXT_INIT()                                                                    \
 	{                                                                                          \
-		0, 0, XB_VALUE_BINDINGS_INIT(), { NULL, NULL, NULL, NULL, NULL }                   \
+		0, 0, XB_VALUE_BINDINGS_INIT(),                                                    \
+		{                                                                                  \
+			NULL, NULL, NULL, NULL, NULL                                               \
+		}                                                                                  \
 	}
 
 void

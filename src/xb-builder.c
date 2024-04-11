@@ -6,8 +6,6 @@
 
 #define G_LOG_DOMAIN "XbSilo"
 
-#include "xb-builder.h"
-
 #include "config.h"
 
 #include <gio/gio.h>
@@ -16,6 +14,7 @@
 #include "xb-builder-fixup-private.h"
 #include "xb-builder-node-private.h"
 #include "xb-builder-source-private.h"
+#include "xb-builder.h"
 #include "xb-opcode-private.h"
 #include "xb-silo-private.h"
 #include "xb-string-private.h"
@@ -765,7 +764,8 @@ xb_builder_compile(XbBuilder *self,
 	XbBuilderNodetabHelper nodetab_helper = {
 	    .buf = NULL,
 	};
-	g_autoptr(GPtrArray) nodes_to_destroy = g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
+	g_autoptr(GPtrArray) nodes_to_destroy =
+	    g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
 	g_autoptr(GTimer) timer = xb_silo_start_profile(priv->silo);
 	g_autoptr(XbBuilderCompileHelper) helper = NULL;
 
