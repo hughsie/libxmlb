@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#include "xb-zstd-decompressor.h"
-
 #include "config.h"
 
 #include <gio/gio.h>
 #include <zstd.h>
+
+#include "xb-zstd-decompressor.h"
 
 static void
 xb_zstd_decompressor_iface_init(GConverterIface *iface);

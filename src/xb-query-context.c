@@ -10,12 +10,11 @@
 
 #define G_LOG_DOMAIN "XbQueryContext"
 
-#include "xb-query-context.h"
-
 #include "config.h"
 
 #include <glib.h>
 
+#include "xb-query-context.h"
 #include "xb-query.h"
 #include "xb-value-bindings.h"
 

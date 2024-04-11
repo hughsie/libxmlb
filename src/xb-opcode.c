@@ -279,7 +279,7 @@ xb_opcode_get_val(XbOpcode *self)
 const gchar *
 xb_opcode_get_str(XbOpcode *self)
 {
-  return _xb_opcode_get_str(self);
+	return _xb_opcode_get_str(self);
 }
 
 /**

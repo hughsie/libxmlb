@@ -6,14 +6,14 @@
  * SPDX-License-Identifier: LGPL-2.1+
  */
 
-#include "xb-lzma-decompressor.h"
-
 #include "config.h"
 
 #include <errno.h>
 #include <gio/gio.h>
 #include <lzma.h>
 #include <string.h>
+
+#include "xb-lzma-decompressor.h"
 
 static void
 xb_lzma_decompressor_iface_init(GConverterIface *iface);

@@ -39,9 +39,9 @@ Language: 'Proto'
 Language: 'Cpp'
 IncludeCategories:
   - Regex:           '^"config.h"$'
-    Priority:        '1'
+    Priority:        '0'
   - Regex:           '^<'
-    Priority:        '2'
+    Priority:        '1'
   - Regex:           '.*'
-    Priority:        '4'
+    Priority:        '2'
 ...

@@ -1069,12 +1069,13 @@ xb_machine_run_with_bindings(XbMachine *self,
 				if (error != NULL) {
 					g_autofree gchar *tmp1 = xb_stack_to_string(stack);
 					g_autofree gchar *tmp2 = xb_stack_to_string(opcodes);
-					g_set_error(error,
-						    G_IO_ERROR,
-						    G_IO_ERROR_INVALID_DATA,
-						    "opcode was not bound at runtime, stack:%s, opcodes:%s",
-						    tmp1,
-						    tmp2);
+					g_set_error(
+					    error,
+					    G_IO_ERROR,
+					    G_IO_ERROR_INVALID_DATA,
+					    "opcode was not bound at runtime, stack:%s, opcodes:%s",
+					    tmp1,
+					    tmp2);
 				}
 				return FALSE;
 			}
@@ -1490,8 +1491,9 @@ xb_machine_check_one_arg(XbStack *stack, OpcodeCheckFunc f, GError **error)
 				    G_IO_ERROR,
 				    G_IO_ERROR_NOT_SUPPORTED,
 				    "%s type not supported",
-				    (head != NULL) ? xb_opcode_kind_to_string(_xb_opcode_get_kind(head))
-						   : "(null)");
+				    (head != NULL)
+					? xb_opcode_kind_to_string(_xb_opcode_get_kind(head))
+					: "(null)");
 		}
 		return FALSE;
 	}
@@ -1512,14 +1514,15 @@ xb_machine_check_two_args(XbStack *stack, OpcodeCheckFunc f1, OpcodeCheckFunc f2
 	}
 	if (head1 == NULL || head2 == NULL || !f1(head1) || !f2(head2)) {
 		if (error != NULL) {
-			g_set_error(error,
-				    G_IO_ERROR,
-				    G_IO_ERROR_NOT_SUPPORTED,
-				    "%s:%s types not supported",
-				    (head1 != NULL) ? xb_opcode_kind_to_string(_xb_opcode_get_kind(head1))
-						    : "(null)",
-				    (head2 != NULL) ? xb_opcode_kind_to_string(_xb_opcode_get_kind(head2))
-						    : "(null)");
+			g_set_error(
+			    error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_NOT_SUPPORTED,
+			    "%s:%s types not supported",
+			    (head1 != NULL) ? xb_opcode_kind_to_string(_xb_opcode_get_kind(head1))
+					    : "(null)",
+			    (head2 != NULL) ? xb_opcode_kind_to_string(_xb_opcode_get_kind(head2))
+					    : "(null)");
 		}
 		return FALSE;
 	}
@@ -1544,7 +1547,9 @@ xb_machine_func_and_cb(XbMachine *self,
 		return FALSE;
 
 	/* INTE:INTE */
-	return xb_stack_push_bool(stack, _xb_opcode_get_val(&op1) && _xb_opcode_get_val(&op2), error);
+	return xb_stack_push_bool(stack,
+				  _xb_opcode_get_val(&op1) && _xb_opcode_get_val(&op2),
+				  error);
 }
 
 static gboolean
@@ -1564,7 +1569,9 @@ xb_machine_func_or_cb(XbMachine *self,
 		return FALSE;
 
 	/* INTE:INTE */
-	return xb_stack_push_bool(stack, _xb_opcode_get_val(&op1) || _xb_opcode_get_val(&op2), error);
+	return xb_stack_push_bool(stack,
+				  _xb_opcode_get_val(&op1) || _xb_opcode_get_val(&op2),
+				  error);
 }
 
 static gboolean
