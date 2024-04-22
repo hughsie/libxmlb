@@ -1,3 +1,13 @@
+Version 0.3.19
+~~~~~~~~~~~~~~
+Released: 2024-04-22
+
+New Features:
+ - Add xb_version_string() to get the runtime ABI version (Richard Hughes)
+
+Bugfixes:
+ - Add the runtime version as the default XMLb invalidation GUID (Richard Hughes)
+
 Version 0.3.18
 ~~~~~~~~~~~~~~
 Released: 2024-04-09
