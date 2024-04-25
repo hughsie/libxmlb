@@ -25,7 +25,6 @@ typedef struct {
 	GPtrArray *nodes;   /* of XbBuilderNode */
 	GPtrArray *fixups;  /* of XbBuilderFixup */
 	GPtrArray *locales; /* of str */
-	XbSilo *silo;
 	XbSiloProfileFlags profile_flags;
 	GString *guid;
 } XbBuilderPrivate;
@@ -618,6 +617,7 @@ xb_builder_compile_helper_free(XbBuilderCompileHelper *helper)
 {
 	g_hash_table_unref(helper->strtab_hash);
 	g_string_free(helper->strtab, TRUE);
+	g_clear_object(&helper->silo);
 	g_object_unref(helper->root);
 	g_free(helper);
 }
@@ -697,10 +697,10 @@ xb_builder_add_locale(XbBuilder *self, const gchar *locale)
 static gboolean
 xb_builder_watch_source(XbBuilder *self,
 			XbBuilderSource *source,
+			XbSilo *silo,
 			GCancellable *cancellable,
 			GError **error)
 {
-	XbBuilderPrivate *priv = GET_PRIVATE(self);
 	GFile *file = xb_builder_source_get_file(source);
 	g_autoptr(GFile) watched_file = NULL;
 	if (file == NULL)
@@ -714,18 +714,16 @@ xb_builder_watch_source(XbBuilder *self,
 	else
 		watched_file = g_object_ref(file);
 
-	if (!xb_silo_watch_file(priv->silo, watched_file, cancellable, error))
-		return FALSE;
-	return TRUE;
+	return xb_silo_watch_file(silo, watched_file, cancellable, error);
 }
 
 static gboolean
-xb_builder_watch_sources(XbBuilder *self, GCancellable *cancellable, GError **error)
+xb_builder_watch_sources(XbBuilder *self, XbSilo *silo, GCancellable *cancellable, GError **error)
 {
 	XbBuilderPrivate *priv = GET_PRIVATE(self);
 	for (guint i = 0; i < priv->sources->len; i++) {
 		XbBuilderSource *source = g_ptr_array_index(priv->sources, i);
-		if (!xb_builder_watch_source(self, source, cancellable, error))
+		if (!xb_builder_watch_source(self, source, silo, cancellable, error))
 			return FALSE;
 	}
 	return TRUE;
@@ -767,7 +765,7 @@ xb_builder_compile(XbBuilder *self,
 	};
 	g_autoptr(GPtrArray) nodes_to_destroy =
 	    g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
-	g_autoptr(GTimer) timer = xb_silo_start_profile(priv->silo);
+	g_autoptr(GTimer) timer = NULL;
 	g_autoptr(XbBuilderCompileHelper) helper = NULL;
 
 	g_return_val_if_fail(XB_IS_BUILDER(self), NULL);
@@ -791,10 +789,14 @@ xb_builder_compile(XbBuilder *self,
 	helper = g_new0(XbBuilderCompileHelper, 1);
 	helper->compile_flags = flags;
 	helper->root = xb_builder_node_new(NULL);
-	helper->silo = priv->silo;
+	helper->silo = xb_silo_new();
 	helper->locales = priv->locales;
 	helper->strtab = g_string_new(NULL);
 	helper->strtab_hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+
+	/* for profiling */
+	xb_silo_set_profile_flags(helper->silo, priv->profile_flags);
+	timer = xb_silo_start_profile(helper->silo);
 
 	/* build node tree */
 	for (guint i = 0; i < priv->sources->len; i++) {
@@ -815,7 +817,7 @@ xb_builder_compile(XbBuilder *self,
 		}
 
 		/* watch the source */
-		if (!xb_builder_watch_source(self, source, cancellable, error))
+		if (!xb_builder_watch_source(self, source, helper->silo, cancellable, error))
 			return NULL;
 
 		if (priv->profile_flags & XB_SILO_PROFILE_FLAG_DEBUG)
@@ -854,7 +856,7 @@ xb_builder_compile(XbBuilder *self,
 			XbBuilderNode *bn = g_ptr_array_index(nodes_to_destroy, i);
 			xb_builder_node_unlink(bn);
 		}
-		xb_silo_add_profile(priv->silo, timer, "filter single-lang");
+		xb_silo_add_profile(helper->silo, timer, "filter single-lang");
 	}
 
 	/* add any manually build nodes */
@@ -871,7 +873,7 @@ xb_builder_compile(XbBuilder *self,
 				 xb_builder_nodetab_size_cb,
 				 &nodetabsz);
 	buf = g_string_sized_new(nodetabsz);
-	xb_silo_add_profile(priv->silo, timer, "get size nodetab");
+	xb_silo_add_profile(helper->silo, timer, "get size nodetab");
 
 	/* add everything to the strtab */
 	xb_builder_node_traverse(helper->root,
@@ -881,35 +883,35 @@ xb_builder_compile(XbBuilder *self,
 				 xb_builder_strtab_element_names_cb,
 				 helper);
 	hdr.strtab_ntags = g_hash_table_size(helper->strtab_hash);
-	xb_silo_add_profile(priv->silo, timer, "adding strtab element");
+	xb_silo_add_profile(helper->silo, timer, "adding strtab element");
 	xb_builder_node_traverse(helper->root,
 				 G_PRE_ORDER,
 				 G_TRAVERSE_ALL,
 				 -1,
 				 xb_builder_strtab_attr_name_cb,
 				 helper);
-	xb_silo_add_profile(priv->silo, timer, "adding strtab attr name");
+	xb_silo_add_profile(helper->silo, timer, "adding strtab attr name");
 	xb_builder_node_traverse(helper->root,
 				 G_PRE_ORDER,
 				 G_TRAVERSE_ALL,
 				 -1,
 				 xb_builder_strtab_attr_value_cb,
 				 helper);
-	xb_silo_add_profile(priv->silo, timer, "adding strtab attr value");
+	xb_silo_add_profile(helper->silo, timer, "adding strtab attr value");
 	xb_builder_node_traverse(helper->root,
 				 G_PRE_ORDER,
 				 G_TRAVERSE_ALL,
 				 -1,
 				 xb_builder_strtab_text_cb,
 				 helper);
-	xb_silo_add_profile(priv->silo, timer, "adding strtab text");
+	xb_silo_add_profile(helper->silo, timer, "adding strtab text");
 	xb_builder_node_traverse(helper->root,
 				 G_PRE_ORDER,
 				 G_TRAVERSE_ALL,
 				 -1,
 				 xb_builder_strtab_tokens_cb,
 				 helper);
-	xb_silo_add_profile(priv->silo, timer, "adding strtab tokens");
+	xb_silo_add_profile(helper->silo, timer, "adding strtab tokens");
 
 	/* add the initial header */
 	hdr.strtab = nodetabsz;
@@ -925,7 +927,7 @@ xb_builder_compile(XbBuilder *self,
 	/* write nodes to the nodetab */
 	nodetab_helper.buf = buf;
 	xb_builder_nodetab_write(&nodetab_helper, helper->root);
-	xb_silo_add_profile(priv->silo, timer, "writing nodetab");
+	xb_silo_add_profile(helper->silo, timer, "writing nodetab");
 
 	/* set all the ->next and ->parent offsets */
 	xb_builder_node_traverse(helper->root,
@@ -934,19 +936,19 @@ xb_builder_compile(XbBuilder *self,
 				 -1,
 				 xb_builder_nodetab_fix_cb,
 				 &nodetab_helper);
-	xb_silo_add_profile(priv->silo, timer, "fixing ->parent and ->next");
+	xb_silo_add_profile(helper->silo, timer, "fixing ->parent and ->next");
 
 	/* append the string table */
 	XB_SILO_APPENDBUF(buf, helper->strtab->str, helper->strtab->len);
-	xb_silo_add_profile(priv->silo, timer, "appending strtab");
+	xb_silo_add_profile(helper->silo, timer, "appending strtab");
 
 	/* create data */
 	blob = g_bytes_new(buf->str, buf->len);
-	if (!xb_silo_load_from_bytes(priv->silo, blob, XB_SILO_LOAD_FLAG_NONE, error))
+	if (!xb_silo_load_from_bytes(helper->silo, blob, XB_SILO_LOAD_FLAG_NONE, error))
 		return NULL;
 
 	/* success */
-	return g_object_ref(priv->silo);
+	return g_steal_pointer(&helper->silo);
 }
 
 /**
@@ -980,7 +982,7 @@ xb_builder_ensure(XbBuilder *self,
 	XbSiloLoadFlags load_flags = XB_SILO_LOAD_FLAG_NONE;
 	g_autofree gchar *fn = NULL;
 	g_autoptr(XbSilo) silo_tmp = xb_silo_new();
-	g_autoptr(XbSilo) silo_new = NULL;
+	g_autoptr(XbSilo) silo = NULL;
 	g_autoptr(GError) error_local = NULL;
 
 	g_return_val_if_fail(XB_IS_BUILDER(self), NULL);
@@ -989,11 +991,14 @@ xb_builder_ensure(XbBuilder *self,
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
 	/* watch the blob, so propagate flags */
-	if (flags & XB_BUILDER_COMPILE_FLAG_WATCH_BLOB)
+	if (flags & XB_BUILDER_COMPILE_FLAG_WATCH_BLOB) {
 		load_flags |= XB_SILO_LOAD_FLAG_WATCH_BLOB;
+		if (!xb_silo_watch_file(silo_tmp, file, cancellable, error))
+			return NULL;
+	}
 
 	/* ensure all the sources are watched */
-	if (!xb_builder_watch_sources(self, cancellable, error))
+	if (!xb_builder_watch_sources(self, silo_tmp, cancellable, error))
 		return NULL;
 
 	/* profile new silo if needed */
@@ -1012,54 +1017,38 @@ xb_builder_ensure(XbBuilder *self,
 		g_autofree gchar *guid = xb_builder_generate_guid(self);
 		if (priv->profile_flags & XB_SILO_PROFILE_FLAG_DEBUG)
 			g_debug("GUID string: %s", priv->guid->str);
-		g_debug("file: %s, current:%s, cached: %s",
-			xb_silo_get_guid(silo_tmp),
-			guid,
-			xb_silo_get_guid(priv->silo));
+		g_debug("file: %s, current:%s", xb_silo_get_guid(silo_tmp), guid);
 
-		/* GUIDs match exactly with the thing that's already loaded */
-		if (g_strcmp0(xb_silo_get_guid(silo_tmp), xb_silo_get_guid(priv->silo)) == 0) {
-			g_debug("returning unchanged silo");
-			xb_silo_uninvalidate(priv->silo);
-			return g_object_ref(priv->silo);
-		}
-
-		/* reload the cached silo with the new file data */
+		/* no compile required */
 		if (g_strcmp0(xb_silo_get_guid(silo_tmp), guid) == 0 ||
 		    (flags & XB_BUILDER_COMPILE_FLAG_IGNORE_GUID) > 0) {
-			g_autoptr(GBytes) blob = xb_silo_get_bytes(silo_tmp);
-
-			/* ensure backing file is watched for changes */
-			if (flags & XB_BUILDER_COMPILE_FLAG_WATCH_BLOB) {
-				if (!xb_silo_watch_file(priv->silo, file, cancellable, error))
-					return NULL;
-			}
-
-			g_debug("loading silo with file contents");
-			if (!xb_silo_load_from_bytes(priv->silo, blob, load_flags, error))
-				return NULL;
-
-			return g_object_ref(priv->silo);
+			g_debug("loading silo with existing file contents");
+			return g_steal_pointer(&silo_tmp);
 		}
 	}
 
 	/* fallback to just creating a new file */
-	silo_new = xb_builder_compile(self, flags, cancellable, error);
-	if (silo_new == NULL)
+	silo = xb_builder_compile(self, flags, cancellable, error);
+	if (silo == NULL)
 		return NULL;
-	if (!xb_silo_save_to_file(silo_new, file, NULL, error))
+
+	/* this might seem unnecessary, but windows cannot do _chsize() (introduced in GLib commit
+	 * https://gitlab.gnome.org/GNOME/glib/-/commit/3f705ffa1230757b910a06a705104d4b0fee2c05)
+	 * on a mmap'd file -- so manually tear that down before writing the new file */
+	g_clear_object(&silo_tmp);
+	if (!xb_silo_save_to_file(silo, file, NULL, error))
 		return NULL;
 
 	/* load from a file to re-mmap it */
-	if (!xb_silo_load_from_file(priv->silo, file, load_flags, cancellable, error))
+	if (!xb_silo_load_from_file(silo, file, load_flags, cancellable, error))
 		return NULL;
 
 	/* ensure all the sources are watched on the reloaded silo */
-	if (!xb_builder_watch_sources(self, cancellable, error))
+	if (!xb_builder_watch_sources(self, silo, cancellable, error))
 		return NULL;
 
 	/* success */
-	return g_steal_pointer(&silo_new);
+	return g_steal_pointer(&silo);
 }
 
 /**
@@ -1095,7 +1084,6 @@ xb_builder_set_profile_flags(XbBuilder *self, XbSiloProfileFlags profile_flags)
 	XbBuilderPrivate *priv = GET_PRIVATE(self);
 	g_return_if_fail(XB_IS_BUILDER(self));
 	priv->profile_flags = profile_flags;
-	xb_silo_set_profile_flags(priv->silo, profile_flags);
 }
 
 /**
@@ -1134,7 +1122,6 @@ xb_builder_finalize(GObject *obj)
 	g_ptr_array_unref(priv->nodes);
 	g_ptr_array_unref(priv->locales);
 	g_ptr_array_unref(priv->fixups);
-	g_object_unref(priv->silo);
 	g_string_free(priv->guid, TRUE);
 
 	G_OBJECT_CLASS(xb_builder_parent_class)->finalize(obj);
@@ -1155,7 +1142,6 @@ xb_builder_init(XbBuilder *self)
 	priv->nodes = g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
 	priv->fixups = g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
 	priv->locales = g_ptr_array_new_with_free_func(g_free);
-	priv->silo = xb_silo_new();
 	priv->guid = g_string_new(xb_version_string());
 }
 
