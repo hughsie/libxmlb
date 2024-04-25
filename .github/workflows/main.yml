@@ -16,6 +16,7 @@ jobs:
       matrix:
         distro:
           - fedora
+          - fedora-w64
           - debian
       fail-fast: false
     steps:
