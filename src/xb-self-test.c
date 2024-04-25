@@ -667,6 +667,9 @@ xb_builder_ensure_func(void)
 {
 	gboolean ret;
 	guint invalidate_cnt = 0;
+	g_autofree gchar *bytes1str = NULL;
+	g_autofree gchar *bytes2str = NULL;
+	g_autofree gchar *bytes3str = NULL;
 	g_autofree gchar *tmp_xmlb = g_build_filename(g_get_tmp_dir(), "temp.xmlb", NULL);
 	g_autoptr(GBytes) bytes1 = NULL;
 	g_autoptr(GBytes) bytes2 = NULL;
@@ -719,6 +722,7 @@ xb_builder_ensure_func(void)
 			 &invalidate_cnt);
 	g_assert_cmpint(invalidate_cnt, ==, 0);
 	bytes1 = xb_silo_get_bytes(silo);
+	bytes1str = g_compute_checksum_for_bytes(G_CHECKSUM_SHA1, bytes1);
 
 	/* recreate file if it is invalid */
 	ret = g_file_replace_contents(file,
@@ -742,7 +746,8 @@ xb_builder_ensure_func(void)
 	g_assert_nonnull(silo);
 	g_assert_true(xb_silo_is_valid(silo));
 	bytes2 = xb_silo_get_bytes(silo);
-	g_assert(bytes1 != bytes2);
+	bytes2str = g_compute_checksum_for_bytes(G_CHECKSUM_SHA1, bytes2);
+	g_assert_cmpstr(bytes1str, !=, bytes2str);
 	g_clear_object(&silo);
 
 	/* don't recreate file if perfectly valid */
@@ -751,7 +756,8 @@ xb_builder_ensure_func(void)
 	g_assert_nonnull(silo);
 	g_assert_true(xb_silo_is_valid(silo));
 	bytes3 = xb_silo_get_bytes(silo);
-	g_assert(bytes2 == bytes3);
+	bytes3str = g_compute_checksum_for_bytes(G_CHECKSUM_SHA1, bytes3);
+	g_assert_cmpstr(bytes2str, ==, bytes3str);
 	g_clear_object(&silo);
 	g_clear_object(&builder);
 
