@@ -5,7 +5,7 @@
  *
  * Author: Philip Withnall <withnall@endlessm.com>
  *
- * SPDX-License-Identifier: LGPL-2.1+
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #define G_LOG_DOMAIN "XbValueBindings"
