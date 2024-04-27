@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # pylint: disable=invalid-name,missing-docstring
 #
-# Copyright (C) 2023 Chun-wei Fan <fanc999@yahoo.com.tw>
+# Copyright 2023 Chun-wei Fan <fanc999@yahoo.com.tw>
 #
 # SPDX-License-Identifier: LGPL-2.1+
 
