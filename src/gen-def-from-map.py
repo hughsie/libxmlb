@@ -3,7 +3,7 @@
 #
 # Copyright 2023 Chun-wei Fan <fanc999@yahoo.com.tw>
 #
-# SPDX-License-Identifier: LGPL-2.1+
+# SPDX-License-Identifier: LGPL-2.1-or-later
 
 # Script to generate .def file from .map files
 
