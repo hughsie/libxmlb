@@ -466,6 +466,7 @@ xb_builder_source_get_istream(XbBuilderSource *self, GCancellable *cancellable, 
 		/* get the content type of the stream */
 		xb_builder_source_ctx_set_filename(ctx, basename);
 		content_type = xb_builder_source_ctx_get_content_type(ctx, cancellable, error);
+		g_debug("detected content type of %s to be %s", basename, content_type);
 		if (content_type == NULL)
 			return NULL;
 		if (g_strcmp0(content_type, "application/xml") == 0)
