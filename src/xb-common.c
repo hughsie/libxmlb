@@ -31,7 +31,7 @@ xb_content_type_guess_from_fn(const gchar *filename)
 		return "application/x-xz";
 	if (g_strcmp0(ext, ".zst") == 0)
 		return "application/zstd";
-	if (g_strcmp0(ext, ".txt") == 0 || g_strcmp0(ext, ".xml") == 0)
+	if (g_strcmp0(ext, ".xml") == 0)
 		return "application/xml";
 	if (g_strcmp0(ext, ".desktop") == 0)
 		return "application/x-desktop";
