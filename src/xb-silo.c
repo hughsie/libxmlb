@@ -627,9 +627,11 @@ guint
 xb_silo_get_node_depth(XbSilo *self, XbSiloNode *n)
 {
 	guint depth = 0;
-	while (n != NULL && n->parent != 0) {
+	while (n->parent != 0) {
 		depth++;
 		n = xb_silo_get_node(self, n->parent);
+		if (n == NULL)
+			break;
 	}
 	return depth;
 }
