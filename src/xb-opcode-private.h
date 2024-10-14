@@ -26,10 +26,7 @@ struct _XbOpcode {
 	guint8 level;
 };
 
-#define XB_OPCODE_INIT()                                                                           \
-	{                                                                                          \
-		0, 0, NULL, 0, {NULL}, NULL, 0                                                     \
-	}
+#define XB_OPCODE_INIT() {0, 0, NULL, 0, {NULL}, NULL, 0}
 
 /**
  * xb_opcode_steal:
