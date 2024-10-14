@@ -66,9 +66,18 @@ xb_silo_export_node(XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, GE
 		helper->off += xb_silo_node_get_size(sn);
 
 		/* recurse deeper */
-		while (xb_silo_node_has_flag(xb_silo_get_node(self, helper->off),
-					     XB_SILO_NODE_FLAG_IS_ELEMENT)) {
+		while (TRUE) {
 			XbSiloNode *child = xb_silo_get_node(self, helper->off);
+			if (child == NULL) {
+				g_set_error(error,
+					    G_IO_ERROR,
+					    G_IO_ERROR_NOT_FOUND,
+					    "silo node not found @0x%x",
+					    helper->off);
+				return FALSE;
+			}
+			if (!xb_silo_node_has_flag(child, XB_SILO_NODE_FLAG_IS_ELEMENT))
+				break;
 			helper->level++;
 			if (!xb_silo_export_node(self, helper, child, error))
 				return FALSE;
@@ -77,6 +86,14 @@ xb_silo_export_node(XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, GE
 
 		/* check for the single byte sentinel */
 		sn2 = xb_silo_get_node(self, helper->off);
+		if (sn2 == NULL) {
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_FOUND,
+				    "silo node not found @0x%x",
+				    helper->off);
+			return FALSE;
+		}
 		if (xb_silo_node_has_flag(sn2, XB_SILO_NODE_FLAG_IS_ELEMENT)) {
 			g_set_error(error,
 				    G_IO_ERROR,

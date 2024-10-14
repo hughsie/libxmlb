@@ -219,6 +219,10 @@ XbSiloNode *
 xb_silo_get_node(XbSilo *self, guint32 off)
 {
 	XbSiloPrivate *priv = GET_PRIVATE(self);
+	if (G_UNLIKELY(off >= priv->strtab)) {
+		g_critical("offset %u is outside the expected range", off);
+		return NULL;
+	}
 	return (XbSiloNode *)(priv->data + off);
 }
 
@@ -278,6 +282,8 @@ xb_silo_get_child_node(XbSilo *self, XbSiloNode *n)
 
 	/* check for sentinel */
 	c = xb_silo_get_node(self, off);
+	if (c == NULL)
+		return NULL;
 	if (!xb_silo_node_has_flag(c, XB_SILO_NODE_FLAG_IS_ELEMENT))
 		return NULL;
 	return c;
@@ -346,6 +352,14 @@ xb_silo_to_string(XbSilo *self, GError **error)
 	g_string_append_printf(str, "strtab_ntags: %" G_GUINT16_FORMAT "\n", hdr->strtab_ntags);
 	while (off < priv->strtab) {
 		XbSiloNode *n = xb_silo_get_node(self, off);
+		if (n == NULL) {
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_FOUND,
+				    "silo node not found @0x%x",
+				    off);
+			return NULL;
+		}
 		if (xb_silo_node_has_flag(n, XB_SILO_NODE_FLAG_IS_ELEMENT)) {
 			guint32 idx;
 			g_string_append_printf(str, "NODE @%" G_GUINT32_FORMAT "\n", off);
@@ -500,6 +514,8 @@ xb_silo_get_size(XbSilo *self)
 
 	while (off < priv->strtab) {
 		XbSiloNode *n = xb_silo_get_node(self, off);
+		if (n == NULL)
+			return 0;
 		if (xb_silo_node_has_flag(n, XB_SILO_NODE_FLAG_IS_ELEMENT))
 			nodes_cnt += 1;
 		off += xb_silo_node_get_size(n);
@@ -611,7 +627,7 @@ guint
 xb_silo_get_node_depth(XbSilo *self, XbSiloNode *n)
 {
 	guint depth = 0;
-	while (n->parent != 0) {
+	while (n != NULL && n->parent != 0) {
 		depth++;
 		n = xb_silo_get_node(self, n->parent);
 	}

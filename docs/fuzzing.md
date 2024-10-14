@@ -8,6 +8,7 @@ Breaking XMLb
 -------------
 
     afl-fuzz -m 300 -i fuzzing-src -o findings ./src/xb-tool --force dump @@
+    afl-fuzz -m 300 -i fuzzing-src -o findings ./src/xb-tool query @@ "component/id"
     mkdir -p fuzzing-src
     ./src/xb-tool compile fuzzing-src/appdata.xmlb ../data/fuzzing-src/appdata.xml
 
