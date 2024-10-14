@@ -20,6 +20,8 @@
 #include "xb-stack-private.h"
 #include "xb-value-bindings-private.h"
 
+#define XB_SILO_QUERY_ANCESTOR_LEVELS_MAX 100 /* ../../../.. */
+
 static gboolean
 xb_silo_query_node_matches(XbSilo *self,
 			   XbMachine *machine,
@@ -146,6 +148,7 @@ xb_silo_query_section_root(XbSilo *self,
 	XbMachine *machine = xb_silo_get_machine(self);
 	XbSiloQueryData *query_data = helper->query_data;
 	XbQuerySection *section = g_ptr_array_index(helper->sections, i);
+	guint ancestorcnt = 0;
 
 	/* handle parent */
 	if (section->kind == XB_SILO_QUERY_KIND_PARENT) {
@@ -202,6 +205,17 @@ xb_silo_query_section_root(XbSilo *self,
 		gboolean result = TRUE;
 		guint bindings_offset_end = 0;
 		query_data->sn = sn;
+
+		/* sanity check */
+		if (ancestorcnt++ > XB_SILO_QUERY_ANCESTOR_LEVELS_MAX) {
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_FOUND,
+				    "maximum number of ancestors reached (%i)",
+				    XB_SILO_QUERY_ANCESTOR_LEVELS_MAX);
+			return FALSE;
+		}
+
 		if (!xb_silo_query_node_matches(self,
 						machine,
 						sn,
