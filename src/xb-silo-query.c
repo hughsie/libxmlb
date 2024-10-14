@@ -233,6 +233,13 @@ xb_silo_query_section_root(XbSilo *self,
 		if (sn->next == 0x0)
 			break;
 		sn = xb_silo_get_node(self, sn->next);
+		if (sn == NULL) {
+			g_set_error_literal(error,
+					    G_IO_ERROR,
+					    G_IO_ERROR_NOT_FOUND,
+					    "silo node not found");
+			return FALSE;
+		}
 	} while (TRUE);
 	return TRUE;
 }
