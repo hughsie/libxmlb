@@ -279,7 +279,6 @@ xb_builder_node_parse_literal_text(XbBuilderNode *self, const gchar *text, gssiz
 	tmp = g_string_sized_new((gsize)text_len_safe + 1);
 	split = g_strsplit(text, "\n", -1);
 	for (guint i = 0; split[i] != NULL; i++) {
-
 		/* if this is a blank line we end the paragraph mode
 		 * and swallow the newline. If we see exactly two
 		 * newlines in sequence then do a paragraph break */
