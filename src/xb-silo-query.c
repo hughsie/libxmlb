@@ -199,6 +199,7 @@ xb_silo_query_section_root(XbSilo *self,
 
 	/* continue matching children ".." */
 	do {
+		XbSiloNode *sn_new;
 		gboolean result = TRUE;
 		guint bindings_offset_end = 0;
 		query_data->sn = sn;
@@ -232,14 +233,17 @@ xb_silo_query_section_root(XbSilo *self,
 		}
 		if (sn->next == 0x0)
 			break;
-		sn = xb_silo_get_node(self, sn->next);
-		if (sn == NULL) {
-			g_set_error_literal(error,
-					    G_IO_ERROR,
-					    G_IO_ERROR_NOT_FOUND,
-					    "silo node not found");
+		sn_new = xb_silo_get_node(self, sn->next);
+		if (sn_new == NULL || sn_new <= sn) {
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "silo node was invalid: %p -> %p",
+				    sn,
+				    sn_new);
 			return FALSE;
 		}
+		sn = sn_new;
 	} while (TRUE);
 	return TRUE;
 }
