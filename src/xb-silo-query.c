@@ -157,15 +157,9 @@ xb_silo_query_section_root(XbSilo *self,
 					    "cannot obtain parent for root");
 			return FALSE;
 		}
-		parent = xb_silo_get_parent_node(self, sn);
-		if (parent == NULL) {
-			g_set_error(error,
-				    G_IO_ERROR,
-				    G_IO_ERROR_INVALID_ARGUMENT,
-				    "no parent set for %s",
-				    xb_silo_get_node_element(self, sn));
+		parent = xb_silo_get_parent_node(self, sn, error);
+		if (parent == NULL)
 			return FALSE;
-		}
 		if (i == helper->sections->len - 1) {
 			xb_silo_query_section_add_result(self, helper, parent);
 			return TRUE;
@@ -180,18 +174,18 @@ xb_silo_query_section_root(XbSilo *self,
 
 	/* no node means root */
 	if (sn == NULL) {
-		sn = xb_silo_get_root_node(self);
+		sn = xb_silo_get_root_node(self, error);
+		if (sn == NULL)
+			return FALSE;
+	} else {
+		g_autoptr(GError) error_local = NULL;
+		sn = xb_silo_get_child_node(self, sn, &error_local);
 		if (sn == NULL) {
-			g_set_error_literal(error,
-					    G_IO_ERROR,
-					    G_IO_ERROR_NOT_FOUND,
-					    "silo root not found");
+			if (g_error_matches(error_local, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT))
+				return TRUE;
+			g_propagate_error(error, g_steal_pointer(&error_local));
 			return FALSE;
 		}
-	} else {
-		sn = xb_silo_get_child_node(self, sn);
-		if (sn == NULL)
-			return TRUE;
 	}
 
 	/* set up level pointer */
@@ -233,8 +227,10 @@ xb_silo_query_section_root(XbSilo *self,
 		}
 		if (sn->next == 0x0)
 			break;
-		sn_new = xb_silo_get_node(self, sn->next);
-		if (sn_new == NULL || sn_new <= sn) {
+		sn_new = xb_silo_get_node(self, sn->next, error);
+		if (sn_new == NULL)
+			return FALSE;
+		if (sn_new <= sn) {
 			g_set_error(error,
 				    G_IO_ERROR,
 				    G_IO_ERROR_INVALID_DATA,
@@ -779,11 +775,16 @@ xb_silo_query_build_index(XbSilo *self, const gchar *xpath, const gchar *attr, G
 			guint8 attr_count = xb_silo_node_get_attr_count(sn);
 			for (guint8 j = 0; j < attr_count; j++) {
 				XbSiloNodeAttr *a = xb_silo_node_get_attr(sn, j);
-				xb_silo_strtab_index_insert(self, a->attr_name);
-				xb_silo_strtab_index_insert(self, a->attr_value);
+				if (!xb_silo_strtab_index_insert(self, a->attr_name, error))
+					return FALSE;
+				if (!xb_silo_strtab_index_insert(self, a->attr_value, error))
+					return FALSE;
 			}
 		} else {
-			xb_silo_strtab_index_insert(self, xb_silo_node_get_text_idx(sn));
+			if (!xb_silo_strtab_index_insert(self,
+							 xb_silo_node_get_text_idx(sn),
+							 error))
+				return FALSE;
 		}
 	}
 
