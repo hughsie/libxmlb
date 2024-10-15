@@ -226,7 +226,6 @@ xb_node_query_first(XbNode *self, const gchar *xpath, GError **error)
 const gchar *
 xb_node_query_text(XbNode *self, const gchar *xpath, GError **error)
 {
-	const gchar *tmp;
 	XbSilo *silo;
 	g_autoptr(GPtrArray) results = NULL;
 	XbSiloNode *sn;
@@ -241,12 +240,7 @@ xb_node_query_text(XbNode *self, const gchar *xpath, GError **error)
 		return NULL;
 	sn = g_ptr_array_index(results, 0);
 
-	tmp = xb_silo_get_node_text(silo, sn);
-	if (tmp == NULL) {
-		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "no text data");
-		return NULL;
-	}
-	return tmp;
+	return xb_silo_get_node_text(silo, sn, error);
 }
 
 /**
@@ -290,7 +284,7 @@ xb_node_query_attr(XbNode *self, const gchar *xpath, const gchar *name, GError *
 		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "no text data");
 		return NULL;
 	}
-	return xb_silo_from_strtab(silo, a->attr_value);
+	return xb_silo_from_strtab(silo, a->attr_value, error);
 }
 
 /**

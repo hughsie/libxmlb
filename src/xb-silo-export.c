@@ -26,6 +26,7 @@ static gboolean
 xb_silo_export_node(XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, GError **error)
 {
 	XbSiloNode *sn2;
+	const gchar *element_name;
 
 	helper->off = xb_silo_get_offset_for_node(self, sn);
 
@@ -34,28 +35,47 @@ xb_silo_export_node(XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, GE
 		for (guint i = 0; i < helper->level; i++)
 			g_string_append(helper->xml, "  ");
 	}
-	g_string_append_printf(helper->xml, "<%s", xb_silo_from_strtab(self, sn->element_name));
+	element_name = xb_silo_from_strtab(self, sn->element_name, error);
+	if (element_name == NULL)
+		return FALSE;
+	g_string_append_printf(helper->xml, "<%s", element_name);
 
 	/* add any attributes */
 	for (guint8 i = 0; i < xb_silo_node_get_attr_count(sn); i++) {
 		XbSiloNodeAttr *a = xb_silo_node_get_attr(sn, i);
-		g_autofree gchar *key =
-		    xb_string_xml_escape(xb_silo_from_strtab(self, a->attr_name));
-		g_autofree gchar *val =
-		    xb_string_xml_escape(xb_silo_from_strtab(self, a->attr_value));
-		g_string_append_printf(helper->xml, " %s=\"%s\"", key, val);
+		const gchar *name_unsafe;
+		const gchar *value_unsafe;
+		g_autofree gchar *name = NULL;
+		g_autofree gchar *value = NULL;
+
+		name_unsafe = xb_silo_from_strtab(self, a->attr_name, error);
+		if (name_unsafe == NULL)
+			return FALSE;
+		name = xb_string_xml_escape(name_unsafe);
+
+		value_unsafe = xb_silo_from_strtab(self, a->attr_value, error);
+		if (value_unsafe == NULL)
+			return FALSE;
+		value = xb_string_xml_escape(value_unsafe);
+
+		g_string_append_printf(helper->xml, " %s=\"%s\"", name, value);
 	}
 
 	/* collapse open/close tags together if no text or children */
 	if (helper->flags & XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY &&
 	    xb_silo_node_get_text_idx(sn) == XB_SILO_UNSET &&
-	    xb_silo_get_child_node(self, sn) == NULL) {
+	    xb_silo_get_child_node(self, sn, NULL) == NULL) {
 		g_string_append(helper->xml, " />");
 	} else {
 		/* finish the opening tag and add any text if it exists */
 		if (xb_silo_node_get_text_idx(sn) != XB_SILO_UNSET) {
-			g_autofree gchar *text =
-			    xb_string_xml_escape(xb_silo_get_node_text(self, sn));
+			const gchar *text_unsafe;
+			g_autofree gchar *text = NULL;
+
+			text_unsafe = xb_silo_get_node_text(self, sn, error);
+			if (text_unsafe == NULL)
+				return FALSE;
+			text = xb_string_xml_escape(text_unsafe);
 			g_string_append(helper->xml, ">");
 			g_string_append(helper->xml, text);
 		} else {
@@ -67,15 +87,9 @@ xb_silo_export_node(XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, GE
 
 		/* recurse deeper */
 		while (TRUE) {
-			XbSiloNode *child = xb_silo_get_node(self, helper->off);
-			if (child == NULL) {
-				g_set_error(error,
-					    G_IO_ERROR,
-					    G_IO_ERROR_NOT_FOUND,
-					    "silo node not found @0x%x",
-					    helper->off);
+			XbSiloNode *child = xb_silo_get_node(self, helper->off, error);
+			if (child == NULL)
 				return FALSE;
-			}
 			if (!xb_silo_node_has_flag(child, XB_SILO_NODE_FLAG_IS_ELEMENT))
 				break;
 			helper->level++;
@@ -85,15 +99,9 @@ xb_silo_export_node(XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, GE
 		}
 
 		/* check for the single byte sentinel */
-		sn2 = xb_silo_get_node(self, helper->off);
-		if (sn2 == NULL) {
-			g_set_error(error,
-				    G_IO_ERROR,
-				    G_IO_ERROR_NOT_FOUND,
-				    "silo node not found @0x%x",
-				    helper->off);
+		sn2 = xb_silo_get_node(self, helper->off, error);
+		if (sn2 == NULL)
 			return FALSE;
-		}
 		if (xb_silo_node_has_flag(sn2, XB_SILO_NODE_FLAG_IS_ELEMENT)) {
 			g_set_error(error,
 				    G_IO_ERROR,
@@ -110,14 +118,18 @@ xb_silo_export_node(XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, GE
 			for (guint i = 0; i < helper->level; i++)
 				g_string_append(helper->xml, "  ");
 		}
-		g_string_append_printf(helper->xml,
-				       "</%s>",
-				       xb_silo_from_strtab(self, sn->element_name));
+		g_string_append_printf(helper->xml, "</%s>", element_name);
 	}
 
 	/* add any optional tail */
 	if (xb_silo_node_get_tail_idx(sn) != XB_SILO_UNSET) {
-		g_autofree gchar *tail = xb_string_xml_escape(xb_silo_get_node_tail(self, sn));
+		const gchar *tail_unsafe;
+		g_autofree gchar *tail = NULL;
+
+		tail_unsafe = xb_silo_get_node_tail(self, sn, error);
+		if (tail_unsafe == NULL)
+			return FALSE;
+		tail = xb_string_xml_escape(tail_unsafe);
 		g_string_append(helper->xml, tail);
 	}
 
@@ -147,10 +159,22 @@ xb_silo_export_with_root(XbSilo *self, XbSiloNode *sroot, XbNodeExportFlags flag
 	/* optional subtree export */
 	if (sroot != NULL) {
 		sn = sroot;
-		if (sn != NULL && flags & XB_NODE_EXPORT_FLAG_ONLY_CHILDREN)
-			sn = xb_silo_get_child_node(self, sn);
+		if (sn != NULL && flags & XB_NODE_EXPORT_FLAG_ONLY_CHILDREN) {
+			g_autoptr(GError) error_local = NULL;
+			sn = xb_silo_get_child_node(self, sn, &error_local);
+			if (sn == NULL) {
+				if (!g_error_matches(error_local,
+						     G_IO_ERROR,
+						     G_IO_ERROR_INVALID_ARGUMENT)) {
+					g_propagate_error(error, g_steal_pointer(&error_local));
+					return NULL;
+				}
+			}
+		}
 	} else {
-		sn = xb_silo_get_root_node(self);
+		sn = xb_silo_get_root_node(self, error);
+		if (sn == NULL)
+			return NULL;
 	}
 
 	/* no root */
@@ -164,14 +188,21 @@ xb_silo_export_with_root(XbSilo *self, XbSiloNode *sroot, XbNodeExportFlags flag
 	if ((flags & XB_NODE_EXPORT_FLAG_ADD_HEADER) > 0)
 		g_string_append(helper.xml, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 	do {
+		g_autoptr(GError) error_local = NULL;
 		if (!xb_silo_export_node(self, &helper, sn, error)) {
 			g_string_free(helper.xml, TRUE);
 			return NULL;
 		}
 		if ((flags & XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS) == 0)
 			break;
-		sn = xb_silo_get_next_node(self, sn);
-	} while (sn != NULL);
+		sn = xb_silo_get_next_node(self, sn, &error_local);
+		if (sn == NULL) {
+			if (g_error_matches(error_local, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT))
+				break;
+			g_propagate_error(error, g_steal_pointer(&error_local));
+			return NULL;
+		}
+	} while (TRUE);
 
 	/* success */
 	return helper.xml;

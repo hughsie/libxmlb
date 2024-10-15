@@ -35,13 +35,13 @@ typedef struct {
 } XbSiloQueryData;
 
 const gchar *
-xb_silo_from_strtab(XbSilo *self, guint32 offset) G_GNUC_NON_NULL(1);
-void
-xb_silo_strtab_index_insert(XbSilo *self, guint32 offset) G_GNUC_NON_NULL(1);
+xb_silo_from_strtab(XbSilo *self, guint32 offset, GError **error) G_GNUC_NON_NULL(1);
+gboolean
+xb_silo_strtab_index_insert(XbSilo *self, guint32 offset, GError **error) G_GNUC_NON_NULL(1);
 guint32
 xb_silo_strtab_index_lookup(XbSilo *self, const gchar *str) G_GNUC_NON_NULL(1);
 XbSiloNode *
-xb_silo_get_node(XbSilo *self, guint32 off) G_GNUC_NON_NULL(1);
+xb_silo_get_node(XbSilo *self, guint32 off, GError **error) G_GNUC_NON_NULL(1);
 XbMachine *
 xb_silo_get_machine(XbSilo *self) G_GNUC_NON_NULL(1);
 guint32
@@ -51,19 +51,19 @@ xb_silo_get_strtab_idx(XbSilo *self, const gchar *element) G_GNUC_NON_NULL(1);
 guint32
 xb_silo_get_offset_for_node(XbSilo *self, XbSiloNode *n) G_GNUC_NON_NULL(1, 2);
 XbSiloNode *
-xb_silo_get_root_node(XbSilo *self) G_GNUC_NON_NULL(1);
+xb_silo_get_root_node(XbSilo *self, GError **error) G_GNUC_NON_NULL(1);
 XbSiloNode *
-xb_silo_get_parent_node(XbSilo *self, XbSiloNode *n) G_GNUC_NON_NULL(1, 2);
+xb_silo_get_parent_node(XbSilo *self, XbSiloNode *n, GError **error) G_GNUC_NON_NULL(1, 2);
 XbSiloNode *
-xb_silo_get_next_node(XbSilo *self, XbSiloNode *n) G_GNUC_NON_NULL(1, 2);
+xb_silo_get_next_node(XbSilo *self, XbSiloNode *n, GError **error) G_GNUC_NON_NULL(1, 2);
 XbSiloNode *
-xb_silo_get_child_node(XbSilo *self, XbSiloNode *n) G_GNUC_NON_NULL(1, 2);
+xb_silo_get_child_node(XbSilo *self, XbSiloNode *n, GError **error) G_GNUC_NON_NULL(1, 2);
 const gchar *
-xb_silo_get_node_element(XbSilo *self, XbSiloNode *n) G_GNUC_NON_NULL(1, 2);
+xb_silo_get_node_element(XbSilo *self, XbSiloNode *n, GError **error) G_GNUC_NON_NULL(1, 2);
 const gchar *
-xb_silo_get_node_text(XbSilo *self, XbSiloNode *n) G_GNUC_NON_NULL(1, 2);
+xb_silo_get_node_text(XbSilo *self, XbSiloNode *n, GError **error) G_GNUC_NON_NULL(1, 2);
 const gchar *
-xb_silo_get_node_tail(XbSilo *self, XbSiloNode *n) G_GNUC_NON_NULL(1, 2);
+xb_silo_get_node_tail(XbSilo *self, XbSiloNode *n, GError **error) G_GNUC_NON_NULL(1, 2);
 XbSiloNodeAttr *
 xb_silo_get_node_attr_by_str(XbSilo *self, XbSiloNode *n, const gchar *name)
     G_GNUC_NON_NULL(1, 2, 3);
