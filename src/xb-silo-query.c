@@ -633,7 +633,7 @@ xb_silo_query_with_context(XbSilo *self, XbQuery *query, XbQueryContext *context
  *
  * Please note: Only a tiny subset of XPath 1.0 is supported.
  *
- * Returns: (transfer none): a #XbNode, or %NULL if unfound
+ * Returns: (transfer full): a #XbNode, or %NULL if unfound
  *
  * Since: 0.1.13
  **/
@@ -718,7 +718,7 @@ xb_silo_query(XbSilo *self, const gchar *xpath, guint limit, GError **error)
  *
  * Please note: Only a tiny subset of XPath 1.0 is supported.
  *
- * Returns: (transfer none): a #XbNode, or %NULL if unfound
+ * Returns: (transfer full): a #XbNode, or %NULL if unfound
  *
  * Since: 0.1.0
  **/
