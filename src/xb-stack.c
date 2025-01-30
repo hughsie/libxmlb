@@ -26,7 +26,7 @@ void
 xb_stack_unref(XbStack *self)
 {
 	g_assert(self->ref > 0);
-	if (--self->ref > 0)
+	if (G_UNLIKELY(--self->ref > 0))
 		return;
 	for (guint i = 0; i < self->pos; i++)
 		xb_opcode_clear(&self->opcodes[i]);
@@ -66,7 +66,7 @@ xb_stack_ref(XbStack *self)
 gboolean
 xb_stack_pop(XbStack *self, XbOpcode *opcode_out, GError **error)
 {
-	if (self->pos == 0) {
+	if (G_UNLIKELY(self->pos == 0)) {
 		g_set_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA, "stack is empty");
 		return FALSE;
 	}
@@ -82,7 +82,7 @@ xb_stack_pop(XbStack *self, XbOpcode *opcode_out, GError **error)
 gboolean
 xb_stack_pop_two(XbStack *self, XbOpcode *opcode1_out, XbOpcode *opcode2_out, GError **error)
 {
-	if (self->pos < 2) {
+	if (G_UNLIKELY(self->pos < 2)) {
 		g_set_error_literal(error,
 				    G_IO_ERROR,
 				    G_IO_ERROR_INVALID_DATA,
@@ -111,7 +111,7 @@ xb_stack_pop_two(XbStack *self, XbOpcode *opcode1_out, XbOpcode *opcode2_out, GE
 XbOpcode *
 xb_stack_peek(XbStack *self, guint idx)
 {
-	if (idx >= self->pos)
+	if (G_UNLIKELY(idx >= self->pos))
 		return NULL;
 	return &self->opcodes[idx];
 }
@@ -163,7 +163,7 @@ xb_stack_peek_tail(XbStack *self)
 gboolean
 xb_stack_push(XbStack *self, XbOpcode **opcode_out, GError **error)
 {
-	if (self->pos >= self->max_size) {
+	if (G_UNLIKELY(self->pos >= self->max_size)) {
 		*opcode_out = NULL;
 		g_set_error(error,
 			    G_IO_ERROR,

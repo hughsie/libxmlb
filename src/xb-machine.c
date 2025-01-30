@@ -1253,7 +1253,7 @@ xb_machine_stack_push(XbMachine *self, XbStack *stack, XbOpcode **opcode_out, GE
 {
 	XbMachinePrivate *priv = GET_PRIVATE(self);
 
-	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK) {
+	if (G_UNLIKELY(priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)) {
 		g_debug("pushing generic opcode");
 	}
 
@@ -1280,13 +1280,13 @@ xb_machine_stack_push_text(XbMachine *self, XbStack *stack, const gchar *str, GE
 	XbMachinePrivate *priv = GET_PRIVATE(self);
 	XbOpcode *opcode;
 
-	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	if (G_UNLIKELY(priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK))
 		g_debug("pushing: %s", str);
 
 	if (!xb_stack_push(stack, &opcode, error))
 		return FALSE;
 	xb_opcode_text_init(opcode, str);
-	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	if (G_UNLIKELY(priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK))
 		xb_machine_debug_show_stack(self, stack);
 
 	return TRUE;
@@ -1312,7 +1312,7 @@ xb_machine_stack_push_text_static(XbMachine *self, XbStack *stack, const gchar *
 	XbOpcode *opcode;
 
 	XbMachinePrivate *priv = GET_PRIVATE(self);
-	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	if (G_UNLIKELY(priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK))
 		g_debug("pushing: %s", str);
 
 	if (!xb_stack_push(stack, &opcode, error))
@@ -1345,7 +1345,7 @@ xb_machine_stack_push_text_steal(XbMachine *self, XbStack *stack, gchar *str, GE
 	XbOpcode *opcode;
 	g_autofree gchar *str_stolen = g_steal_pointer(&str);
 
-	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	if (G_UNLIKELY(priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK))
 		g_debug("pushing: %s", str_stolen);
 
 	if (!xb_stack_push(stack, &opcode, error))
@@ -1377,7 +1377,7 @@ xb_machine_stack_push_integer(XbMachine *self, XbStack *stack, guint32 val, GErr
 	XbMachinePrivate *priv = GET_PRIVATE(self);
 	XbOpcode *opcode;
 
-	if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK)
+	if (G_UNLIKELY(priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_STACK))
 		g_debug("pushing: %u", val);
 
 	if (!xb_stack_push(stack, &opcode, error))

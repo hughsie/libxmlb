@@ -178,7 +178,7 @@ const gchar *
 xb_silo_from_strtab(XbSilo *self, guint32 offset, GError **error)
 {
 	XbSiloPrivate *priv = GET_PRIVATE(self);
-	if (offset == XB_SILO_UNSET) {
+	if (G_UNLIKELY(offset == XB_SILO_UNSET)) {
 		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "offset was unset");
 		return NULL;
 	}
@@ -258,11 +258,11 @@ XbSiloNode *
 xb_silo_get_root_node(XbSilo *self, GError **error)
 {
 	XbSiloPrivate *priv = GET_PRIVATE(self);
-	if (priv->blob == NULL) {
+	if (G_UNLIKELY(priv->blob == NULL)) {
 		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA, "no blob loaded");
 		return NULL;
 	}
-	if (g_bytes_get_size(priv->blob) < sizeof(XbSiloHeader)) {
+	if (G_UNLIKELY(g_bytes_get_size(priv->blob) < sizeof(XbSiloHeader))) {
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_INVALID_DATA,
@@ -270,7 +270,7 @@ xb_silo_get_root_node(XbSilo *self, GError **error)
 			    (guint)g_bytes_get_size(priv->blob));
 		return NULL;
 	}
-	if (g_bytes_get_size(priv->blob) == sizeof(XbSiloHeader)) {
+	if (G_UNLIKELY(g_bytes_get_size(priv->blob) == sizeof(XbSiloHeader))) {
 		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "no node data");
 		return NULL;
 	}
@@ -281,7 +281,7 @@ xb_silo_get_root_node(XbSilo *self, GError **error)
 XbSiloNode *
 xb_silo_get_parent_node(XbSilo *self, XbSiloNode *n, GError **error)
 {
-	if (n->parent == 0x0) {
+	if (G_UNLIKELY(n->parent == 0x0)) {
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_INVALID_ARGUMENT,
