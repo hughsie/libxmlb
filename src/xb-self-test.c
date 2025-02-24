@@ -2345,7 +2345,7 @@ xb_builder_node_func(void)
 	xb_builder_node_add_child(component, description);
 
 	/* no text contents */
-	empty = xb_builder_node_new("empty");
+	empty = xb_builder_node_insert(component, "empty", NULL);
 	xb_builder_node_set_text(empty, NULL, -1);
 	xb_builder_node_set_tail(empty, NULL, -1);
 
@@ -2358,7 +2358,10 @@ xb_builder_node_func(void)
 	g_assert_cmpstr(xb_builder_node_get_element(child_by_text), ==, "id");
 
 	/* check the source XML */
-	xml_src = xb_builder_node_export(components, XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE, &error);
+	xml_src = xb_builder_node_export(components,
+					 XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE |
+					     XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY,
+					 &error);
 	g_assert_no_error(error);
 	g_assert_nonnull(xml_src);
 	g_print("%s", xml_src);
@@ -2368,6 +2371,7 @@ xb_builder_node_func(void)
 			"<icon type=\"stock\">dave</icon>\n"
 			"<description>hello <em>world!</em>    \n"
 			"</description>\n"
+			"<empty />\n"
 			"</component>\n"
 			"</components>\n",
 			==,
@@ -2379,7 +2383,10 @@ xb_builder_node_func(void)
 	g_assert_nonnull(silo);
 
 	/* check the XML */
-	xml = xb_silo_export(silo, XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS, &error);
+	xml = xb_silo_export(silo,
+			     XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS |
+				 XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY,
+			     &error);
 	g_assert_no_error(error);
 	g_assert_nonnull(xml);
 	g_print("%s", xml);
@@ -2389,6 +2396,7 @@ xb_builder_node_func(void)
 			"<icon type=\"stock\">dave</icon>"
 			"<description>hello <em>world!</em>"
 			"</description>"
+			"<empty />"
 			"</component>"
 			"</components>",
 			==,
