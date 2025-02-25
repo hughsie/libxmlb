@@ -32,8 +32,6 @@ typedef struct {
 G_DEFINE_TYPE_WITH_PRIVATE(XbBuilder, xb_builder, G_TYPE_OBJECT)
 #define GET_PRIVATE(o) (xb_builder_get_instance_private(o))
 
-#define XB_SILO_APPENDBUF(str, data, sz) g_string_append_len(str, (const gchar *)data, sz);
-
 typedef struct {
 	XbSilo *silo;
 	XbBuilderNode *root;	/* transfer full */
@@ -41,7 +39,7 @@ typedef struct {
 	XbBuilderCompileFlags compile_flags;
 	XbBuilderSourceFlags source_flags;
 	GHashTable *strtab_hash;
-	GString *strtab;
+	GByteArray *strtab;
 	GPtrArray *locales;
 } XbBuilderCompileHelper;
 
@@ -57,7 +55,7 @@ xb_builder_compile_add_to_strtab(XbBuilderCompileHelper *helper, const gchar *st
 
 	/* new */
 	idx = helper->strtab->len;
-	XB_SILO_APPENDBUF(helper->strtab, str, strlen(str) + 1);
+	g_byte_array_append(helper->strtab, (const guint8 *)str, strlen(str) + 1);
 	g_hash_table_insert(helper->strtab_hash, g_strdup(str), GUINT_TO_POINTER(idx));
 	return idx;
 }
@@ -465,7 +463,7 @@ xb_builder_nodetab_size_cb(XbBuilderNode *bn, gpointer user_data)
 }
 
 typedef struct {
-	GString *buf;
+	GByteArray *buf;
 } XbBuilderNodetabHelper;
 
 static void
@@ -476,7 +474,7 @@ xb_builder_nodetab_write_sentinel(XbBuilderNodetabHelper *helper)
 	    .attr_count = 0,
 	};
 	//	g_debug ("SENT @%u", (guint) helper->buf->len);
-	XB_SILO_APPENDBUF(helper->buf, &sn, xb_silo_node_get_size(&sn));
+	g_byte_array_append(helper->buf, (const guint8 *)&sn, xb_silo_node_get_size(&sn));
 }
 
 static void
@@ -519,7 +517,7 @@ xb_builder_nodetab_write_node(XbBuilderNodetabHelper *helper, XbBuilderNode *bn)
 		sn.token_count = MIN(token_idxs->len, XB_OPCODE_TOKEN_MAX);
 
 	/* add to the buf */
-	XB_SILO_APPENDBUF(helper->buf, &sn, sizeof(XbSiloNode));
+	g_byte_array_append(helper->buf, (const guint8 *)&sn, sizeof(sn));
 
 	/* add to the buf */
 	for (guint i = 0; attrs != NULL && i < attrs->len; i++) {
@@ -528,13 +526,13 @@ xb_builder_nodetab_write_node(XbBuilderNodetabHelper *helper, XbBuilderNode *bn)
 		    .attr_name = ba->name_idx,
 		    .attr_value = ba->value_idx,
 		};
-		XB_SILO_APPENDBUF(helper->buf, &attr, sizeof(attr));
+		g_byte_array_append(helper->buf, (const guint8 *)&attr, sizeof(attr));
 	}
 
 	/* add tokens */
 	for (guint i = 0; i < sn.token_count; i++) {
 		guint32 idx = g_array_index(token_idxs, guint32, i);
-		XB_SILO_APPENDBUF(helper->buf, &idx, sizeof(idx));
+		g_byte_array_append(helper->buf, (const guint8 *)&idx, sizeof(idx));
 	}
 }
 
@@ -564,9 +562,9 @@ xb_builder_nodetab_write(XbBuilderNodetabHelper *helper, XbBuilderNode *bn)
 }
 
 static XbSiloNode *
-xb_builder_get_node(GString *str, guint32 off)
+xb_builder_get_node(GByteArray *str, guint32 off)
 {
-	return (XbSiloNode *)(str->str + off);
+	return (XbSiloNode *)(str->data + off);
 }
 
 static gboolean
@@ -616,7 +614,7 @@ static void
 xb_builder_compile_helper_free(XbBuilderCompileHelper *helper)
 {
 	g_hash_table_unref(helper->strtab_hash);
-	g_string_free(helper->strtab, TRUE);
+	g_byte_array_unref(helper->strtab);
 	g_clear_object(&helper->silo);
 	g_object_unref(helper->root);
 	g_free(helper);
@@ -750,8 +748,8 @@ xb_builder_compile(XbBuilder *self,
 {
 	XbBuilderPrivate *priv = GET_PRIVATE(self);
 	guint32 nodetabsz = sizeof(XbSiloHeader);
+	g_autoptr(GByteArray) buf = NULL;
 	g_autoptr(GBytes) blob = NULL;
-	g_autoptr(GString) buf = NULL;
 	XbSiloHeader hdr = {
 	    .magic = XB_SILO_MAGIC_BYTES,
 	    .version = XB_SILO_VERSION,
@@ -791,7 +789,7 @@ xb_builder_compile(XbBuilder *self,
 	helper->root = xb_builder_node_new(NULL);
 	helper->silo = xb_silo_new();
 	helper->locales = priv->locales;
-	helper->strtab = g_string_new(NULL);
+	helper->strtab = g_byte_array_new();
 	helper->strtab_hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
 
 	/* for profiling */
@@ -872,7 +870,7 @@ xb_builder_compile(XbBuilder *self,
 				 -1,
 				 xb_builder_nodetab_size_cb,
 				 &nodetabsz);
-	buf = g_string_sized_new(nodetabsz);
+	buf = g_byte_array_sized_new(nodetabsz);
 	xb_silo_add_profile(helper->silo, timer, "get size nodetab");
 
 	/* add everything to the strtab */
@@ -922,7 +920,7 @@ xb_builder_compile(XbBuilder *self,
 					 priv->guid->len);
 		memcpy(&hdr.guid, &guid_tmp, sizeof(guid_tmp));
 	}
-	XB_SILO_APPENDBUF(buf, &hdr, sizeof(XbSiloHeader));
+	g_byte_array_append(buf, (const guint8 *)&hdr, sizeof(hdr));
 
 	/* write nodes to the nodetab */
 	nodetab_helper.buf = buf;
@@ -939,11 +937,11 @@ xb_builder_compile(XbBuilder *self,
 	xb_silo_add_profile(helper->silo, timer, "fixing ->parent and ->next");
 
 	/* append the string table */
-	XB_SILO_APPENDBUF(buf, helper->strtab->str, helper->strtab->len);
+	g_byte_array_append(buf, (const guint8 *)helper->strtab->data, helper->strtab->len);
 	xb_silo_add_profile(helper->silo, timer, "appending strtab");
 
 	/* create data */
-	blob = g_bytes_new(buf->str, buf->len);
+	blob = g_bytes_new(buf->data, buf->len);
 	if (!xb_silo_load_from_bytes(helper->silo, blob, XB_SILO_LOAD_FLAG_NONE, error))
 		return NULL;
 
