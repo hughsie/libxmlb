@@ -750,6 +750,7 @@ xb_builder_compile(XbBuilder *self,
 	guint32 nodetabsz = sizeof(XbSiloHeader);
 	g_autoptr(GByteArray) buf = NULL;
 	g_autoptr(GBytes) blob = NULL;
+	XbSiloHeader *hdrptr;
 	XbSiloHeader hdr = {
 	    .magic = XB_SILO_MAGIC_BYTES,
 	    .version = XB_SILO_VERSION,
@@ -757,6 +758,7 @@ xb_builder_compile(XbBuilder *self,
 	    .strtab_ntags = 0,
 	    .padding = {0x0},
 	    .guid = {0x0},
+	    .filesz = 0x0,
 	};
 	XbBuilderNodetabHelper nodetab_helper = {
 	    .buf = NULL,
@@ -939,6 +941,10 @@ xb_builder_compile(XbBuilder *self,
 	/* append the string table */
 	g_byte_array_append(buf, (const guint8 *)helper->strtab->data, helper->strtab->len);
 	xb_silo_add_profile(helper->silo, timer, "appending strtab");
+
+	/* update the file size */
+	hdrptr = (XbSiloHeader *)buf->data;
+	hdrptr->filesz = buf->len;
 
 	/* create data */
 	blob = g_bytes_new(buf->data, buf->len);

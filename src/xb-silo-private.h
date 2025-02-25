@@ -23,10 +23,11 @@ typedef struct __attribute__((packed)) {
 	guint16 strtab_ntags;
 	guint8 padding[2];
 	guint32 strtab;
+	guint64 filesz;
 } XbSiloHeader;
 
 #define XB_SILO_MAGIC_BYTES 0x624c4d58
-#define XB_SILO_VERSION	    0x00000008
+#define XB_SILO_VERSION	    0x00000009
 
 typedef struct {
 	/*< private >*/
