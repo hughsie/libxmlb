@@ -408,7 +408,7 @@ xb_builder_func(void)
 
 	/* check size */
 	bytes = xb_silo_get_bytes(silo);
-	g_assert_cmpint(g_bytes_get_size(bytes), ==, 620);
+	g_assert_cmpint(g_bytes_get_size(bytes), ==, 628);
 }
 
 static void
@@ -1079,7 +1079,7 @@ xb_builder_empty_func(void)
 
 	/* check size */
 	bytes = xb_silo_get_bytes(silo);
-	g_assert_cmpint(g_bytes_get_size(bytes), ==, 32);
+	g_assert_cmpint(g_bytes_get_size(bytes), ==, 40);
 
 	/* try to dump */
 	str = xb_silo_to_string(silo, &error);

@@ -395,6 +395,7 @@ xb_silo_to_string(XbSilo *self, GError **error)
 
 	g_string_append_printf(str, "magic:        %08x\n", (guint)hdr->magic);
 	g_string_append_printf(str, "guid:         %s\n", priv->guid);
+	g_string_append_printf(str, "filesz:       @%" G_GUINT64_FORMAT "\n", hdr->filesz);
 	g_string_append_printf(str, "strtab:       @%" G_GUINT32_FORMAT "\n", hdr->strtab);
 	g_string_append_printf(str, "strtab_ntags: %" G_GUINT16_FORMAT "\n", hdr->strtab_ntags);
 	while (off < priv->strtab) {
@@ -817,6 +818,12 @@ xb_silo_load_from_bytes(XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErro
 				    XB_SILO_VERSION);
 			return FALSE;
 		}
+	}
+
+	/* check size */
+	if (hdr->filesz != sz) {
+		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA, "filesz incorrect");
+		return FALSE;
 	}
 
 	/* get GUID */
