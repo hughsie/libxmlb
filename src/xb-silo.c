@@ -829,6 +829,13 @@ xb_silo_load_from_bytes(XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErro
 		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA, "strtab incorrect");
 		return FALSE;
 	}
+	if (hdr->strtab_ntags > 0 && priv->data[sz - 1] != '\0') {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "strtab invalid, trailing NUL not found");
+		return FALSE;
+	}
 
 	/* load strtab_tags */
 	for (guint16 i = 0; i < hdr->strtab_ntags; i++) {
