@@ -1197,6 +1197,28 @@ xb_node_export_func(void)
 }
 
 static void
+xb_node_export_collapse_func(void)
+{
+	const gchar *xml = "<components><aaa /><bbb /></components>";
+	g_autofree gchar *xml_collapsed = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbNode) n = NULL;
+	g_autoptr(XbSilo) silo = NULL;
+
+	/* import from XML */
+	silo = xb_silo_new_from_xml(xml, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	/* export collapsed */
+	n = xb_silo_get_root(silo);
+	g_assert_nonnull(n);
+	xml_collapsed = xb_node_export(n, XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY, &error);
+	g_assert_no_error(error);
+	g_assert_cmpstr(xml_collapsed, ==, xml);
+}
+
+static void
 xb_xpath_parent_subnode_func(void)
 {
 	g_autofree gchar *xml2 = NULL;
@@ -2912,6 +2934,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/stack{peek}", xb_stack_peek_func);
 	g_test_add_func("/libxmlb/node{data}", xb_node_data_func);
 	g_test_add_func("/libxmlb/node{export}", xb_node_export_func);
+	g_test_add_func("/libxmlb/node{export-collapse}", xb_node_export_collapse_func);
 	g_test_add_func("/libxmlb/builder", xb_builder_func);
 	g_test_add_func("/libxmlb/builder{comments}", xb_builder_comments_func);
 	g_test_add_func("/libxmlb/builder{native-lang}", xb_builder_native_lang_func);

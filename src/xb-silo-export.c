@@ -66,7 +66,13 @@ xb_silo_export_node(XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, GE
 	    xb_silo_node_get_text_idx(sn) == XB_SILO_UNSET &&
 	    xb_silo_get_child_node(self, sn, NULL) == NULL) {
 		g_string_append(helper->xml, " />");
+
+		/* offset by opening tag and single byte sentinel */
 		helper->off += xb_silo_node_get_size(sn);
+		sn2 = xb_silo_get_node(self, helper->off, error);
+		if (sn2 == NULL)
+			return FALSE;
+		helper->off += xb_silo_node_get_size(sn2);
 	} else {
 		/* finish the opening tag and add any text if it exists */
 		if (xb_silo_node_get_text_idx(sn) != XB_SILO_UNSET) {
