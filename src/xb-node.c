@@ -430,7 +430,9 @@ xb_node_get_text(XbNode *self)
 	g_return_val_if_fail(XB_IS_NODE(self), NULL);
 	if (priv->sn == NULL)
 		return NULL;
-	return xb_silo_get_node_text(priv->silo, priv->sn, NULL);
+	if (xb_silo_node_get_text_idx(priv->sn) == XB_SILO_UNSET)
+		return NULL;
+	return xb_silo_from_strtab(priv->silo, xb_silo_node_get_text_idx(priv->sn), NULL);
 }
 
 /**
@@ -446,14 +448,9 @@ xb_node_get_text(XbNode *self)
 guint64
 xb_node_get_text_as_uint(XbNode *self)
 {
-	XbNodePrivate *priv = GET_PRIVATE(self);
 	const gchar *tmp;
-
 	g_return_val_if_fail(XB_IS_NODE(self), G_MAXUINT64);
-
-	if (priv->sn == NULL)
-		return G_MAXUINT64;
-	tmp = xb_silo_get_node_text(priv->silo, priv->sn, NULL);
+	tmp = xb_node_get_text(self);
 	if (tmp == NULL)
 		return G_MAXUINT64;
 	if (g_str_has_prefix(tmp, "0x"))
@@ -478,7 +475,9 @@ xb_node_get_tail(XbNode *self)
 	g_return_val_if_fail(XB_IS_NODE(self), NULL);
 	if (priv->sn == NULL)
 		return NULL;
-	return xb_silo_get_node_tail(priv->silo, priv->sn, NULL);
+	if (xb_silo_node_get_tail_idx(priv->sn) == XB_SILO_UNSET)
+		return NULL;
+	return xb_silo_from_strtab(priv->silo, xb_silo_node_get_tail_idx(priv->sn), NULL);
 }
 
 /**

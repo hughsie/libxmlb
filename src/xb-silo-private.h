@@ -61,10 +61,6 @@ XbSiloNode *
 xb_silo_get_child_node(XbSilo *self, XbSiloNode *n, GError **error) G_GNUC_NON_NULL(1, 2);
 const gchar *
 xb_silo_get_node_element(XbSilo *self, XbSiloNode *n, GError **error) G_GNUC_NON_NULL(1, 2);
-const gchar *
-xb_silo_get_node_text(XbSilo *self, XbSiloNode *n, GError **error) G_GNUC_NON_NULL(1, 2);
-const gchar *
-xb_silo_get_node_tail(XbSilo *self, XbSiloNode *n, GError **error) G_GNUC_NON_NULL(1, 2);
 XbSiloNodeAttr *
 xb_silo_get_node_attr_by_str(XbSilo *self, XbSiloNode *n, const gchar *name)
     G_GNUC_NON_NULL(1, 2, 3);

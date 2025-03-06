@@ -79,7 +79,8 @@ xb_silo_export_node(XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, GE
 			const gchar *text_unsafe;
 			g_autofree gchar *text = NULL;
 
-			text_unsafe = xb_silo_get_node_text(self, sn, error);
+			text_unsafe =
+			    xb_silo_from_strtab(self, xb_silo_node_get_text_idx(sn), error);
 			if (text_unsafe == NULL)
 				return FALSE;
 			text = xb_string_xml_escape(text_unsafe);
@@ -133,7 +134,7 @@ xb_silo_export_node(XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, GE
 		const gchar *tail_unsafe;
 		g_autofree gchar *tail = NULL;
 
-		tail_unsafe = xb_silo_get_node_tail(self, sn, error);
+		tail_unsafe = xb_silo_from_strtab(self, xb_silo_node_get_tail_idx(sn), error);
 		if (tail_unsafe == NULL)
 			return FALSE;
 		tail = xb_string_xml_escape(tail_unsafe);

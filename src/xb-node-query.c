@@ -239,8 +239,11 @@ xb_node_query_text(XbNode *self, const gchar *xpath, GError **error)
 	if (results == NULL)
 		return NULL;
 	sn = g_ptr_array_index(results, 0);
-
-	return xb_silo_get_node_text(silo, sn, error);
+	if (xb_silo_node_get_text_idx(sn) == XB_SILO_UNSET) {
+		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "no text data");
+		return NULL;
+	}
+	return xb_silo_from_strtab(silo, xb_silo_node_get_text_idx(sn), error);
 }
 
 /**

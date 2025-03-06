@@ -491,26 +491,6 @@ xb_silo_to_string(XbSilo *self, GError **error)
 
 /* private */
 const gchar *
-xb_silo_get_node_text(XbSilo *self, XbSiloNode *n, GError **error)
-{
-	guint32 idx = xb_silo_node_get_text_idx(n);
-	if (idx == XB_SILO_UNSET)
-		return "";
-	return xb_silo_from_strtab(self, idx, error);
-}
-
-/* private */
-const gchar *
-xb_silo_get_node_tail(XbSilo *self, XbSiloNode *n, GError **error)
-{
-	guint idx = xb_silo_node_get_tail_idx(n);
-	if (idx == XB_SILO_UNSET)
-		return "";
-	return xb_silo_from_strtab(self, idx, error);
-}
-
-/* private */
-const gchar *
 xb_silo_get_node_element(XbSilo *self, XbSiloNode *n, GError **error)
 {
 	return xb_silo_from_strtab(self, n->element_name, error);
@@ -1454,9 +1434,13 @@ xb_silo_machine_func_text_cb(XbMachine *self,
 		return FALSE;
 	}
 
-	text = xb_silo_get_node_text(silo, query_data->sn, error);
-	if (text == NULL)
-		return FALSE;
+	if (xb_silo_node_get_text_idx(query_data->sn) != XB_SILO_UNSET) {
+		text = xb_silo_from_strtab(silo, xb_silo_node_get_text_idx(query_data->sn), error);
+		if (text == NULL)
+			return FALSE;
+	} else {
+		text = "";
+	}
 	if (!xb_machine_stack_push(self, stack, &op, error))
 		return FALSE;
 	xb_opcode_init(op,
@@ -1504,9 +1488,13 @@ xb_silo_machine_func_tail_cb(XbMachine *self,
 		return FALSE;
 	}
 
-	tail = xb_silo_get_node_tail(silo, query_data->sn, error);
-	if (tail == NULL)
-		return FALSE;
+	if (xb_silo_node_get_tail_idx(query_data->sn) != XB_SILO_UNSET) {
+		tail = xb_silo_from_strtab(silo, xb_silo_node_get_tail_idx(query_data->sn), error);
+		if (tail == NULL)
+			return FALSE;
+	} else {
+		tail = "";
+	}
 	if (!xb_machine_stack_push(self, stack, &op, error))
 		return FALSE;
 	xb_opcode_init(op,
