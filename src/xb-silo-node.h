@@ -19,12 +19,12 @@ typedef enum {
 typedef struct __attribute__((packed)) {
 	guint8 flags : 2;
 	guint8 attr_count : 6;
-	guint8 token_count;   /* ONLY when is_node */
-	guint32 element_name; /* ONLY when is_node: from strtab */
-	guint32 parent;	      /* ONLY when is_node: from 0 */
-	guint32 next;	      /* ONLY when is_node: from 0 */
-	guint32 text;	      /* ONLY when is_node: from strtab */
-	guint32 tail;	      /* ONLY when is_node: from strtab */
+	guint8 token_count;   /* ONLY when is_element */
+	guint32 element_name; /* ONLY when is_element: from strtab */
+	guint32 parent;	      /* ONLY when is_element: from 0 */
+	guint32 next;	      /* ONLY when is_element: from 0 */
+	guint32 text;	      /* ONLY when is_element: from strtab */
+	guint32 tail;	      /* ONLY when is_element: from strtab */
 			      /*
 			      guint32		attrs[attr_count];
 			      guint32		tokens[token_count];
