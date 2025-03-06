@@ -495,7 +495,7 @@ xb_silo_get_node_text(XbSilo *self, XbSiloNode *n, GError **error)
 {
 	guint32 idx = xb_silo_node_get_text_idx(n);
 	if (idx == XB_SILO_UNSET)
-		return NULL;
+		return "";
 	return xb_silo_from_strtab(self, idx, error);
 }
 
@@ -505,7 +505,7 @@ xb_silo_get_node_tail(XbSilo *self, XbSiloNode *n, GError **error)
 {
 	guint idx = xb_silo_node_get_tail_idx(n);
 	if (idx == XB_SILO_UNSET)
-		return NULL;
+		return "";
 	return xb_silo_from_strtab(self, idx, error);
 }
 
