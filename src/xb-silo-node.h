@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <glib-object.h>
+#include "xb-compile.h"
 
 #define XB_SILO_UNSET 0xffffffff
 
@@ -35,6 +35,9 @@ typedef struct __attribute__((packed)) {
 	guint32 attr_name;  /* from strtab */
 	guint32 attr_value; /* from strtab */
 } XbSiloNodeAttr;
+
+gchar *
+xb_silo_node_to_string(const XbSiloNode *self) G_GNUC_NON_NULL(1);
 
 /* private */
 static inline gboolean
