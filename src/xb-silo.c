@@ -1454,10 +1454,10 @@ xb_silo_machine_func_text_cb(XbMachine *self,
 		return FALSE;
 	}
 
-	if (!xb_machine_stack_push(self, stack, &op, error))
-		return FALSE;
 	text = xb_silo_get_node_text(silo, query_data->sn, error);
 	if (text == NULL)
+		return FALSE;
+	if (!xb_machine_stack_push(self, stack, &op, error))
 		return FALSE;
 	xb_opcode_init(op,
 		       XB_OPCODE_KIND_INDEXED_TEXT,
@@ -1504,10 +1504,10 @@ xb_silo_machine_func_tail_cb(XbMachine *self,
 		return FALSE;
 	}
 
-	if (!xb_machine_stack_push(self, stack, &op, error))
-		return FALSE;
 	tail = xb_silo_get_node_tail(silo, query_data->sn, error);
 	if (tail == NULL)
+		return FALSE;
+	if (!xb_machine_stack_push(self, stack, &op, error))
 		return FALSE;
 	xb_opcode_init(op,
 		       XB_OPCODE_KIND_INDEXED_TEXT,
