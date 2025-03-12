@@ -1,3 +1,16 @@
+Version 0.3.22
+~~~~~~~~~~~~~~
+Released: 2025-03-12
+
+New Features:
+ - Add support for COLLAPSE_EMPTY when exporting an XbBuilderNode (Richard Hughes)
+ - Store the expected file size in the header to detect truncation (Richard Hughes)
+
+Bugfixes:
+ - Check the strtab has a trailing NUL byte (Richard Hughes)
+ - Fix an issue when exporting a silo using COLLAPSE_EMPTY (Richard Hughes)
+ - Fix calling text() on an empty element (Richard Hughes)
+
 Version 0.3.21
 ~~~~~~~~~~~~~~
 Released: 2024-10-15
