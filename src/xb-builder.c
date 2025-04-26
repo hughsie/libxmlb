@@ -947,7 +947,7 @@ xb_builder_compile(XbBuilder *self,
 	hdrptr->filesz = buf->len;
 
 	/* create data */
-	blob = g_bytes_new(buf->data, buf->len);
+	blob = g_byte_array_free_to_bytes(g_steal_pointer(&buf));
 	if (!xb_silo_load_from_bytes(helper->silo, blob, XB_SILO_LOAD_FLAG_NONE, error))
 		return NULL;
 
