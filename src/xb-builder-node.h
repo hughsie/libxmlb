@@ -9,23 +9,6 @@
 #include "xb-compile.h"
 #include "xb-node.h"
 
-G_BEGIN_DECLS
-
-#define XB_TYPE_BUILDER_NODE (xb_builder_node_get_type())
-G_DECLARE_DERIVABLE_TYPE(XbBuilderNode, xb_builder_node, XB, BUILDER_NODE, GObject)
-
-struct _XbBuilderNodeClass {
-	GObjectClass parent_class;
-	/*< private >*/
-	void (*_xb_reserved1)(void);
-	void (*_xb_reserved2)(void);
-	void (*_xb_reserved3)(void);
-	void (*_xb_reserved4)(void);
-	void (*_xb_reserved5)(void);
-	void (*_xb_reserved6)(void);
-	void (*_xb_reserved7)(void);
-};
-
 /**
  * XbBuilderNodeFlags:
  * @XB_BUILDER_NODE_FLAG_NONE:			No extra flags to use
@@ -50,6 +33,14 @@ typedef enum {
 	/*< private >*/
 	XB_BUILDER_NODE_FLAG_LAST
 } XbBuilderNodeFlags;
+
+/* XbBuilderNodes are deliberately not part of the GObject system. They are plain C structs
+ * this is because there are potentially tens of thousands of them and the overhead of GObject
+ * per-object RAM overhead and memory management becomes significant at that scale.
+ * Builder node objects are owned by a memory arena - see xb_arena.h
+ * In versions 0.3.22 and earler these were GObjects, and profiling showed this was the main
+ * bottleneck to parser performance. */
+typedef struct XbBuilderNode XbBuilderNode;
 
 typedef gboolean (*XbBuilderNodeTraverseFunc)(XbBuilderNode *bn, gpointer user_data);
 typedef gint (*XbBuilderNodeSortFunc)(XbBuilderNode *bn1, XbBuilderNode *bn2, gpointer user_data);
@@ -131,5 +122,3 @@ GPtrArray *
 xb_builder_node_get_tokens(XbBuilderNode *self) G_GNUC_NON_NULL(1);
 void
 xb_builder_node_add_token(XbBuilderNode *self, const gchar *token) G_GNUC_NON_NULL(1, 2);
-
-G_END_DECLS

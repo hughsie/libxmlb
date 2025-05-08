@@ -80,7 +80,7 @@ xb_builder_compile_start_element_cb(GMarkupParseContext *context,
 				    GError **error)
 {
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *)user_data;
-	g_autoptr(XbBuilderNode) bn = xb_builder_node_new(element_name);
+	XbBuilderNode *bn = xb_builder_node_new(element_name);
 
 	/* parent node is being ignored */
 	if (helper->current != NULL &&
@@ -128,7 +128,7 @@ xb_builder_compile_end_element_cb(GMarkupParseContext *context,
 				  GError **error)
 {
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *)user_data;
-	g_autoptr(XbBuilderNode) parent = xb_builder_node_get_parent(helper->current);
+	XbBuilderNode *parent = xb_builder_node_get_parent(helper->current);
 	if (parent == NULL) {
 		g_set_error_literal(error,
 				    G_IO_ERROR,
@@ -215,7 +215,7 @@ xb_builder_compile_source(XbBuilderCompileHelper *helper,
 	g_autoptr(GInputStream) istream = NULL;
 	g_autoptr(GMarkupParseContext) ctx = NULL;
 	g_autoptr(GTimer) timer = xb_silo_start_profile(helper->silo);
-	g_autoptr(XbBuilderNode) root_tmp = xb_builder_node_new(NULL);
+	XbBuilderNode *root_tmp = xb_builder_node_new(NULL);
 	const GMarkupParser parser = {xb_builder_compile_start_element_cb,
 				      xb_builder_compile_end_element_cb,
 				      xb_builder_compile_text_cb,
@@ -284,10 +284,10 @@ xb_builder_compile_source(XbBuilderCompileHelper *helper,
 
 	/* add the children to the main document */
 	children = xb_builder_node_get_children(root_tmp);
-	children_copy = g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
+	children_copy = g_ptr_array_new_with_free_func(NULL);
 	for (guint i = 0; i < children->len; i++) {
 		XbBuilderNode *bn = g_ptr_array_index(children, i);
-		g_ptr_array_add(children_copy, g_object_ref(bn));
+		g_ptr_array_add(children_copy, bn);
 	}
 	for (guint i = 0; i < children_copy->len; i++) {
 		XbBuilderNode *bn = g_ptr_array_index(children_copy, i);
@@ -405,7 +405,7 @@ xb_builder_xml_lang_prio_cb(XbBuilderNode *bn, gpointer user_data)
 	gint prio_best = 0;
 	g_autoptr(GPtrArray) nodes = g_ptr_array_new();
 	GPtrArray *siblings;
-	g_autoptr(XbBuilderNode) parent = xb_builder_node_get_parent(bn);
+	XbBuilderNode *parent = xb_builder_node_get_parent(bn);
 
 	/* root node */
 	if (xb_builder_node_get_element(bn) == NULL)
@@ -439,7 +439,7 @@ xb_builder_xml_lang_prio_cb(XbBuilderNode *bn, gpointer user_data)
 	for (guint i = 0; i < nodes->len; i++) {
 		XbBuilderNode *bn2 = g_ptr_array_index(nodes, i);
 		if (xb_builder_node_get_priority(bn2) < prio_best)
-			g_ptr_array_add(nodes_to_destroy, g_object_ref(bn2));
+			g_ptr_array_add(nodes_to_destroy, bn2);
 
 		/* never visit this node again */
 		xb_builder_node_set_priority(bn2, -2);
@@ -574,7 +574,7 @@ xb_builder_nodetab_fix_cb(XbBuilderNode *bn, gpointer user_data)
 	XbBuilderNodetabHelper *helper = (XbBuilderNodetabHelper *)user_data;
 	XbSiloNode *sn;
 	gboolean found = FALSE;
-	g_autoptr(XbBuilderNode) parent = xb_builder_node_get_parent(bn);
+	XbBuilderNode *parent = xb_builder_node_get_parent(bn);
 
 	/* root node */
 	if (xb_builder_node_get_element(bn) == NULL)
@@ -616,7 +616,7 @@ xb_builder_compile_helper_free(XbBuilderCompileHelper *helper)
 	g_hash_table_unref(helper->strtab_hash);
 	g_byte_array_unref(helper->strtab);
 	g_clear_object(&helper->silo);
-	g_object_unref(helper->root);
+	g_free(helper->root);
 	g_free(helper);
 }
 
@@ -657,8 +657,7 @@ xb_builder_import_node(XbBuilder *self, XbBuilderNode *bn)
 {
 	XbBuilderPrivate *priv = GET_PRIVATE(self);
 	g_return_if_fail(XB_IS_BUILDER(self));
-	g_return_if_fail(XB_IS_BUILDER_NODE(bn));
-	g_ptr_array_add(priv->nodes, g_object_ref(bn));
+	g_ptr_array_add(priv->nodes, bn);
 }
 
 /**
@@ -763,8 +762,7 @@ xb_builder_compile(XbBuilder *self,
 	XbBuilderNodetabHelper nodetab_helper = {
 	    .buf = NULL,
 	};
-	g_autoptr(GPtrArray) nodes_to_destroy =
-	    g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
+	g_autoptr(GPtrArray) nodes_to_destroy = g_ptr_array_new_with_free_func(NULL);
 	g_autoptr(GTimer) timer = NULL;
 	g_autoptr(XbBuilderCompileHelper) helper = NULL;
 
@@ -803,7 +801,7 @@ xb_builder_compile(XbBuilder *self,
 		XbBuilderSource *source = g_ptr_array_index(priv->sources, i);
 		const gchar *prefix = xb_builder_source_get_prefix(source);
 		g_autofree gchar *source_guid = xb_builder_source_get_guid(source);
-		g_autoptr(XbBuilderNode) root = NULL;
+		XbBuilderNode *root = NULL;
 		g_autoptr(GError) error_local = NULL;
 
 		/* find, or create the prefix */
@@ -813,7 +811,7 @@ xb_builder_compile(XbBuilder *self,
 				root = xb_builder_node_insert(helper->root, prefix, NULL);
 		} else {
 			/* don't allow damaged XML files to ruin all the next ones */
-			root = g_object_ref(helper->root);
+			root = helper->root;
 		}
 
 		/* watch the source */
@@ -1143,7 +1141,7 @@ xb_builder_init(XbBuilder *self)
 {
 	XbBuilderPrivate *priv = GET_PRIVATE(self);
 	priv->sources = g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
-	priv->nodes = g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
+	priv->nodes = g_ptr_array_new_with_free_func(NULL);
 	priv->fixups = g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
 	priv->locales = g_ptr_array_new_with_free_func(g_free);
 	priv->guid = g_string_new(xb_version_string());

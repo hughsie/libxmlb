@@ -823,7 +823,7 @@ xb_builder_node_vfunc_ignore_func(void)
 	g_autoptr(XbBuilder) builder = xb_builder_new();
 	g_autoptr(XbBuilderFixup) fixup = NULL;
 	g_autoptr(XbBuilderSource) source = xb_builder_source_new();
-	g_autoptr(XbBuilderNode) info = NULL;
+	XbBuilderNode *info = NULL;
 	g_autoptr(XbSilo) silo = NULL;
 	g_autoptr(XbNode) n = NULL;
 	g_autoptr(XbNode) c = NULL;
@@ -870,7 +870,7 @@ xb_builder_upgrade_appstream_cb(XbBuilderFixup *self,
 				GError **error)
 {
 	if (g_strcmp0(xb_builder_node_get_element(bn), "application") == 0) {
-		g_autoptr(XbBuilderNode) id = xb_builder_node_get_child(bn, "id", NULL);
+		XbBuilderNode *id = xb_builder_node_get_child(bn, "id", NULL);
 		g_autofree gchar *kind = NULL;
 		if (id != NULL) {
 			kind = g_strdup(xb_builder_node_get_attr(id, "type"));
@@ -932,7 +932,7 @@ xb_builder_fixup_ignore_node_cb(XbBuilderFixup *self,
 				GError **error)
 {
 	if (g_strcmp0(xb_builder_node_get_element(bn), "component") == 0) {
-		g_autoptr(XbBuilderNode) id = xb_builder_node_get_child(bn, "id", NULL);
+		XbBuilderNode *id = xb_builder_node_get_child(bn, "id", NULL);
 		if (id != NULL && g_strcmp0(xb_builder_node_get_text(id), "gimp.desktop") == 0)
 			xb_builder_node_add_flag(bn, XB_BUILDER_NODE_FLAG_IGNORE);
 	} else {
@@ -1766,8 +1766,8 @@ xb_manual_token_search_func(void)
 	XbNode *n;
 	g_autoptr(XbNode) cpt_node = NULL;
 	g_autoptr(XbBuilder) builder = NULL;
-	g_autoptr(XbBuilderNode) bn_root = NULL;
-	g_autoptr(XbBuilderNode) bn = NULL;
+	XbBuilderNode *bn_root = NULL;
+	XbBuilderNode *bn = NULL;
 	g_autoptr(XbSilo) silo = NULL;
 	g_autofree gchar *str = NULL;
 	g_autoptr(XbQuery) query = NULL;
@@ -2300,8 +2300,8 @@ xb_builder_node_token_max_func(void)
 	g_autofree gchar *xml = NULL;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new();
-	g_autoptr(XbBuilderNode) components = NULL;
-	g_autoptr(XbBuilderNode) root = xb_builder_node_new(NULL);
+	XbBuilderNode *components = NULL;
+	XbBuilderNode *root = xb_builder_node_new(NULL);
 	g_autoptr(XbSilo) silo = NULL;
 
 	/* create a simple document */
@@ -2331,15 +2331,15 @@ xb_builder_node_func(void)
 	g_autofree gchar *xml_src = NULL;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new();
-	g_autoptr(XbBuilderNode) child_by_element = NULL;
-	g_autoptr(XbBuilderNode) child_by_text = NULL;
-	g_autoptr(XbBuilderNode) component = NULL;
-	g_autoptr(XbBuilderNode) components = NULL;
-	g_autoptr(XbBuilderNode) id = NULL;
-	g_autoptr(XbBuilderNode) description = xb_builder_node_new("description");
-	g_autoptr(XbBuilderNode) em = xb_builder_node_new("em");
-	g_autoptr(XbBuilderNode) empty = NULL;
-	g_autoptr(XbBuilderNode) root = xb_builder_node_new(NULL);
+	XbBuilderNode *child_by_element = NULL;
+	XbBuilderNode *child_by_text = NULL;
+	XbBuilderNode *component = NULL;
+	XbBuilderNode *components = NULL;
+	XbBuilderNode *id = NULL;
+	XbBuilderNode *description = xb_builder_node_new("description");
+	XbBuilderNode *em = xb_builder_node_new("em");
+	XbBuilderNode *empty = NULL;
+	XbBuilderNode *root = xb_builder_node_new(NULL);
 	g_autoptr(XbSilo) silo = NULL;
 
 	/* create a simple document */
@@ -2514,8 +2514,8 @@ xb_builder_node_info_func(void)
 	g_autoptr(XbBuilderSource) import2 = xb_builder_source_new();
 	g_autoptr(XbBuilder) builder = xb_builder_new();
 	g_autoptr(XbNode) n = NULL;
-	g_autoptr(XbBuilderNode) info1 = NULL;
-	g_autoptr(XbBuilderNode) info2 = NULL;
+	XbBuilderNode *info1 = NULL;
+	XbBuilderNode *info2 = NULL;
 	g_autoptr(XbSilo) silo = NULL;
 	g_autoptr(GFile) file = NULL;
 
