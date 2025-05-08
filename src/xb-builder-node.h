@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "xb-arena.h"
 #include "xb-compile.h"
 #include "xb-node.h"
 
@@ -46,11 +47,10 @@ typedef gboolean (*XbBuilderNodeTraverseFunc)(XbBuilderNode *bn, gpointer user_d
 typedef gint (*XbBuilderNodeSortFunc)(XbBuilderNode *bn1, XbBuilderNode *bn2, gpointer user_data);
 
 XbBuilderNode *
-xb_builder_node_new(const gchar *element);
+xb_builder_node_new(XbArena *arena, const gchar *element) G_GNUC_NON_NULL(1);
 XbBuilderNode *
-xb_builder_node_insert(XbBuilderNode *parent,
-		       const gchar *element,
-		       ...) G_GNUC_NULL_TERMINATED G_GNUC_WARN_UNUSED_RESULT G_GNUC_NON_NULL(2);
+xb_builder_node_insert(XbArena *arena, XbBuilderNode *parent, const gchar *element, ...)
+    G_GNUC_NULL_TERMINATED G_GNUC_WARN_UNUSED_RESULT G_GNUC_NON_NULL(1, 3);
 void
 xb_builder_node_insert_text(XbBuilderNode *parent, const gchar *element, const gchar *text, ...)
     G_GNUC_NULL_TERMINATED G_GNUC_NON_NULL(1, 2);
@@ -90,7 +90,7 @@ void
 xb_builder_node_add_child(XbBuilderNode *self, XbBuilderNode *child) G_GNUC_NON_NULL(2);
 void
 xb_builder_node_remove_child(XbBuilderNode *self, XbBuilderNode *child) G_GNUC_NON_NULL(1);
-GPtrArray *
+XbArenaPtrArray *
 xb_builder_node_get_children(XbBuilderNode *self) G_GNUC_NON_NULL(1);
 XbBuilderNode *
 xb_builder_node_get_first_child(XbBuilderNode *self) G_GNUC_NON_NULL(1);
@@ -103,6 +103,8 @@ void
 xb_builder_node_unlink(XbBuilderNode *self) G_GNUC_NON_NULL(1);
 XbBuilderNode *
 xb_builder_node_get_parent(XbBuilderNode *self) G_GNUC_NON_NULL(1);
+void
+xb_builder_node_remove_parent(XbBuilderNode *self) G_GNUC_NON_NULL(1);
 guint
 xb_builder_node_depth(XbBuilderNode *self) G_GNUC_NON_NULL(1);
 void
@@ -112,9 +114,6 @@ xb_builder_node_traverse(XbBuilderNode *self,
 			 gint max_depth,
 			 XbBuilderNodeTraverseFunc func,
 			 gpointer user_data) G_GNUC_NON_NULL(1, 5);
-void
-xb_builder_node_sort_children(XbBuilderNode *self, XbBuilderNodeSortFunc func, gpointer user_data)
-    G_GNUC_NON_NULL(1, 2);
 gchar *
 xb_builder_node_export(XbBuilderNode *self, XbNodeExportFlags flags, GError **error)
     G_GNUC_NON_NULL(1);

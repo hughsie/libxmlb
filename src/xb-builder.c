@@ -11,6 +11,7 @@
 #include <gio/gio.h>
 #include <string.h>
 
+#include "xb-arena.h"
 #include "xb-builder-fixup-private.h"
 #include "xb-builder-node-private.h"
 #include "xb-builder-source-private.h"
@@ -38,6 +39,7 @@ typedef struct {
 	XbBuilderNode *current; /* transfer none */
 	XbBuilderCompileFlags compile_flags;
 	XbBuilderSourceFlags source_flags;
+	XbArena *arena;
 	GHashTable *strtab_hash;
 	GByteArray *strtab;
 	GPtrArray *locales;
@@ -56,7 +58,9 @@ xb_builder_compile_add_to_strtab(XbBuilderCompileHelper *helper, const gchar *st
 	/* new */
 	idx = helper->strtab->len;
 	g_byte_array_append(helper->strtab, (const guint8 *)str, strlen(str) + 1);
-	g_hash_table_insert(helper->strtab_hash, g_strdup(str), GUINT_TO_POINTER(idx));
+	g_hash_table_insert(helper->strtab_hash,
+			    xb_arena_strdup(helper->arena, str),
+			    GUINT_TO_POINTER(idx));
 	return idx;
 }
 
@@ -80,7 +84,7 @@ xb_builder_compile_start_element_cb(GMarkupParseContext *context,
 				    GError **error)
 {
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *)user_data;
-	XbBuilderNode *bn = xb_builder_node_new(element_name);
+	XbBuilderNode *bn = xb_builder_node_new(helper->arena, element_name);
 
 	/* parent node is being ignored */
 	if (helper->current != NULL &&
@@ -205,17 +209,16 @@ xb_builder_compile_source(XbBuilderCompileHelper *helper,
 			  GCancellable *cancellable,
 			  GError **error)
 {
-	GPtrArray *children;
+	XbArenaPtrArray *children;
 	XbBuilderNode *info;
 	gsize chunk_size = 32 * 1024;
 	gssize len;
 	g_autofree gchar *data = NULL;
 	g_autofree gchar *guid = xb_builder_source_get_guid(source);
-	g_autoptr(GPtrArray) children_copy = NULL;
 	g_autoptr(GInputStream) istream = NULL;
 	g_autoptr(GMarkupParseContext) ctx = NULL;
 	g_autoptr(GTimer) timer = xb_silo_start_profile(helper->silo);
-	XbBuilderNode *root_tmp = xb_builder_node_new(NULL);
+	XbBuilderNode *root_tmp = xb_builder_node_new(helper->arena, NULL);
 	const GMarkupParser parser = {xb_builder_compile_start_element_cb,
 				      xb_builder_compile_end_element_cb,
 				      xb_builder_compile_text_cb,
@@ -276,7 +279,7 @@ xb_builder_compile_source(XbBuilderCompileHelper *helper,
 	if (info != NULL) {
 		children = xb_builder_node_get_children(helper->current);
 		for (guint i = 0; i < children->len; i++) {
-			XbBuilderNode *bn = g_ptr_array_index(children, i);
+			XbBuilderNode *bn = children->pointers[i];
 			if (!xb_builder_node_has_flag(bn, XB_BUILDER_NODE_FLAG_IGNORE))
 				xb_builder_node_add_child(bn, info);
 		}
@@ -284,14 +287,9 @@ xb_builder_compile_source(XbBuilderCompileHelper *helper,
 
 	/* add the children to the main document */
 	children = xb_builder_node_get_children(root_tmp);
-	children_copy = g_ptr_array_new_with_free_func(NULL);
 	for (guint i = 0; i < children->len; i++) {
-		XbBuilderNode *bn = g_ptr_array_index(children, i);
-		g_ptr_array_add(children_copy, bn);
-	}
-	for (guint i = 0; i < children_copy->len; i++) {
-		XbBuilderNode *bn = g_ptr_array_index(children_copy, i);
-		xb_builder_node_unlink(bn);
+		XbBuilderNode *bn = children->pointers[i];
+		xb_builder_node_remove_parent(bn);
 		xb_builder_node_add_child(root, bn);
 	}
 
@@ -319,7 +317,7 @@ xb_builder_strtab_element_names_cb(XbBuilderNode *bn, gpointer user_data)
 static gboolean
 xb_builder_strtab_attr_name_cb(XbBuilderNode *bn, gpointer user_data)
 {
-	GPtrArray *attrs;
+	XbArenaPtrArray *attrs;
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *)user_data;
 
 	/* root node */
@@ -329,7 +327,7 @@ xb_builder_strtab_attr_name_cb(XbBuilderNode *bn, gpointer user_data)
 		return FALSE;
 	attrs = xb_builder_node_get_attrs(bn);
 	for (guint i = 0; attrs != NULL && i < attrs->len; i++) {
-		XbBuilderNodeAttr *attr = g_ptr_array_index(attrs, i);
+		XbBuilderNodeAttr *attr = attrs->pointers[i];
 		attr->name_idx = xb_builder_compile_add_to_strtab(helper, attr->name);
 	}
 	return FALSE;
@@ -338,7 +336,7 @@ xb_builder_strtab_attr_name_cb(XbBuilderNode *bn, gpointer user_data)
 static gboolean
 xb_builder_strtab_attr_value_cb(XbBuilderNode *bn, gpointer user_data)
 {
-	GPtrArray *attrs;
+	XbArenaPtrArray *attrs;
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *)user_data;
 
 	/* root node */
@@ -348,7 +346,7 @@ xb_builder_strtab_attr_value_cb(XbBuilderNode *bn, gpointer user_data)
 		return FALSE;
 	attrs = xb_builder_node_get_attrs(bn);
 	for (guint i = 0; attrs != NULL && i < attrs->len; i++) {
-		XbBuilderNodeAttr *attr = g_ptr_array_index(attrs, i);
+		XbBuilderNodeAttr *attr = attrs->pointers[i];
 		attr->value_idx = xb_builder_compile_add_to_strtab(helper, attr->value);
 	}
 	return FALSE;
@@ -404,7 +402,7 @@ xb_builder_xml_lang_prio_cb(XbBuilderNode *bn, gpointer user_data)
 	GPtrArray *nodes_to_destroy = (GPtrArray *)user_data;
 	gint prio_best = 0;
 	g_autoptr(GPtrArray) nodes = g_ptr_array_new();
-	GPtrArray *siblings;
+	XbArenaPtrArray *siblings;
 	XbBuilderNode *parent = xb_builder_node_get_parent(bn);
 
 	/* root node */
@@ -418,7 +416,7 @@ xb_builder_xml_lang_prio_cb(XbBuilderNode *bn, gpointer user_data)
 	/* get all the siblings with the same name */
 	siblings = xb_builder_node_get_children(parent);
 	for (guint i = 0; i < siblings->len; i++) {
-		XbBuilderNode *bn2 = g_ptr_array_index(siblings, i);
+		XbBuilderNode *bn2 = siblings->pointers[i];
 		if (g_strcmp0(xb_builder_node_get_element(bn), xb_builder_node_get_element(bn2)) ==
 		    0)
 			g_ptr_array_add(nodes, bn2);
@@ -480,7 +478,7 @@ xb_builder_nodetab_write_sentinel(XbBuilderNodetabHelper *helper)
 static void
 xb_builder_nodetab_write_node(XbBuilderNodetabHelper *helper, XbBuilderNode *bn)
 {
-	GPtrArray *attrs = xb_builder_node_get_attrs(bn);
+	XbArenaPtrArray *attrs = xb_builder_node_get_attrs(bn);
 	GArray *token_idxs = xb_builder_node_get_token_idxs(bn);
 	XbSiloNode sn = {
 	    .flags = XB_SILO_NODE_FLAG_IS_ELEMENT,
@@ -521,7 +519,7 @@ xb_builder_nodetab_write_node(XbBuilderNodetabHelper *helper, XbBuilderNode *bn)
 
 	/* add to the buf */
 	for (guint i = 0; attrs != NULL && i < attrs->len; i++) {
-		XbBuilderNodeAttr *ba = g_ptr_array_index(attrs, i);
+		XbBuilderNodeAttr *ba = attrs->pointers[i];
 		XbSiloNodeAttr attr = {
 		    .attr_name = ba->name_idx,
 		    .attr_value = ba->value_idx,
@@ -539,7 +537,7 @@ xb_builder_nodetab_write_node(XbBuilderNodetabHelper *helper, XbBuilderNode *bn)
 static void
 xb_builder_nodetab_write(XbBuilderNodetabHelper *helper, XbBuilderNode *bn)
 {
-	GPtrArray *children;
+	XbArenaPtrArray *children;
 
 	/* ignore this */
 	if (xb_builder_node_has_flag(bn, XB_BUILDER_NODE_FLAG_IGNORE))
@@ -552,7 +550,7 @@ xb_builder_nodetab_write(XbBuilderNodetabHelper *helper, XbBuilderNode *bn)
 	/* children */
 	children = xb_builder_node_get_children(bn);
 	for (guint i = 0; i < children->len; i++) {
-		XbBuilderNode *bc = g_ptr_array_index(children, i);
+		XbBuilderNode *bc = children->pointers[i];
 		xb_builder_nodetab_write(helper, bc);
 	}
 
@@ -570,7 +568,7 @@ xb_builder_get_node(GByteArray *str, guint32 off)
 static gboolean
 xb_builder_nodetab_fix_cb(XbBuilderNode *bn, gpointer user_data)
 {
-	GPtrArray *siblings;
+	XbArenaPtrArray *siblings;
 	XbBuilderNodetabHelper *helper = (XbBuilderNodetabHelper *)user_data;
 	XbSiloNode *sn;
 	gboolean found = FALSE;
@@ -594,7 +592,7 @@ xb_builder_nodetab_fix_cb(XbBuilderNode *bn, gpointer user_data)
 	/* set ->next if the node has one */
 	siblings = xb_builder_node_get_children(parent);
 	for (guint i = 0; i < siblings->len; i++) {
-		XbBuilderNode *bn2 = g_ptr_array_index(siblings, i);
+		XbBuilderNode *bn2 = siblings->pointers[i];
 		if (bn2 == bn) {
 			found = TRUE;
 			continue;
@@ -615,8 +613,8 @@ xb_builder_compile_helper_free(XbBuilderCompileHelper *helper)
 {
 	g_hash_table_unref(helper->strtab_hash);
 	g_byte_array_unref(helper->strtab);
+	xb_arena_free(helper->arena);
 	g_clear_object(&helper->silo);
-	g_free(helper->root);
 	g_free(helper);
 }
 
@@ -786,11 +784,14 @@ xb_builder_compile(XbBuilder *self,
 	/* create helper used for compiling */
 	helper = g_new0(XbBuilderCompileHelper, 1);
 	helper->compile_flags = flags;
-	helper->root = xb_builder_node_new(NULL);
+	helper->arena = xb_arena_new();
+	helper->root = xb_builder_node_new(helper->arena, NULL);
 	helper->silo = xb_silo_new();
 	helper->locales = priv->locales;
 	helper->strtab = g_byte_array_new();
-	helper->strtab_hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+	/* Keys in this hash table are owned by the arena allocator, so the key destroy function is
+	 * NULL */
+	helper->strtab_hash = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, NULL);
 
 	/* for profiling */
 	xb_silo_set_profile_flags(helper->silo, priv->profile_flags);
@@ -808,7 +809,10 @@ xb_builder_compile(XbBuilder *self,
 		if (prefix != NULL) {
 			root = xb_builder_node_get_child(helper->root, prefix, NULL);
 			if (root == NULL)
-				root = xb_builder_node_insert(helper->root, prefix, NULL);
+				root = xb_builder_node_insert(helper->arena,
+							      helper->root,
+							      prefix,
+							      NULL);
 		} else {
 			/* don't allow damaged XML files to ruin all the next ones */
 			root = helper->root;
