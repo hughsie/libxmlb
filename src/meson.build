@@ -10,6 +10,7 @@ install_headers(
 )
 
 xb_headers = files(
+  'xb-arena.h',
   'xb-builder.h',
   'xb-builder-fixup.h',
   'xb-builder-node.h',
@@ -64,6 +65,7 @@ def_file_target = custom_target(
 libxmlb = library(
   'xmlb',
   sources : [
+    'xb-arena.c',
     'xb-builder.c',
     'xb-builder-fixup.c',
     'xb-builder-node.c',
@@ -250,6 +252,7 @@ if get_option('tests')
   e = executable(
     'xb-self-test',
     sources : [
+      'xb-arena.c',
       'xb-builder.c',
       'xb-builder-fixup.c',
       'xb-builder-fixup.c',
