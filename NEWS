@@ -1,3 +1,10 @@
+Version 0.3.23
+~~~~~~~~~~~~~~
+Released: 2025-08-07
+
+Bugfixes:
+ - Do not reallocate the final silo blob when compiling to reduce peak RSS by about ~6%
+
 Version 0.3.22
 ~~~~~~~~~~~~~~
 Released: 2025-03-12
