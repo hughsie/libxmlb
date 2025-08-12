@@ -537,6 +537,12 @@ xb_builder_source_zstd_func(void)
 	g_autoptr(XbBuilderSource) source = xb_builder_source_new();
 	g_autoptr(XbSilo) silo = NULL;
 
+#ifndef HAVE_ZSTD
+	/* not supported */
+	g_test_skip("compiled without -Dzstd");
+	return;
+#endif
+
 	/* import a source file */
 	path = g_test_build_filename(G_TEST_DIST, "test.xml.zst", NULL);
 	file_src = g_file_new_for_path(path);
