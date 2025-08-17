@@ -145,7 +145,7 @@ xb_builder_source_set_info(XbBuilderSource *self, XbBuilderNode *info)
 {
 	XbBuilderSourcePrivate *priv = GET_PRIVATE(self);
 	g_return_if_fail(XB_IS_BUILDER_SOURCE(self));
-	g_set_object(&priv->info, info);
+	priv->info = info;
 }
 
 /**
@@ -577,8 +577,6 @@ xb_builder_source_finalize(GObject *obj)
 
 	if (priv->istream != NULL)
 		g_object_unref(priv->istream);
-	if (priv->info != NULL)
-		g_object_unref(priv->info);
 	if (priv->file != NULL)
 		g_object_unref(priv->file);
 	g_ptr_array_unref(priv->fixups);
