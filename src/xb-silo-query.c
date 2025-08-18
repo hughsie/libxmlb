@@ -780,7 +780,7 @@ xb_silo_query_build_index(XbSilo *self, const gchar *xpath, const gchar *attr, G
 				if (!xb_silo_strtab_index_insert(self, a->attr_value, error))
 					return FALSE;
 			}
-		} else {
+		} else if (xb_silo_node_get_text_idx(sn) != XB_SILO_UNSET) {
 			if (!xb_silo_strtab_index_insert(self,
 							 xb_silo_node_get_text_idx(sn),
 							 error))
