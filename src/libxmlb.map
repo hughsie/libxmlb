@@ -279,6 +279,7 @@ LIBXMLB_0.3.19 {
 
 LIBXMLB_0.3.24 {
   global:
+    xb_builder_node_set_attrs;
     xb_node_get_attrs;
   local: *;
 } LIBXMLB_0.3.19;
