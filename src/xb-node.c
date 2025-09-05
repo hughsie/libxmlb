@@ -602,14 +602,13 @@ xb_node_get_attr_as_uint(XbNode *self, const gchar *name)
 void
 xb_node_attr_iter_init(XbNodeAttrIter *iter, XbNode *self)
 {
-	XbNodePrivate *priv = GET_PRIVATE(self);
 	RealAttrIter *ri = (RealAttrIter *)iter;
 
 	g_return_if_fail(iter != NULL);
 	g_return_if_fail(XB_IS_NODE(self));
 
 	ri->node = self;
-	ri->position = priv->sn != NULL ? xb_silo_node_get_attr_count(priv->sn) : 0;
+	ri->position = 0;
 }
 
 /**
@@ -622,7 +621,8 @@ xb_node_attr_iter_init(XbNodeAttrIter *iter, XbNode *self)
  * Example:
  * |[<!-- language="C" -->
  * XbNodeAttrIter iter;
- * const gchar *attr_name, *attr_value;
+ * const gchar *attr_name;
+ * const gchar *attr_value;
  *
  * xb_node_attr_iter_init (&iter, node);
  * while (xb_node_attr_iter_next (&iter, &attr_name, &attr_value)) {
@@ -645,7 +645,7 @@ xb_node_attr_iter_next(XbNodeAttrIter *iter, const gchar **name, const gchar **v
 	priv = GET_PRIVATE(ri->node);
 
 	/* check if the iteration was finished */
-	if (ri->position == 0) {
+	if (priv->sn == NULL || ri->position >= xb_silo_node_get_attr_count(priv->sn)) {
 		if (name != NULL)
 			*name = NULL;
 		if (value != NULL)
@@ -653,12 +653,12 @@ xb_node_attr_iter_next(XbNodeAttrIter *iter, const gchar **name, const gchar **v
 		return FALSE;
 	}
 
-	ri->position--;
 	a = xb_silo_node_get_attr(priv->sn, ri->position);
 	if (name != NULL)
 		*name = xb_silo_from_strtab(priv->silo, a->attr_name, NULL);
 	if (value != NULL)
 		*value = xb_silo_from_strtab(priv->silo, a->attr_value, NULL);
+	ri->position++;
 
 	return TRUE;
 }
