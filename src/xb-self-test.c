@@ -1116,6 +1116,8 @@ static void
 xb_xpath_node_func(void)
 {
 	g_autoptr(GError) error = NULL;
+	g_autoptr(GHashTable) n_attrs = NULL;
+	g_autoptr(GHashTable) result_attrs = NULL;
 	g_autoptr(GPtrArray) results = NULL;
 	g_autoptr(XbNode) n = NULL;
 	g_autoptr(XbSilo) silo = NULL;
@@ -1139,12 +1141,17 @@ xb_xpath_node_func(void)
 	g_assert_no_error(error);
 	g_assert_nonnull(n);
 	g_assert_cmpstr(xb_node_get_attr(n, "type"), ==, "desktop");
+	n_attrs = xb_node_get_attrs(n);
+	g_assert_cmpint(g_hash_table_size(n_attrs), ==, 1);
+	g_assert_cmpstr(g_hash_table_lookup(n_attrs, "type"), ==, "desktop");
 
 	/* query with text opcodes */
 	results = xb_node_query(n, "id", 0, &error);
 	g_assert_no_error(error);
 	g_assert_nonnull(results);
 	g_assert_cmpint(results->len, ==, 2);
+	result_attrs = xb_node_get_attrs(g_ptr_array_index(results, 0));
+	g_assert_cmpint(g_hash_table_size(result_attrs), ==, 0);
 }
 
 static void

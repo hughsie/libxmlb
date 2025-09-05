@@ -529,6 +529,38 @@ xb_node_get_attr(XbNode *self, const gchar *name)
 }
 
 /**
+ * xb_node_get_attrs:
+ * @self: a #XbNode
+ *
+ * Gets all the attributes for the node.
+ *
+ * Returns: (element-type utf8 utf8) (transfer container): const attributes
+ *
+ * Since: 0.3.24
+ **/
+GHashTable *
+xb_node_get_attrs(XbNode *self)
+{
+	XbNodePrivate *priv = GET_PRIVATE(self);
+	g_autoptr(GHashTable) attrs = g_hash_table_new(g_str_hash, g_str_equal);
+
+	g_return_val_if_fail(XB_IS_NODE(self), NULL);
+
+	/* nothing */
+	if (priv->sn == NULL)
+		return g_steal_pointer(&attrs);
+
+	/* copy out each string */
+	for (guint i = 0; i < xb_silo_node_get_attr_count(priv->sn); i++) {
+		XbSiloNodeAttr *a = xb_silo_node_get_attr(priv->sn, i);
+		g_hash_table_insert(attrs,
+				    xb_silo_from_strtab(priv->silo, a->attr_name, NULL),
+				    xb_silo_from_strtab(priv->silo, a->attr_value, NULL));
+	}
+	return g_steal_pointer(&attrs);
+}
+
+/**
  * xb_node_get_attr_as_uint:
  * @self: a #XbNode
  * @name: an attribute name, e.g. `type`
