@@ -468,32 +468,6 @@ xb_builder_node_set_attr(XbBuilderNode *self, const gchar *name, const gchar *va
 }
 
 /**
- * xb_builder_node_set_attrs:
- * @self: a #XbBuilderNode
- * @attrs: (element-type utf8 utf8): attributes
- *
- * Adds sorted attributes to the builder node.
- *
- * Since: 0.3.24
- **/
-void
-xb_builder_node_set_attrs(XbBuilderNode *self, GHashTable *attrs)
-{
-	g_autoptr(GList) keys = NULL;
-
-	g_return_if_fail(XB_IS_BUILDER_NODE(self));
-	g_return_if_fail(attrs != NULL);
-
-	keys = g_hash_table_get_keys(attrs);
-	keys = g_list_sort(keys, (GCompareFunc)g_strcmp0);
-	for (GList *l = keys; l != NULL; l = l->next) {
-		const gchar *key = (const gchar *)l->data;
-		const gchar *value = g_hash_table_lookup(attrs, key);
-		xb_builder_node_set_attr(self, key, value);
-	}
-}
-
-/**
  * xb_builder_node_remove_attr:
  * @self: a #XbBuilderNode
  * @name: attribute name, e.g. `type`

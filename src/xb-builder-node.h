@@ -94,8 +94,6 @@ void
 xb_builder_node_set_attr(XbBuilderNode *self, const gchar *name, const gchar *value)
     G_GNUC_NON_NULL(1, 2);
 void
-xb_builder_node_set_attrs(XbBuilderNode *self, GHashTable *attrs) G_GNUC_NON_NULL(1, 2);
-void
 xb_builder_node_remove_attr(XbBuilderNode *self, const gchar *name) G_GNUC_NON_NULL(1);
 void
 xb_builder_node_add_child(XbBuilderNode *self, XbBuilderNode *child) G_GNUC_NON_NULL(2);
