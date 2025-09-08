@@ -276,9 +276,3 @@ LIBXMLB_0.3.19 {
     xb_version_string;
   local: *;
 } LIBXMLB_0.3.4;
-
-LIBXMLB_0.3.24 {
-  global:
-    xb_node_get_attrs;
-  local: *;
-} LIBXMLB_0.3.19;

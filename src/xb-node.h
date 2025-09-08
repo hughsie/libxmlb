@@ -106,8 +106,6 @@ const gchar *
 xb_node_get_attr(XbNode *self, const gchar *name) G_GNUC_NON_NULL(1, 2);
 guint64
 xb_node_get_attr_as_uint(XbNode *self, const gchar *name) G_GNUC_NON_NULL(1, 2);
-GHashTable *
-xb_node_get_attrs(XbNode *self) G_GNUC_NON_NULL(1);
 guint
 xb_node_get_depth(XbNode *self) G_GNUC_NON_NULL(1);
 
