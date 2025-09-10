@@ -1,3 +1,11 @@
+Version 0.3.24
+~~~~~~~~~~~~~~
+Released: 2025-09-10
+
+Bugfixes:
+ - Allow calling xb_silo_query_build_index() with no text set (Richard Hughes)
+ - Do not reverse the order of attrs when using xb_node_attr_iter_next() (Richard Hughes)
+
 Version 0.3.23
 ~~~~~~~~~~~~~~
 Released: 2025-08-07
