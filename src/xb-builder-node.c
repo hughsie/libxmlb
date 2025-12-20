@@ -1031,7 +1031,7 @@ xb_builder_node_insert(XbBuilderNode *parent, const gchar *element, ...)
 
 	/* process the attrs valist */
 	va_start(args, element);
-	for (guint i = 0;; i++) {
+	for (;;) {
 		key = va_arg(args, const gchar *);
 		if (key == NULL)
 			break;
@@ -1073,7 +1073,7 @@ xb_builder_node_insert_text(XbBuilderNode *parent, const gchar *element, const g
 
 	/* process the attrs valist */
 	va_start(args, text);
-	for (guint i = 0;; i++) {
+	for (;;) {
 		key = va_arg(args, const gchar *);
 		if (key == NULL)
 			break;
