@@ -9,6 +9,7 @@
 #include <gio/gio.h>
 #include <locale.h>
 
+#include "xb-arena.h"
 #include "xb-builder-node.h"
 #include "xb-builder.h"
 #include "xb-common-private.h"
@@ -829,11 +830,12 @@ xb_builder_node_vfunc_ignore_func(void)
 	g_autoptr(XbBuilder) builder = xb_builder_new();
 	g_autoptr(XbBuilderFixup) fixup = NULL;
 	g_autoptr(XbBuilderSource) source = xb_builder_source_new();
-	g_autoptr(XbBuilderNode) info = NULL;
+	XbBuilderNode *info = NULL;
 	g_autoptr(XbSilo) silo = NULL;
 	g_autoptr(XbNode) n = NULL;
 	g_autoptr(XbNode) c = NULL;
 	g_autoptr(XbNode) c2 = NULL;
+	XbArena *arena = xb_arena_new();
 
 	/* add fixup */
 	fixup = xb_builder_fixup_new("AlwaysIgnore", xb_builder_ignore_cb, NULL, NULL);
@@ -846,7 +848,7 @@ xb_builder_node_vfunc_ignore_func(void)
 					 &error);
 	g_assert_no_error(error);
 	g_assert_true(ret);
-	info = xb_builder_node_insert(NULL, "info", NULL);
+	info = xb_builder_node_insert(arena, NULL, "info", NULL);
 	xb_builder_node_insert_text(info, "foo", "bar", NULL);
 	xb_builder_source_set_info(source, info);
 	xb_builder_import_source(builder, source);
@@ -867,6 +869,7 @@ xb_builder_node_vfunc_ignore_func(void)
 	ret = xb_node_child_iter_next(&iter, &c2);
 	g_assert_false(ret);
 	g_assert_null(c2);
+	xb_arena_free(arena);
 }
 
 static gboolean
@@ -876,7 +879,7 @@ xb_builder_upgrade_appstream_cb(XbBuilderFixup *self,
 				GError **error)
 {
 	if (g_strcmp0(xb_builder_node_get_element(bn), "application") == 0) {
-		g_autoptr(XbBuilderNode) id = xb_builder_node_get_child(bn, "id", NULL);
+		XbBuilderNode *id = xb_builder_node_get_child(bn, "id", NULL);
 		g_autofree gchar *kind = NULL;
 		if (id != NULL) {
 			kind = g_strdup(xb_builder_node_get_attr(id, "type"));
@@ -938,7 +941,7 @@ xb_builder_fixup_ignore_node_cb(XbBuilderFixup *self,
 				GError **error)
 {
 	if (g_strcmp0(xb_builder_node_get_element(bn), "component") == 0) {
-		g_autoptr(XbBuilderNode) id = xb_builder_node_get_child(bn, "id", NULL);
+		XbBuilderNode *id = xb_builder_node_get_child(bn, "id", NULL);
 		if (id != NULL && g_strcmp0(xb_builder_node_get_text(id), "gimp.desktop") == 0)
 			xb_builder_node_add_flag(bn, XB_BUILDER_NODE_FLAG_IGNORE);
 	} else {
@@ -1772,18 +1775,19 @@ xb_manual_token_search_func(void)
 	XbNode *n;
 	g_autoptr(XbNode) cpt_node = NULL;
 	g_autoptr(XbBuilder) builder = NULL;
-	g_autoptr(XbBuilderNode) bn_root = NULL;
-	g_autoptr(XbBuilderNode) bn = NULL;
+	XbBuilderNode *bn_root = NULL;
+	XbBuilderNode *bn = NULL;
 	g_autoptr(XbSilo) silo = NULL;
 	g_autofree gchar *str = NULL;
 	g_autoptr(XbQuery) query = NULL;
 	g_autoptr(GPtrArray) result = NULL;
 	g_autoptr(GError) error = NULL;
 	g_auto(XbQueryContext) context = XB_QUERY_CONTEXT_INIT();
+	XbArena *arena = xb_arena_new();
 
 	/* create node tree and add a dummy token manually */
-	bn_root = xb_builder_node_new("component");
-	bn = xb_builder_node_new("summary");
+	bn_root = xb_builder_node_new(arena, "component");
+	bn = xb_builder_node_new(arena, "summary");
 	xb_builder_node_set_text(bn, "A strategy game", -1);
 	xb_builder_node_add_token(bn, "strategy"); /* or use XB_BUILDER_NODE_FLAG_TOKENIZE_TEXT */
 	xb_builder_node_add_token(bn, "strategi");
@@ -1837,6 +1841,7 @@ xb_manual_token_search_func(void)
 	n = XB_NODE(g_ptr_array_index(result, 0));
 	g_assert_nonnull(n);
 	g_assert_cmpstr(xb_node_get_text(n), ==, "A strategy game");
+	xb_arena_free(arena);
 }
 
 static void
@@ -2306,12 +2311,13 @@ xb_builder_node_token_max_func(void)
 	g_autofree gchar *xml = NULL;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new();
-	g_autoptr(XbBuilderNode) components = NULL;
-	g_autoptr(XbBuilderNode) root = xb_builder_node_new(NULL);
+	XbBuilderNode *components = NULL;
+	XbArena *arena = xb_arena_new();
+	XbBuilderNode *root = xb_builder_node_new(arena, NULL);
 	g_autoptr(XbSilo) silo = NULL;
 
 	/* create a simple document */
-	components = xb_builder_node_insert(root, "components", NULL);
+	components = xb_builder_node_insert(arena, root, "components", NULL);
 	for (guint i = 0; i < XB_OPCODE_TOKEN_MAX * 2; i++) {
 		g_autofree gchar *tmp = g_strdup_printf("foobarbaz%04u", i);
 		xb_builder_node_add_token(components, tmp);
@@ -2333,31 +2339,32 @@ xb_builder_node_token_max_func(void)
 static void
 xb_builder_node_func(void)
 {
+	XbArena *arena = xb_arena_new();
 	g_autofree gchar *xml = NULL;
 	g_autofree gchar *xml_src = NULL;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new();
-	g_autoptr(XbBuilderNode) child_by_element = NULL;
-	g_autoptr(XbBuilderNode) child_by_text = NULL;
-	g_autoptr(XbBuilderNode) component = NULL;
-	g_autoptr(XbBuilderNode) components = NULL;
-	g_autoptr(XbBuilderNode) id = NULL;
-	g_autoptr(XbBuilderNode) description = xb_builder_node_new("description");
-	g_autoptr(XbBuilderNode) em = xb_builder_node_new("em");
-	g_autoptr(XbBuilderNode) empty = NULL;
-	g_autoptr(XbBuilderNode) root = xb_builder_node_new(NULL);
+	XbBuilderNode *child_by_element = NULL;
+	XbBuilderNode *child_by_text = NULL;
+	XbBuilderNode *component = NULL;
+	XbBuilderNode *components = NULL;
+	XbBuilderNode *id = NULL;
+	XbBuilderNode *description = xb_builder_node_new(arena, "description");
+	XbBuilderNode *em = xb_builder_node_new(arena, "em");
+	XbBuilderNode *empty = NULL;
+	XbBuilderNode *root = xb_builder_node_new(arena, NULL);
 	g_autoptr(XbSilo) silo = NULL;
 
 	/* create a simple document */
-	components = xb_builder_node_insert(root, "components", "origin", "lvfs", NULL);
+	components = xb_builder_node_insert(arena, root, "components", "origin", "lvfs", NULL);
 	g_assert_cmpint(xb_builder_node_depth(components), ==, 1);
-	component = xb_builder_node_insert(components, "component", NULL);
+	component = xb_builder_node_insert(arena, components, "component", NULL);
 	g_assert_cmpint(xb_builder_node_depth(component), ==, 2);
 	xb_builder_node_set_attr(component, "type", "firmware");
 	xb_builder_node_set_attr(component, "type", "desktop");
 	g_assert_cmpstr(xb_builder_node_get_attr(component, "type"), ==, "desktop");
 	g_assert_cmpstr(xb_builder_node_get_attr(component, "dave"), ==, NULL);
-	id = xb_builder_node_new("id");
+	id = xb_builder_node_new(arena, "id");
 	xb_builder_node_add_flag(id, XB_BUILDER_NODE_FLAG_TOKENIZE_TEXT);
 	xb_builder_node_add_token(id, "foobarbaz");
 	xb_builder_node_add_child(component, id);
@@ -2373,7 +2380,7 @@ xb_builder_node_func(void)
 	xb_builder_node_add_child(component, description);
 
 	/* no text contents */
-	empty = xb_builder_node_insert(component, "empty", NULL);
+	empty = xb_builder_node_insert(arena, component, "empty", NULL);
 	xb_builder_node_set_text(empty, NULL, -1);
 	xb_builder_node_set_tail(empty, NULL, -1);
 
@@ -2429,6 +2436,7 @@ xb_builder_node_func(void)
 			"</components>",
 			==,
 			xml);
+	xb_arena_free(arena);
 }
 
 static void
@@ -2520,10 +2528,11 @@ xb_builder_node_info_func(void)
 	g_autoptr(XbBuilderSource) import2 = xb_builder_source_new();
 	g_autoptr(XbBuilder) builder = xb_builder_new();
 	g_autoptr(XbNode) n = NULL;
-	g_autoptr(XbBuilderNode) info1 = NULL;
-	g_autoptr(XbBuilderNode) info2 = NULL;
+	XbBuilderNode *info1 = NULL;
+	XbBuilderNode *info2 = NULL;
 	g_autoptr(XbSilo) silo = NULL;
 	g_autoptr(GFile) file = NULL;
+	XbArena *arena = xb_arena_new();
 
 	/* create a simple document with some info */
 	ret = g_file_set_contents(tmp_xml,
@@ -2533,9 +2542,9 @@ xb_builder_node_info_func(void)
 				  &error);
 	g_assert_no_error(error);
 	g_assert_true(ret);
-	info1 = xb_builder_node_insert(NULL, "info", NULL);
+	info1 = xb_builder_node_insert(arena, NULL, "info", NULL);
 	xb_builder_node_insert_text(info1, "scope", "user", NULL);
-	info2 = xb_builder_node_insert(NULL, "info", NULL);
+	info2 = xb_builder_node_insert(arena, NULL, "info", NULL);
 	xb_builder_node_insert_text(info2, "scope", "system", NULL);
 
 	/* import the doc */
@@ -2582,6 +2591,7 @@ xb_builder_node_info_func(void)
 			"</local>",
 			==,
 			xml);
+	xb_arena_free(arena);
 }
 
 static void

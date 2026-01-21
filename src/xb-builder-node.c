@@ -16,7 +16,8 @@
 #include "xb-silo-private.h"
 #include "xb-string-private.h"
 
-typedef struct {
+struct XbBuilderNode {
+	XbArena *arena; /* Memory arena to make any temporary allocations into */
 	guint32 offset;
 	gint priority;
 	XbBuilderNodeFlags flags;
@@ -26,27 +27,22 @@ typedef struct {
 	guint32 text_idx;
 	gchar *tail;
 	guint32 tail_idx;
-	XbBuilderNode *parent; /* noref */
+	struct XbBuilderNode *parent; /* noref */
 
 	/* Around 87% of all XML nodes have zero children, so this array is only
 	 * allocated if it’s non-empty. %NULL means an empty array. */
-	GPtrArray *children; /* (element-type XbBuilderNode) (nullable) */
+	XbArenaPtrArray *children; /* (element-type XbBuilderNode) (nullable) */
 
 	/* Around 80% of all XML nodes have zero attributes, so this array is only
 	 * allocated if it’s non-empty. %NULL means an empty array. */
-	GPtrArray *attrs; /* (element-type XbBuilderNodeAttr) (nullable) */
+	XbArenaPtrArray *attrs; /* (element-type XbBuilderNodeAttr) (nullable) */
 
 	/* Most nodes will have no tokens */
+	/* Todo: Arena destructor does not iterate over elements so these destructors
+	 * are never called. Switch these to arena allocated types or they will leak. */
 	GPtrArray *tokens;  /* (element-type utf8) (nullable) */
 	GArray *token_idxs; /* (element-type guint32) (nullable) */
-
-} XbBuilderNodePrivate;
-
-G_DEFINE_TYPE_WITH_PRIVATE(XbBuilderNode, xb_builder_node, G_TYPE_OBJECT)
-#define GET_PRIVATE(o) (xb_builder_node_get_instance_private(o))
-
-static void
-xb_builder_node_attr_free(XbBuilderNodeAttr *attr);
+};
 
 /**
  * xb_builder_node_has_flag:
@@ -62,9 +58,7 @@ xb_builder_node_attr_free(XbBuilderNodeAttr *attr);
 gboolean
 xb_builder_node_has_flag(XbBuilderNode *self, XbBuilderNodeFlags flag)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_val_if_fail(XB_IS_BUILDER_NODE(self), FALSE);
-	return (priv->flags & flag) > 0;
+	return (self->flags & flag) > 0;
 }
 
 /**
@@ -79,19 +73,16 @@ xb_builder_node_has_flag(XbBuilderNode *self, XbBuilderNodeFlags flag)
 void
 xb_builder_node_add_flag(XbBuilderNode *self, XbBuilderNodeFlags flag)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_if_fail(XB_IS_BUILDER_NODE(self));
-
-	if ((priv->flags & flag) != 0)
+	if ((self->flags & flag) != 0)
 		return;
 
 	/* do in-place */
-	if ((flag & XB_BUILDER_NODE_FLAG_STRIP_TEXT) > 0 && priv->text != NULL)
-		g_strstrip(priv->text);
+	if ((flag & XB_BUILDER_NODE_FLAG_STRIP_TEXT) > 0 && self->text != NULL)
+		g_strstrip(self->text);
 
-	priv->flags |= flag;
-	for (guint i = 0; priv->children != NULL && i < priv->children->len; i++) {
-		XbBuilderNode *c = g_ptr_array_index(priv->children, i);
+	self->flags |= flag;
+	for (guint i = 0; self->children != NULL && i < self->children->len; i++) {
+		XbBuilderNode *c = self->children->pointers[i];
 		xb_builder_node_add_flag(c, flag);
 	}
 }
@@ -109,9 +100,7 @@ xb_builder_node_add_flag(XbBuilderNode *self, XbBuilderNodeFlags flag)
 const gchar *
 xb_builder_node_get_element(XbBuilderNode *self)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_val_if_fail(XB_IS_BUILDER_NODE(self), NULL);
-	return priv->element;
+	return self->element;
 }
 
 /**
@@ -126,10 +115,9 @@ xb_builder_node_get_element(XbBuilderNode *self)
 void
 xb_builder_node_set_element(XbBuilderNode *self, const gchar *element)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_if_fail(XB_IS_BUILDER_NODE(self));
-	g_free(priv->element);
-	priv->element = g_strdup(element);
+	/* We deliberately do not free the old element when setting a new one, since
+	 * freeing is managed by the arena. */
+	self->element = xb_arena_strdup(self->arena, element);
 }
 
 /**
@@ -146,15 +134,13 @@ xb_builder_node_set_element(XbBuilderNode *self, const gchar *element)
 const gchar *
 xb_builder_node_get_attr(XbBuilderNode *self, const gchar *name)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_val_if_fail(XB_IS_BUILDER_NODE(self), NULL);
 	g_return_val_if_fail(name != NULL, NULL);
 
-	if (priv->attrs == NULL)
+	if (self->attrs == NULL)
 		return NULL;
 
-	for (guint i = 0; i < priv->attrs->len; i++) {
-		XbBuilderNodeAttr *a = g_ptr_array_index(priv->attrs, i);
+	for (guint i = 0; i < self->attrs->len; i++) {
+		XbBuilderNodeAttr *a = self->attrs->pointers[i];
 		if (g_strcmp0(a->name, name) == 0)
 			return a->value;
 	}
@@ -196,9 +182,7 @@ xb_builder_node_get_attr_as_uint(XbBuilderNode *self, const gchar *name)
 const gchar *
 xb_builder_node_get_text(XbBuilderNode *self)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_val_if_fail(XB_IS_BUILDER_NODE(self), NULL);
-	return priv->text;
+	return self->text;
 }
 
 /**
@@ -235,19 +219,15 @@ xb_builder_node_get_text_as_uint(XbBuilderNode *self)
 const gchar *
 xb_builder_node_get_tail(XbBuilderNode *self)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_val_if_fail(XB_IS_BUILDER_NODE(self), NULL);
-	return priv->tail;
+	return self->tail;
 }
 
 /* private */
 /* Returns NULL if the array is empty */
-GPtrArray *
+XbArenaPtrArray *
 xb_builder_node_get_attrs(XbBuilderNode *self)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_val_if_fail(XB_IS_BUILDER_NODE(self), NULL);
-	return priv->attrs;
+	return self->attrs;
 }
 
 static gchar *
@@ -257,6 +237,7 @@ xb_builder_node_parse_literal_text(XbBuilderNode *self, const gchar *text, gssiz
 	guint newline_count = 0;
 	g_auto(GStrv) split = NULL;
 	gsize text_len_safe;
+	char *out = NULL;
 
 	/* sanity check */
 	if (text == NULL)
@@ -265,7 +246,7 @@ xb_builder_node_parse_literal_text(XbBuilderNode *self, const gchar *text, gssiz
 	/* we know this has been pre-fixed */
 	text_len_safe = text_len >= 0 ? (gsize)text_len : strlen(text);
 	if (xb_builder_node_has_flag(self, XB_BUILDER_NODE_FLAG_LITERAL_TEXT))
-		return g_strndup(text, text_len_safe);
+		return xb_arena_strndup(self->arena, text, text_len_safe);
 
 	/* all whitespace? */
 	if (xb_string_isspace(text, text_len_safe))
@@ -273,7 +254,7 @@ xb_builder_node_parse_literal_text(XbBuilderNode *self, const gchar *text, gssiz
 
 	/* all on one line, no trailing or leading whitespace */
 	if (g_strstr_len(text, text_len, "\n") == NULL)
-		return g_strndup(text, text_len_safe);
+		return xb_arena_strndup(self->arena, text, text_len_safe);
 
 	/* split the text into lines */
 	tmp = g_string_sized_new((gsize)text_len_safe + 1);
@@ -304,8 +285,10 @@ xb_builder_node_parse_literal_text(XbBuilderNode *self, const gchar *text, gssiz
 		newline_count = 1;
 	}
 
-	/* success */
-	return g_string_free(tmp, FALSE);
+	/* success. Return a copy of the sanizited string owned by the node's memory arena */
+	out = xb_arena_strdup(self->arena, tmp->str);
+	g_string_free(tmp, TRUE);
+	return out;
 }
 
 /**
@@ -332,24 +315,21 @@ xb_builder_node_parse_literal_text(XbBuilderNode *self, const gchar *text, gssiz
 void
 xb_builder_node_tokenize_text(XbBuilderNode *self)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
 	const gchar *xml_lang = xb_builder_node_get_attr(self, "xml:lang");
 	guint ascii_tokens_sz;
 	guint tokens_sz;
 	g_autofree gchar **ascii_tokens = NULL;
 	g_autofree gchar **tokens = NULL;
 
-	g_return_if_fail(XB_IS_BUILDER_NODE(self));
-
-	if (priv->text == NULL)
+	if (self->text == NULL)
 		return;
-	tokens = g_str_tokenize_and_fold(priv->text, xml_lang, &ascii_tokens);
+	tokens = g_str_tokenize_and_fold(self->text, xml_lang, &ascii_tokens);
 
 	/* preallocate the right array size (and more for invalid tokens) */
 	tokens_sz = g_strv_length(tokens);
 	ascii_tokens_sz = g_strv_length(ascii_tokens);
-	if (priv->tokens == NULL)
-		priv->tokens = g_ptr_array_new_full(tokens_sz + ascii_tokens_sz, g_free);
+	if (self->tokens == NULL)
+		self->tokens = g_ptr_array_new_full(tokens_sz + ascii_tokens_sz, g_free);
 
 	/* add all valid UTF-8 and ASCII tokens */
 	for (guint i = 0; i < tokens_sz; i++) {
@@ -357,14 +337,14 @@ xb_builder_node_tokenize_text(XbBuilderNode *self)
 			g_free(g_steal_pointer(&tokens[i]));
 			continue;
 		}
-		g_ptr_array_add(priv->tokens, g_steal_pointer(&tokens[i]));
+		g_ptr_array_add(self->tokens, g_steal_pointer(&tokens[i]));
 	}
 	for (guint i = 0; i < ascii_tokens_sz; i++) {
 		if (!xb_string_token_valid(ascii_tokens[i])) {
 			g_free(g_steal_pointer(&ascii_tokens[i]));
 			continue;
 		}
-		g_ptr_array_add(priv->tokens, g_steal_pointer(&ascii_tokens[i]));
+		g_ptr_array_add(self->tokens, g_steal_pointer(&ascii_tokens[i]));
 	}
 
 	/* add this so we can set XbSiloNodeFlag.TOKENIZE_TEXT */
@@ -384,21 +364,17 @@ xb_builder_node_tokenize_text(XbBuilderNode *self)
 void
 xb_builder_node_set_text(XbBuilderNode *self, const gchar *text, gssize text_len)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-
-	g_return_if_fail(XB_IS_BUILDER_NODE(self));
-
 	/* old data */
-	g_free(priv->text);
-	priv->text = xb_builder_node_parse_literal_text(self, text, text_len);
-	priv->flags |= XB_BUILDER_NODE_FLAG_HAS_TEXT;
+	g_free(self->text);
+	self->text = xb_builder_node_parse_literal_text(self, text, text_len);
+	self->flags |= XB_BUILDER_NODE_FLAG_HAS_TEXT;
 
 	/* strip before tokenization */
-	if ((priv->flags & XB_BUILDER_NODE_FLAG_STRIP_TEXT) > 0 && priv->text != NULL)
-		g_strstrip(priv->text);
+	if ((self->flags & XB_BUILDER_NODE_FLAG_STRIP_TEXT) > 0 && self->text != NULL)
+		g_strstrip(self->text);
 
 	/* tokenize */
-	if (priv->flags & XB_BUILDER_NODE_FLAG_TOKENIZE_TEXT)
+	if (self->flags & XB_BUILDER_NODE_FLAG_TOKENIZE_TEXT)
 		xb_builder_node_tokenize_text(self);
 }
 
@@ -415,14 +391,10 @@ xb_builder_node_set_text(XbBuilderNode *self, const gchar *text, gssize text_len
 void
 xb_builder_node_set_tail(XbBuilderNode *self, const gchar *tail, gssize tail_len)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-
-	g_return_if_fail(XB_IS_BUILDER_NODE(self));
-
 	/* old data */
-	g_free(priv->tail);
-	priv->tail = xb_builder_node_parse_literal_text(self, tail, tail_len);
-	priv->flags |= XB_BUILDER_NODE_FLAG_HAS_TAIL;
+	g_free(self->tail);
+	self->tail = xb_builder_node_parse_literal_text(self, tail, tail_len);
+	self->flags |= XB_BUILDER_NODE_FLAG_HAS_TAIL;
 }
 
 /**
@@ -439,32 +411,28 @@ void
 xb_builder_node_set_attr(XbBuilderNode *self, const gchar *name, const gchar *value)
 {
 	XbBuilderNodeAttr *a;
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
 
-	g_return_if_fail(XB_IS_BUILDER_NODE(self));
 	g_return_if_fail(name != NULL);
 
-	if (priv->attrs == NULL)
-		priv->attrs =
-		    g_ptr_array_new_with_free_func((GDestroyNotify)xb_builder_node_attr_free);
+	if (self->attrs == NULL)
+		self->attrs = xb_arena_ptr_array_new(self->arena);
 
 	/* check for existing name */
-	for (guint i = 0; i < priv->attrs->len; i++) {
-		a = g_ptr_array_index(priv->attrs, i);
+	for (guint i = 0; i < self->attrs->len; i++) {
+		a = self->attrs->pointers[i];
 		if (g_strcmp0(a->name, name) == 0) {
-			g_free(a->value);
-			a->value = g_strdup(value);
+			a->value = xb_arena_strdup(self->arena, value);
 			return;
 		}
 	}
 
 	/* create new */
-	a = g_slice_new0(XbBuilderNodeAttr);
-	a->name = g_strdup(name);
+	a = xb_arena_alloc(self->arena, sizeof(XbBuilderNodeAttr));
+	a->name = xb_arena_strdup(self->arena, name);
 	a->name_idx = XB_SILO_UNSET;
-	a->value = g_strdup(value);
+	a->value = xb_arena_strdup(self->arena, value);
 	a->value_idx = XB_SILO_UNSET;
-	g_ptr_array_add(priv->attrs, a);
+	xb_arena_ptr_array_add(self->attrs, a);
 }
 
 /**
@@ -479,18 +447,15 @@ xb_builder_node_set_attr(XbBuilderNode *self, const gchar *name, const gchar *va
 void
 xb_builder_node_remove_attr(XbBuilderNode *self, const gchar *name)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-
-	g_return_if_fail(XB_IS_BUILDER_NODE(self));
 	g_return_if_fail(name != NULL);
 
-	if (priv->attrs == NULL)
+	if (self->attrs == NULL)
 		return;
 
-	for (guint i = 0; i < priv->attrs->len; i++) {
-		XbBuilderNodeAttr *a = g_ptr_array_index(priv->attrs, i);
+	for (guint i = 0; i < self->attrs->len; i++) {
+		XbBuilderNodeAttr *a = self->attrs->pointers[i];
 		if (g_strcmp0(a->name, name) == 0) {
-			g_ptr_array_remove_index(priv->attrs, i);
+			xb_arena_ptr_array_remove_index(self->attrs, i);
 			break;
 		}
 	}
@@ -508,10 +473,9 @@ guint
 xb_builder_node_depth(XbBuilderNode *self)
 {
 	for (guint i = 0;; i++) {
-		XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-		if (priv->parent == NULL)
+		if (self->parent == NULL)
 			return i;
-		self = priv->parent;
+		self = self->parent;
 	}
 	return 0;
 }
@@ -528,19 +492,13 @@ xb_builder_node_depth(XbBuilderNode *self)
 void
 xb_builder_node_add_child(XbBuilderNode *self, XbBuilderNode *child)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	XbBuilderNodePrivate *priv_child = GET_PRIVATE(child);
-	g_return_if_fail(XB_IS_BUILDER_NODE(self));
-	g_return_if_fail(XB_IS_BUILDER_NODE(child));
-	g_return_if_fail(priv_child->parent == NULL);
+	g_return_if_fail(child->parent == NULL);
+	child->parent = self;
 
-	/* no refcount */
-	priv_child->parent = self;
+	if (self->children == NULL)
+		self->children = xb_arena_ptr_array_new(self->arena);
 
-	if (priv->children == NULL)
-		priv->children = g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
-
-	g_ptr_array_add(priv->children, g_object_ref(child));
+	xb_arena_ptr_array_add(self->children, child);
 }
 
 /**
@@ -555,14 +513,10 @@ xb_builder_node_add_child(XbBuilderNode *self, XbBuilderNode *child)
 void
 xb_builder_node_remove_child(XbBuilderNode *self, XbBuilderNode *child)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	XbBuilderNodePrivate *priv_child = GET_PRIVATE(child);
+	child->parent = NULL;
 
-	/* no refcount */
-	priv_child->parent = NULL;
-
-	if (priv->children != NULL)
-		g_ptr_array_remove(priv->children, child);
+	if (self->children != NULL)
+		xb_arena_ptr_array_remove(self->children, child);
 }
 
 /**
@@ -581,11 +535,9 @@ xb_builder_node_remove_child(XbBuilderNode *self, XbBuilderNode *child)
 void
 xb_builder_node_unlink(XbBuilderNode *self)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_if_fail(XB_IS_BUILDER_NODE(self));
-	if (priv->parent == NULL)
+	if (self->parent == NULL)
 		return;
-	xb_builder_node_remove_child(priv->parent, self);
+	xb_builder_node_remove_child(self->parent, self);
 }
 
 /**
@@ -601,11 +553,26 @@ xb_builder_node_unlink(XbBuilderNode *self)
 XbBuilderNode *
 xb_builder_node_get_parent(XbBuilderNode *self)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_val_if_fail(XB_IS_BUILDER_NODE(self), NULL);
-	if (priv->parent == NULL)
-		return NULL;
-	return g_object_ref(priv->parent);
+	return self->parent;
+}
+
+/**
+ * xb_builder_node_remove_parent:
+ * @self: a #XbBuilderNode
+ *
+ * Unset the parent node link without removing this node as its child
+ * Use this if the node is about to be relinked to a different tree, and
+ * the parent is about to be discarded so you don't want to modify it.
+ * The parent node is unmodified and no longer a valid tree after this operation.
+ *
+ * If you want to modify parent node to remain valid, use xb_builder_node_unlink instead.
+ *
+ * Since: 0.4.0
+ **/
+void
+xb_builder_node_remove_parent(XbBuilderNode *self)
+{
+	self->parent = NULL;
 }
 
 /**
@@ -618,18 +585,15 @@ xb_builder_node_get_parent(XbBuilderNode *self)
  *
  * Since: 0.1.0
  **/
-GPtrArray *
+XbArenaPtrArray *
 xb_builder_node_get_children(XbBuilderNode *self)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_val_if_fail(XB_IS_BUILDER_NODE(self), NULL);
-
 	/* For backwards compatibility reasons we have to return a non-%NULL
 	 * array here. */
-	if (priv->children == NULL)
-		priv->children = g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
+	if (self->children == NULL)
+		self->children = xb_arena_ptr_array_new(self->arena);
 
-	return priv->children;
+	return self->children;
 }
 
 /**
@@ -645,11 +609,9 @@ xb_builder_node_get_children(XbBuilderNode *self)
 XbBuilderNode *
 xb_builder_node_get_first_child(XbBuilderNode *self)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_val_if_fail(XB_IS_BUILDER_NODE(self), NULL);
-	if (priv->children == NULL || priv->children->len == 0)
+	if (self->children == NULL || self->children->len == 0)
 		return NULL;
-	return g_ptr_array_index(priv->children, 0);
+	return self->children->pointers[0];
 }
 
 /**
@@ -665,11 +627,9 @@ xb_builder_node_get_first_child(XbBuilderNode *self)
 XbBuilderNode *
 xb_builder_node_get_last_child(XbBuilderNode *self)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_val_if_fail(XB_IS_BUILDER_NODE(self), NULL);
-	if (priv->children == NULL || priv->children->len == 0)
+	if (self->children == NULL || self->children->len == 0)
 		return NULL;
-	return g_ptr_array_index(priv->children, priv->children->len - 1);
+	return self->children->pointers[self->children->len - 1];
 }
 
 /**
@@ -687,21 +647,18 @@ xb_builder_node_get_last_child(XbBuilderNode *self)
 XbBuilderNode *
 xb_builder_node_get_child(XbBuilderNode *self, const gchar *element, const gchar *text)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-
-	g_return_val_if_fail(XB_IS_BUILDER_NODE(self), NULL);
 	g_return_val_if_fail(element != NULL, NULL);
 
-	if (priv->children == NULL)
+	if (self->children == NULL)
 		return NULL;
 
-	for (guint i = 0; i < priv->children->len; i++) {
-		XbBuilderNode *child = g_ptr_array_index(priv->children, i);
+	for (guint i = 0; i < self->children->len; i++) {
+		XbBuilderNode *child = self->children->pointers[i];
 		if (g_strcmp0(xb_builder_node_get_element(child), element) != 0)
 			continue;
 		if (text != NULL && g_strcmp0(xb_builder_node_get_text(child), text) != 0)
 			continue;
-		return g_object_ref(child);
+		return child;
 	}
 	return NULL;
 }
@@ -717,8 +674,7 @@ typedef struct {
 static void
 xb_builder_node_traverse_cb(XbBuilderNodeTraverseHelper *helper, XbBuilderNode *bn, gint depth)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(bn);
-	GPtrArray *children = priv->children;
+	XbArenaPtrArray *children = bn->children;
 
 	/* only leaves */
 	if (helper->flags == G_TRAVERSE_LEAVES && children != NULL && children->len > 0)
@@ -735,7 +691,7 @@ xb_builder_node_traverse_cb(XbBuilderNodeTraverseHelper *helper, XbBuilderNode *
 	}
 	if ((helper->max_depth < 0 || depth < helper->max_depth) && children != NULL) {
 		for (guint i = 0; i < children->len; i++) {
-			XbBuilderNode *bc = g_ptr_array_index(children, i);
+			XbBuilderNode *bc = children->pointers[i];
 			xb_builder_node_traverse_cb(helper, bc, depth + 1);
 		}
 	}
@@ -788,202 +744,84 @@ typedef struct {
 	gpointer user_data;
 } XbBuilderNodeSortHelper;
 
-static gint
-xb_builder_node_sort_children_cb(gconstpointer a, gconstpointer b, gpointer user_data)
-{
-	XbBuilderNodeSortHelper *helper = (XbBuilderNodeSortHelper *)user_data;
-	XbBuilderNode *bn1 = *((XbBuilderNode **)a);
-	XbBuilderNode *bn2 = *((XbBuilderNode **)b);
-	return helper->func(bn1, bn2, helper->user_data);
-}
-
-/**
- * xb_builder_node_sort_children:
- * @self: a #XbBuilderNode
- * @func: (scope call): a #XbBuilderNodeSortFunc
- * @user_data: user pointer to pass to @func, or %NULL
- *
- * Sorts the node children using a custom sort function.
- *
- * Since: 0.1.3
- **/
-void
-xb_builder_node_sort_children(XbBuilderNode *self, XbBuilderNodeSortFunc func, gpointer user_data)
-{
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	XbBuilderNodeSortHelper helper = {
-	    .func = func,
-	    .user_data = user_data,
-	};
-	g_return_if_fail(XB_IS_BUILDER_NODE(self));
-	g_return_if_fail(func != NULL);
-
-	if (priv->children == NULL)
-		return;
-
-	g_ptr_array_sort_with_data(priv->children, xb_builder_node_sort_children_cb, &helper);
-}
-
 /* private */
 guint32
 xb_builder_node_get_offset(XbBuilderNode *self)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_val_if_fail(XB_IS_BUILDER_NODE(self), 0);
-	return priv->offset;
+	return self->offset;
 }
 
 /* private */
 void
 xb_builder_node_set_offset(XbBuilderNode *self, guint32 offset)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_if_fail(XB_IS_BUILDER_NODE(self));
-	priv->offset = offset;
+	self->offset = offset;
 }
 
 /* private */
 gint
 xb_builder_node_get_priority(XbBuilderNode *self)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_val_if_fail(XB_IS_BUILDER_NODE(self), 0);
-	return priv->priority;
+	return self->priority;
 }
 
 /* private */
 void
 xb_builder_node_set_priority(XbBuilderNode *self, gint priority)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_if_fail(XB_IS_BUILDER_NODE(self));
-	priv->priority = priority;
+	self->priority = priority;
 }
 
 /* private */
 guint32
 xb_builder_node_get_element_idx(XbBuilderNode *self)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_val_if_fail(XB_IS_BUILDER_NODE(self), 0);
-	return priv->element_idx;
+	return self->element_idx;
 }
 
 /* private */
 void
 xb_builder_node_set_element_idx(XbBuilderNode *self, guint32 element_idx)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_if_fail(XB_IS_BUILDER_NODE(self));
-	priv->element_idx = element_idx;
+	self->element_idx = element_idx;
 }
 
 /* private */
 guint32
 xb_builder_node_get_text_idx(XbBuilderNode *self)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_val_if_fail(XB_IS_BUILDER_NODE(self), 0);
-	return priv->text_idx;
+	return self->text_idx;
 }
 
 /* private */
 void
 xb_builder_node_set_text_idx(XbBuilderNode *self, guint32 text_idx)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_if_fail(XB_IS_BUILDER_NODE(self));
-	priv->text_idx = text_idx;
+	self->text_idx = text_idx;
 }
 
 /* private */
 guint32
 xb_builder_node_get_tail_idx(XbBuilderNode *self)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_val_if_fail(XB_IS_BUILDER_NODE(self), 0);
-	return priv->tail_idx;
+	return self->tail_idx;
 }
 
 /* private */
 void
 xb_builder_node_set_tail_idx(XbBuilderNode *self, guint32 tail_idx)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_return_if_fail(XB_IS_BUILDER_NODE(self));
-	priv->tail_idx = tail_idx;
+	self->tail_idx = tail_idx;
 }
 
 /* private */
 guint32
 xb_builder_node_size(XbBuilderNode *self)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
 	guint32 sz = sizeof(XbSiloNode);
-	gsize attr_len = (priv->attrs != NULL) ? priv->attrs->len : 0;
-	gsize token_len = (priv->tokens != NULL) ? MIN(priv->tokens->len, XB_OPCODE_TOKEN_MAX) : 0;
+	gsize attr_len = (self->attrs != NULL) ? self->attrs->len : 0;
+	gsize token_len = (self->tokens != NULL) ? MIN(self->tokens->len, XB_OPCODE_TOKEN_MAX) : 0;
 	return sz + attr_len * sizeof(XbSiloNodeAttr) + token_len * sizeof(guint32);
-}
-
-static void
-xb_builder_node_attr_free(XbBuilderNodeAttr *attr)
-{
-	g_free(attr->name);
-	g_free(attr->value);
-	g_slice_free(XbBuilderNodeAttr, attr);
-}
-
-static void
-xb_builder_node_init(XbBuilderNode *self)
-{
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	priv->element_idx = XB_SILO_UNSET;
-	priv->text_idx = XB_SILO_UNSET;
-	priv->tail_idx = XB_SILO_UNSET;
-	priv->attrs = NULL;    /* only allocated when an attribute is added */
-	priv->children = NULL; /* only allocated when a child is added */
-}
-
-static void
-xb_builder_node_dispose(GObject *obj)
-{
-	XbBuilderNode *self = XB_BUILDER_NODE(obj);
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-
-	/* clear all the child nodes’ parent pointers */
-	if (priv->children != NULL) {
-		for (guint i = 0; i < priv->children->len; i++) {
-			XbBuilderNode *child = g_ptr_array_index(priv->children, i);
-			XbBuilderNodePrivate *priv_child = GET_PRIVATE(child);
-			priv_child->parent = NULL;
-		}
-	}
-
-	G_OBJECT_CLASS(xb_builder_node_parent_class)->dispose(obj);
-}
-
-static void
-xb_builder_node_finalize(GObject *obj)
-{
-	XbBuilderNode *self = XB_BUILDER_NODE(obj);
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	g_free(priv->element);
-	g_free(priv->text);
-	g_free(priv->tail);
-	g_clear_pointer(&priv->attrs, g_ptr_array_unref);
-	g_clear_pointer(&priv->children, g_ptr_array_unref);
-	g_clear_pointer(&priv->tokens, g_ptr_array_unref);
-	g_clear_pointer(&priv->token_idxs, g_array_unref);
-	G_OBJECT_CLASS(xb_builder_node_parent_class)->finalize(obj);
-}
-
-static void
-xb_builder_node_class_init(XbBuilderNodeClass *klass)
-{
-	GObjectClass *object_class = G_OBJECT_CLASS(klass);
-
-	object_class->dispose = xb_builder_node_dispose;
-	object_class->finalize = xb_builder_node_finalize;
 }
 
 /**
@@ -997,11 +835,18 @@ xb_builder_node_class_init(XbBuilderNodeClass *klass)
  * Since: 0.1.0
  **/
 XbBuilderNode *
-xb_builder_node_new(const gchar *element)
+xb_builder_node_new(XbArena *arena, const gchar *element)
 {
-	XbBuilderNode *self = g_object_new(XB_TYPE_BUILDER_NODE, NULL);
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
-	priv->element = g_strdup(element);
+	XbBuilderNode *self = xb_arena_alloc(arena, sizeof(XbBuilderNode));
+	*self = (XbBuilderNode){
+	    .arena = arena,
+	    .element = xb_arena_strdup(arena, element),
+	    .element_idx = XB_SILO_UNSET,
+	    .text_idx = XB_SILO_UNSET,
+	    .tail_idx = XB_SILO_UNSET,
+	    .attrs = NULL,    /* only allocated when an attribute is added */
+	    .children = NULL, /* only allocated when a child is added */
+	};
 	return self;
 }
 
@@ -1018,9 +863,9 @@ xb_builder_node_new(const gchar *element)
  * Since: 0.1.0
  **/
 XbBuilderNode *
-xb_builder_node_insert(XbBuilderNode *parent, const gchar *element, ...)
+xb_builder_node_insert(XbArena *arena, XbBuilderNode *parent, const gchar *element, ...)
 {
-	XbBuilderNode *self = xb_builder_node_new(element);
+	XbBuilderNode *self = xb_builder_node_new(arena, element);
 	va_list args;
 	const gchar *key;
 	const gchar *value;
@@ -1059,7 +904,7 @@ xb_builder_node_insert(XbBuilderNode *parent, const gchar *element, ...)
 void
 xb_builder_node_insert_text(XbBuilderNode *parent, const gchar *element, const gchar *text, ...)
 {
-	g_autoptr(XbBuilderNode) self = xb_builder_node_new(element);
+	XbBuilderNode *self = xb_builder_node_new(parent->arena, element);
 	va_list args;
 	const gchar *key;
 	const gchar *value;
@@ -1096,7 +941,6 @@ xb_builder_node_export_helper(XbBuilderNode *self,
 			      XbBuilderNodeExportHelper *helper,
 			      GError **error)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
 
 	/* do not output */
 	if (xb_builder_node_has_flag(self, XB_BUILDER_NODE_FLAG_IGNORE))
@@ -1107,23 +951,23 @@ xb_builder_node_export_helper(XbBuilderNode *self,
 		for (guint i = 0; i < helper->level; i++)
 			g_string_append(helper->xml, "  ");
 	}
-	g_string_append_printf(helper->xml, "<%s", priv->element);
+	g_string_append_printf(helper->xml, "<%s", self->element);
 
 	/* add any attributes */
-	for (guint i = 0; priv->attrs != NULL && i < priv->attrs->len; i++) {
-		XbBuilderNodeAttr *a = g_ptr_array_index(priv->attrs, i);
+	for (guint i = 0; self->attrs != NULL && i < self->attrs->len; i++) {
+		XbBuilderNodeAttr *a = self->attrs->pointers[i];
 		g_autofree gchar *key = xb_string_xml_escape(a->name);
 		g_autofree gchar *val = xb_string_xml_escape(a->value);
 		g_string_append_printf(helper->xml, " %s=\"%s\"", key, val);
 	}
 
-	if (helper->flags & XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY && priv->text == NULL &&
-	    priv->children == NULL) {
+	if (helper->flags & XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY && self->text == NULL &&
+	    self->children == NULL) {
 		g_string_append(helper->xml, " />");
 	} else {
 		/* finish the opening tag and add any text if it exists */
-		if (priv->text != NULL) {
-			g_autofree gchar *text = xb_string_xml_escape(priv->text);
+		if (self->text != NULL) {
+			g_autofree gchar *text = xb_string_xml_escape(self->text);
 			g_string_append(helper->xml, ">");
 			g_string_append(helper->xml, text);
 		} else {
@@ -1133,8 +977,8 @@ xb_builder_node_export_helper(XbBuilderNode *self,
 		}
 
 		/* recurse deeper */
-		for (guint i = 0; priv->children != NULL && i < priv->children->len; i++) {
-			XbBuilderNode *child = g_ptr_array_index(priv->children, i);
+		for (guint i = 0; self->children != NULL && i < self->children->len; i++) {
+			XbBuilderNode *child = self->children->pointers[i];
 			helper->level++;
 			if (!xb_builder_node_export_helper(child, helper, error))
 				return FALSE;
@@ -1142,16 +986,16 @@ xb_builder_node_export_helper(XbBuilderNode *self,
 		}
 
 		/* add closing tag */
-		if ((helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_INDENT) > 0 && priv->text == NULL) {
+		if ((helper->flags & XB_NODE_EXPORT_FLAG_FORMAT_INDENT) > 0 && self->text == NULL) {
 			for (guint i = 0; i < helper->level; i++)
 				g_string_append(helper->xml, "  ");
 		}
-		g_string_append_printf(helper->xml, "</%s>", priv->element);
+		g_string_append_printf(helper->xml, "</%s>", self->element);
 	}
 
 	/* add any tail if it exists */
-	if (priv->tail != NULL) {
-		g_autofree gchar *tail = xb_string_xml_escape(priv->tail);
+	if (self->tail != NULL) {
+		g_autofree gchar *tail = xb_string_xml_escape(self->tail);
 		g_string_append(helper->xml, tail);
 	}
 
@@ -1181,7 +1025,6 @@ xb_builder_node_export(XbBuilderNode *self, XbNodeExportFlags flags, GError **er
 	    .level = 0,
 	    .xml = xml,
 	};
-	g_return_val_if_fail(XB_IS_BUILDER_NODE(self), NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 	if ((flags & XB_NODE_EXPORT_FLAG_ADD_HEADER) > 0)
 		g_string_append(xml, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
@@ -1202,14 +1045,13 @@ xb_builder_node_export(XbBuilderNode *self, XbNodeExportFlags flags, GError **er
 void
 xb_builder_node_add_token(XbBuilderNode *self, const gchar *token)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
 
 	g_return_if_fail(self != NULL);
 	g_return_if_fail(token != NULL);
 
-	if (priv->tokens == NULL)
-		priv->tokens = g_ptr_array_new_with_free_func(g_free);
-	g_ptr_array_add(priv->tokens, g_strdup(token));
+	if (self->tokens == NULL)
+		self->tokens = g_ptr_array_new_with_free_func(g_free);
+	g_ptr_array_add(self->tokens, xb_arena_strdup(self->arena, token));
 }
 
 /**
@@ -1225,30 +1067,27 @@ xb_builder_node_add_token(XbBuilderNode *self, const gchar *token)
 GPtrArray *
 xb_builder_node_get_tokens(XbBuilderNode *self)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
 	g_return_val_if_fail(self != NULL, NULL);
-	return priv->tokens;
+	return self->tokens;
 }
 
 /* private */
 void
 xb_builder_node_add_token_idx(XbBuilderNode *self, guint32 tail_idx)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
 
 	g_return_if_fail(self != NULL);
 	g_return_if_fail(tail_idx != XB_SILO_UNSET);
 
-	if (priv->token_idxs == NULL)
-		priv->token_idxs = g_array_new(FALSE, FALSE, sizeof(guint32));
-	g_array_append_val(priv->token_idxs, tail_idx);
+	if (self->token_idxs == NULL)
+		self->token_idxs = g_array_new(FALSE, FALSE, sizeof(guint32));
+	g_array_append_val(self->token_idxs, tail_idx);
 }
 
 /* Returns: (transfer none) (element-type guint32) (nullable): token indexes */
 GArray *
 xb_builder_node_get_token_idxs(XbBuilderNode *self)
 {
-	XbBuilderNodePrivate *priv = GET_PRIVATE(self);
 	g_return_val_if_fail(self != NULL, NULL);
-	return priv->token_idxs;
+	return self->token_idxs;
 }

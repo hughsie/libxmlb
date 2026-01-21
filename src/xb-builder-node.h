@@ -6,25 +6,9 @@
 
 #pragma once
 
+#include "xb-arena.h"
 #include "xb-compile.h"
 #include "xb-node.h"
-
-G_BEGIN_DECLS
-
-#define XB_TYPE_BUILDER_NODE (xb_builder_node_get_type())
-G_DECLARE_DERIVABLE_TYPE(XbBuilderNode, xb_builder_node, XB, BUILDER_NODE, GObject)
-
-struct _XbBuilderNodeClass {
-	GObjectClass parent_class;
-	/*< private >*/
-	void (*_xb_reserved1)(void);
-	void (*_xb_reserved2)(void);
-	void (*_xb_reserved3)(void);
-	void (*_xb_reserved4)(void);
-	void (*_xb_reserved5)(void);
-	void (*_xb_reserved6)(void);
-	void (*_xb_reserved7)(void);
-};
 
 /**
  * XbBuilderNodeFlags:
@@ -51,15 +35,22 @@ typedef enum {
 	XB_BUILDER_NODE_FLAG_LAST
 } XbBuilderNodeFlags;
 
+/* XbBuilderNodes are deliberately not part of the GObject system. They are plain C structs
+ * this is because there are potentially tens of thousands of them and the overhead of GObject
+ * per-object RAM overhead and memory management becomes significant at that scale.
+ * Builder node objects are owned by a memory arena - see xb_arena.h
+ * In versions 0.3.22 and earler these were GObjects, and profiling showed this was the main
+ * bottleneck to parser performance. */
+typedef struct XbBuilderNode XbBuilderNode;
+
 typedef gboolean (*XbBuilderNodeTraverseFunc)(XbBuilderNode *bn, gpointer user_data);
 typedef gint (*XbBuilderNodeSortFunc)(XbBuilderNode *bn1, XbBuilderNode *bn2, gpointer user_data);
 
 XbBuilderNode *
-xb_builder_node_new(const gchar *element);
+xb_builder_node_new(XbArena *arena, const gchar *element) G_GNUC_NON_NULL(1);
 XbBuilderNode *
-xb_builder_node_insert(XbBuilderNode *parent,
-		       const gchar *element,
-		       ...) G_GNUC_NULL_TERMINATED G_GNUC_WARN_UNUSED_RESULT G_GNUC_NON_NULL(2);
+xb_builder_node_insert(XbArena *arena, XbBuilderNode *parent, const gchar *element, ...)
+    G_GNUC_NULL_TERMINATED G_GNUC_WARN_UNUSED_RESULT G_GNUC_NON_NULL(1, 3);
 void
 xb_builder_node_insert_text(XbBuilderNode *parent, const gchar *element, const gchar *text, ...)
     G_GNUC_NULL_TERMINATED G_GNUC_NON_NULL(1, 2);
@@ -99,7 +90,7 @@ void
 xb_builder_node_add_child(XbBuilderNode *self, XbBuilderNode *child) G_GNUC_NON_NULL(2);
 void
 xb_builder_node_remove_child(XbBuilderNode *self, XbBuilderNode *child) G_GNUC_NON_NULL(1);
-GPtrArray *
+XbArenaPtrArray *
 xb_builder_node_get_children(XbBuilderNode *self) G_GNUC_NON_NULL(1);
 XbBuilderNode *
 xb_builder_node_get_first_child(XbBuilderNode *self) G_GNUC_NON_NULL(1);
@@ -112,6 +103,8 @@ void
 xb_builder_node_unlink(XbBuilderNode *self) G_GNUC_NON_NULL(1);
 XbBuilderNode *
 xb_builder_node_get_parent(XbBuilderNode *self) G_GNUC_NON_NULL(1);
+void
+xb_builder_node_remove_parent(XbBuilderNode *self) G_GNUC_NON_NULL(1);
 guint
 xb_builder_node_depth(XbBuilderNode *self) G_GNUC_NON_NULL(1);
 void
@@ -121,9 +114,6 @@ xb_builder_node_traverse(XbBuilderNode *self,
 			 gint max_depth,
 			 XbBuilderNodeTraverseFunc func,
 			 gpointer user_data) G_GNUC_NON_NULL(1, 5);
-void
-xb_builder_node_sort_children(XbBuilderNode *self, XbBuilderNodeSortFunc func, gpointer user_data)
-    G_GNUC_NON_NULL(1, 2);
 gchar *
 xb_builder_node_export(XbBuilderNode *self, XbNodeExportFlags flags, GError **error)
     G_GNUC_NON_NULL(1);
@@ -131,5 +121,3 @@ GPtrArray *
 xb_builder_node_get_tokens(XbBuilderNode *self) G_GNUC_NON_NULL(1);
 void
 xb_builder_node_add_token(XbBuilderNode *self, const gchar *token) G_GNUC_NON_NULL(1, 2);
-
-G_END_DECLS
