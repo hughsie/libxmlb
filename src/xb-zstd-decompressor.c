@@ -111,7 +111,27 @@ xb_zstd_decompressor_convert(GConverter *converter,
 	*bytes_written = output.pos;
 
 	/* success */
-	return res == 0 ? G_CONVERTER_FINISHED : G_CONVERTER_CONVERTED;
+	if (res == 0)
+		return G_CONVERTER_FINISHED;
+
+	/* did nothing, need more input? */
+	if (input.pos == 0 && output.pos == 0) {
+		if (flags & G_CONVERTER_INPUT_AT_END) {
+			g_set_error_literal(error,
+					    G_IO_ERROR,
+					    G_IO_ERROR_INVALID_DATA,
+					    "unexpected end of zstd stream");
+			return G_CONVERTER_ERROR;
+		}
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_PARTIAL_INPUT,
+				    "need more zstd data");
+		return G_CONVERTER_ERROR;
+	}
+
+	/* keep going */
+	return G_CONVERTER_CONVERTED;
 }
 
 static void
