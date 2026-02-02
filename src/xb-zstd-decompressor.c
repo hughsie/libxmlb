@@ -28,7 +28,8 @@ static void
 xb_zstd_decompressor_finalize(GObject *object)
 {
 	XbZstdDecompressor *self = XB_ZSTD_DECOMPRESSOR(object);
-	ZSTD_freeDStream(self->zstdstream);
+	if (self->zstdstream != NULL)
+		ZSTD_freeDStream(self->zstdstream);
 	G_OBJECT_CLASS(xb_zstd_decompressor_parent_class)->finalize(object);
 }
 
@@ -89,6 +90,14 @@ xb_zstd_decompressor_convert(GConverter *converter,
 	};
 	size_t res;
 
+	/* constructor failure */
+	if (self->zstdstream == NULL) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_FAILED,
+				    "failed to initialize libzstd");
+		return G_CONVERTER_ERROR;
+	}
 	res = ZSTD_decompressStream(self->zstdstream, &output, &input);
 	if (ZSTD_isError(res)) {
 		g_set_error(error,
