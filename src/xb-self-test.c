@@ -709,6 +709,11 @@ xb_builder_ensure_func(void)
 	g_test_skip("inotify does not work on mingw");
 	return;
 #endif
+#ifdef __sun
+	/* no inotify */
+	g_test_skip("missing support for inotify");
+	return;
+#endif
 
 	/* import some XML */
 	xb_builder_set_profile_flags(builder, XB_SILO_PROFILE_FLAG_DEBUG);
