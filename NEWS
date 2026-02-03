@@ -1,3 +1,10 @@
+Version 0.3.25
+~~~~~~~~~~~~~~
+Released: 2026-02-03
+
+Bugfixes:
+ - Correctly decompress heavily compressed zstd streams (Richard Hughes)
+
 Version 0.3.24
 ~~~~~~~~~~~~~~
 Released: 2025-09-10
