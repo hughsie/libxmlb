@@ -30,7 +30,7 @@ def get_sym_groups(lines, namespace):
     # Look, if any, since which version were the symbols
     # group added
     ending_notail_regex = re.compile(r"^};\s+$")
-    ending_tail_regex = re.compile(r"^}\s+" + namespace_with_ver_regex + ";\s+$")
+    ending_tail_regex = re.compile(r"^}\s+" + namespace_with_ver_regex + r";\s+$")
 
     for l in lines:
         # New symbols group found in map file
