@@ -1927,6 +1927,37 @@ xb_builder_comments_func(void)
 }
 
 static void
+xb_builder_cdata_func(void)
+{
+	gboolean ret;
+	g_autoptr(GError) error = NULL;
+	g_autofree gchar *str = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new();
+	g_autoptr(XbSilo) silo = NULL;
+	const gchar *xml = "<?xml version=\"1.0\" ?>\n"
+			   "<components>\n"
+			   "  <component>\n"
+			   "     <text>plain text</text>\n"
+			   "     <summary><![CDATA[1 2 3]]></summary>\n"
+			   "     <description><p>s <![CDATA[1]]> p <![CDATA[2]]> l <![CDATA[3]]> i <![CDATA[4]]> t</p><p><![CDATA[><]]></p><p><![CDATA[\"]]></p></description>\n"
+			   "  </component>\n"
+			   "</components>\n";
+
+	/* import XML */
+	ret = xb_test_import_xml(builder, xml, &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+	silo = xb_builder_compile(builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	/* export */
+	str = xb_silo_export(silo, XB_NODE_EXPORT_FLAG_NONE, &error);
+	g_assert_no_error(error);
+	g_assert_cmpstr(str, ==, "<components><component><text>plain text</text><summary>1 2 3</summary><description><p>s 1 p 2 l 3 i 4 t</p><p>&gt;&lt;</p><p>&quot;</p></description></component></components>");
+}
+
+static void
 xb_builder_native_lang2_func(void)
 {
 	gboolean ret;
@@ -2948,6 +2979,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/node{export-collapse}", xb_node_export_collapse_func);
 	g_test_add_func("/libxmlb/builder", xb_builder_func);
 	g_test_add_func("/libxmlb/builder{comments}", xb_builder_comments_func);
+	g_test_add_func("/libxmlb/builder{cdata}", xb_builder_cdata_func);
 	g_test_add_func("/libxmlb/builder{native-lang}", xb_builder_native_lang_func);
 	g_test_add_func("/libxmlb/builder{native-lang-nested}", xb_builder_native_lang2_func);
 	g_test_add_func("/libxmlb/builder{native-lang-locale}",
