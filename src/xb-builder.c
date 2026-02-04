@@ -41,6 +41,7 @@ typedef struct {
 	GHashTable *strtab_hash;
 	GByteArray *strtab;
 	GPtrArray *locales;
+	gboolean elem_closed;
 } XbBuilderCompileHelper;
 
 static guint32
@@ -119,6 +120,8 @@ xb_builder_compile_start_element_cb(GMarkupParseContext *context,
 	/* add to tree */
 	xb_builder_node_add_child(helper->current, bn);
 	helper->current = bn;
+
+	helper->elem_closed = FALSE;
 }
 
 static void
@@ -137,6 +140,7 @@ xb_builder_compile_end_element_cb(GMarkupParseContext *context,
 		return;
 	}
 	helper->current = parent;
+	helper->elem_closed = TRUE;
 }
 
 static void
@@ -159,8 +163,14 @@ xb_builder_compile_text_cb(GMarkupParseContext *context,
 		xb_builder_node_add_flag(bn, XB_BUILDER_NODE_FLAG_LITERAL_TEXT);
 
 	/* text or tail */
-	if (!xb_builder_node_has_flag(bn, XB_BUILDER_NODE_FLAG_HAS_TEXT)) {
-		xb_builder_node_set_text(bn, text, text_len);
+	if (!helper->elem_closed) {
+		if (xb_builder_node_has_flag(bn, XB_BUILDER_NODE_FLAG_HAS_TEXT)) {
+			g_autoptr(GString) str = g_string_new (xb_builder_node_get_text(bn));
+			g_string_append_len(str, text, text_len);
+			xb_builder_node_set_text(bn, str->str, str->len);
+		} else {
+			xb_builder_node_set_text(bn, text, text_len);
+		}
 		return;
 	}
 
@@ -793,6 +803,7 @@ xb_builder_compile(XbBuilder *self,
 	helper->locales = priv->locales;
 	helper->strtab = g_byte_array_new();
 	helper->strtab_hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+	helper->elem_closed = FALSE;
 
 	/* for profiling */
 	xb_silo_set_profile_flags(helper->silo, priv->profile_flags);
