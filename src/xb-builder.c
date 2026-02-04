@@ -242,7 +242,7 @@ xb_builder_compile_source(XbBuilderCompileHelper *helper,
 		return FALSE;
 
 	/* parse */
-	ctx = g_markup_parse_context_new(&parser, G_MARKUP_PREFIX_ERROR_POSITION, helper, NULL);
+	ctx = g_markup_parse_context_new(&parser, G_MARKUP_PREFIX_ERROR_POSITION | G_MARKUP_TREAT_CDATA_AS_TEXT, helper, NULL);
 	data = g_malloc(chunk_size);
 	while ((len = g_input_stream_read(istream, data, chunk_size, cancellable, error)) > 0) {
 		if (!g_markup_parse_context_parse(ctx, data, len, error))
