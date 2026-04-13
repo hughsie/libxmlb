@@ -783,7 +783,7 @@ xb_machine_parse_text(XbMachine *self,
 			j = xb_machine_parse_text(self,
 						  opcodes,
 						  text + i + 1,
-						  text_len - i,
+						  text_len - i - 1,
 						  level + 1,
 						  error);
 			if (j == G_MAXSIZE)
@@ -812,7 +812,7 @@ xb_machine_parse_text(XbMachine *self,
 			return i + 1;
 		}
 	}
-	if (tail != text_len && level > 0) {
+	if (level > 0) {
 		if (error != NULL) {
 			g_autofree gchar *tmp = g_strndup(text, text_len);
 			g_set_error(error,
