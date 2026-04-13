@@ -15,6 +15,8 @@
 #include "xb-silo-node.h"
 #include "xb-string-private.h"
 
+#define XB_SILO_EXPORT_MAX_DEPTH 100
+
 typedef struct {
 	GString *xml;
 	XbNodeExportFlags flags;
@@ -100,6 +102,17 @@ xb_silo_export_node(XbSilo *self, XbSiloExportHelper *helper, XbSiloNode *sn, GE
 				return FALSE;
 			if (!xb_silo_node_has_flag(child, XB_SILO_NODE_FLAG_IS_ELEMENT))
 				break;
+
+			/* check recursion depth to prevent stack overflow */
+			if (helper->level >= XB_SILO_EXPORT_MAX_DEPTH) {
+				g_set_error(error,
+					    G_IO_ERROR,
+					    G_IO_ERROR_INVALID_DATA,
+					    "nesting deeper than %u levels not supported",
+					    (guint)XB_SILO_EXPORT_MAX_DEPTH);
+				return FALSE;
+			}
+
 			helper->level++;
 			if (!xb_silo_export_node(self, helper, child, error))
 				return FALSE;
