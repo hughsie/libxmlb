@@ -165,7 +165,7 @@ xb_builder_compile_text_cb(GMarkupParseContext *context,
 	/* text or tail */
 	if (!helper->elem_closed) {
 		if (xb_builder_node_has_flag(bn, XB_BUILDER_NODE_FLAG_HAS_TEXT)) {
-			g_autoptr(GString) str = g_string_new (xb_builder_node_get_text(bn));
+			g_autoptr(GString) str = g_string_new(xb_builder_node_get_text(bn));
 			g_string_append_len(str, text, text_len);
 			xb_builder_node_set_text(bn, str->str, str->len);
 		} else {
@@ -242,7 +242,11 @@ xb_builder_compile_source(XbBuilderCompileHelper *helper,
 		return FALSE;
 
 	/* parse */
-	ctx = g_markup_parse_context_new(&parser, G_MARKUP_PREFIX_ERROR_POSITION | G_MARKUP_TREAT_CDATA_AS_TEXT, helper, NULL);
+	ctx = g_markup_parse_context_new(&parser,
+					 G_MARKUP_PREFIX_ERROR_POSITION |
+					     G_MARKUP_TREAT_CDATA_AS_TEXT,
+					 helper,
+					 NULL);
 	data = g_malloc(chunk_size);
 	while ((len = g_input_stream_read(istream, data, chunk_size, cancellable, error)) > 0) {
 		if (!g_markup_parse_context_parse(ctx, data, len, error))

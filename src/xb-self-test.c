@@ -1934,14 +1934,16 @@ xb_builder_cdata_func(void)
 	g_autofree gchar *str = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new();
 	g_autoptr(XbSilo) silo = NULL;
-	const gchar *xml = "<?xml version=\"1.0\" ?>\n"
-			   "<components>\n"
-			   "  <component>\n"
-			   "     <text>plain text</text>\n"
-			   "     <summary><![CDATA[1 2 3]]></summary>\n"
-			   "     <description><p>s <![CDATA[1]]> p <![CDATA[2]]> l <![CDATA[3]]> i <![CDATA[4]]> t</p><p><![CDATA[><]]></p><p><![CDATA[\"]]></p></description>\n"
-			   "  </component>\n"
-			   "</components>\n";
+	const gchar *xml =
+	    "<?xml version=\"1.0\" ?>\n"
+	    "<components>\n"
+	    "  <component>\n"
+	    "     <text>plain text</text>\n"
+	    "     <summary><![CDATA[1 2 3]]></summary>\n"
+	    "     <description><p>s <![CDATA[1]]> p <![CDATA[2]]> l <![CDATA[3]]> i <![CDATA[4]]> "
+	    "t</p><p><![CDATA[><]]></p><p><![CDATA[\"]]></p></description>\n"
+	    "  </component>\n"
+	    "</components>\n";
 
 	/* import XML */
 	ret = xb_test_import_xml(builder, xml, &error);
@@ -1954,7 +1956,11 @@ xb_builder_cdata_func(void)
 	/* export */
 	str = xb_silo_export(silo, XB_NODE_EXPORT_FLAG_NONE, &error);
 	g_assert_no_error(error);
-	g_assert_cmpstr(str, ==, "<components><component><text>plain text</text><summary>1 2 3</summary><description><p>s 1 p 2 l 3 i 4 t</p><p>&gt;&lt;</p><p>&quot;</p></description></component></components>");
+	g_assert_cmpstr(str,
+			==,
+			"<components><component><text>plain text</text><summary>1 2 "
+			"3</summary><description><p>s 1 p 2 l 3 i 4 "
+			"t</p><p>&gt;&lt;</p><p>&quot;</p></description></component></components>");
 }
 
 static void
