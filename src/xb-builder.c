@@ -20,6 +20,8 @@
 #include "xb-string-private.h"
 #include "xb-version.h"
 
+#define XB_BUILDER_MAX_DEPTH 100
+
 typedef struct {
 	GPtrArray *sources; /* of XbBuilderSource */
 	GPtrArray *nodes;   /* of XbBuilderNode */
@@ -42,6 +44,7 @@ typedef struct {
 	GByteArray *strtab;
 	GPtrArray *locales;
 	gboolean elem_closed;
+	guint depth;
 } XbBuilderCompileHelper;
 
 static guint32
@@ -82,6 +85,17 @@ xb_builder_compile_start_element_cb(GMarkupParseContext *context,
 {
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *)user_data;
 	g_autoptr(XbBuilderNode) bn = xb_builder_node_new(element_name);
+
+	/* check recursion depth to prevent stack exhaustion */
+	if (helper->depth >= XB_BUILDER_MAX_DEPTH) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "nesting deeper than %u levels not supported",
+			    (guint)XB_BUILDER_MAX_DEPTH);
+		return;
+	}
+	helper->depth++;
 
 	/* parent node is being ignored */
 	if (helper->current != NULL &&
@@ -140,6 +154,7 @@ xb_builder_compile_end_element_cb(GMarkupParseContext *context,
 		return;
 	}
 	helper->current = parent;
+	helper->depth--;
 	helper->elem_closed = TRUE;
 }
 
