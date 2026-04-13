@@ -117,6 +117,10 @@ xb_silo_node_get_token_idx(const XbSiloNode *self, guint idx)
 	if (!xb_silo_node_has_flag(self, XB_SILO_NODE_FLAG_IS_TOKENIZED))
 		return XB_SILO_UNSET;
 
+	/* bounds check */
+	if (G_UNLIKELY(idx >= self->token_count))
+		return XB_SILO_UNSET;
+
 	/* calculate offset to token */
 	off += sizeof(XbSiloNode);
 	off += self->attr_count * sizeof(XbSiloNodeAttr);
