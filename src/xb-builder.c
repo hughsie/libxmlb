@@ -491,8 +491,10 @@ xb_builder_nodetab_write_sentinel(XbBuilderNodetabHelper *helper)
 	g_byte_array_append(helper->buf, (const guint8 *)&sn, xb_silo_node_get_size(&sn));
 }
 
-static void
-xb_builder_nodetab_write_node(XbBuilderNodetabHelper *helper, XbBuilderNode *bn)
+#define XB_BUILDER_ATTR_MAX ((1 << 6) - 1)
+
+static gboolean
+xb_builder_nodetab_write_node(XbBuilderNodetabHelper *helper, XbBuilderNode *bn, GError **error)
 {
 	GPtrArray *attrs = xb_builder_node_get_attrs(bn);
 	GArray *token_idxs = xb_builder_node_get_token_idxs(bn);
@@ -506,6 +508,16 @@ xb_builder_nodetab_write_node(XbBuilderNodetabHelper *helper, XbBuilderNode *bn)
 	    .tail = xb_builder_node_get_tail_idx(bn),
 	    .token_count = 0,
 	};
+
+	/* sanity check */
+	if (attrs != NULL && attrs->len > XB_BUILDER_ATTR_MAX) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_NOT_SUPPORTED,
+			    "too many attributes: %u",
+			    attrs->len);
+		return FALSE;
+	}
 
 	/* add tokens */
 	if (token_idxs != NULL)
@@ -548,31 +560,40 @@ xb_builder_nodetab_write_node(XbBuilderNodetabHelper *helper, XbBuilderNode *bn)
 		guint32 idx = g_array_index(token_idxs, guint32, i);
 		g_byte_array_append(helper->buf, (const guint8 *)&idx, sizeof(idx));
 	}
+
+	/* success */
+	return TRUE;
 }
 
-static void
-xb_builder_nodetab_write(XbBuilderNodetabHelper *helper, XbBuilderNode *bn)
+static gboolean
+xb_builder_nodetab_write(XbBuilderNodetabHelper *helper, XbBuilderNode *bn, GError **error)
 {
 	GPtrArray *children;
 
 	/* ignore this */
 	if (xb_builder_node_has_flag(bn, XB_BUILDER_NODE_FLAG_IGNORE))
-		return;
+		return TRUE;
 
 	/* element */
-	if (xb_builder_node_get_element(bn) != NULL)
-		xb_builder_nodetab_write_node(helper, bn);
+	if (xb_builder_node_get_element(bn) != NULL) {
+		if (!xb_builder_nodetab_write_node(helper, bn, error))
+			return FALSE;
+	}
 
 	/* children */
 	children = xb_builder_node_get_children(bn);
 	for (guint i = 0; i < children->len; i++) {
 		XbBuilderNode *bc = g_ptr_array_index(children, i);
-		xb_builder_nodetab_write(helper, bc);
+		if (!xb_builder_nodetab_write(helper, bc, error))
+			return FALSE;
 	}
 
 	/* sentinel */
 	if (xb_builder_node_get_element(bn) != NULL)
 		xb_builder_nodetab_write_sentinel(helper);
+
+	/* success */
+	return TRUE;
 }
 
 static XbSiloNode *
@@ -941,7 +962,8 @@ xb_builder_compile(XbBuilder *self,
 
 	/* write nodes to the nodetab */
 	nodetab_helper.buf = buf;
-	xb_builder_nodetab_write(&nodetab_helper, helper->root);
+	if (!xb_builder_nodetab_write(&nodetab_helper, helper->root, error))
+		return NULL;
 	xb_silo_add_profile(helper->silo, timer, "writing nodetab");
 
 	/* set all the ->next and ->parent offsets */
