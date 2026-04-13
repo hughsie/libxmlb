@@ -93,6 +93,11 @@ static inline XbSiloNodeAttr *
 xb_silo_node_get_attr(const XbSiloNode *self, guint8 idx)
 {
 	guint32 off = sizeof(XbSiloNode);
+
+	/* bounds check to prevent out-of-bounds read */
+	if (G_UNLIKELY(idx >= self->attr_count))
+		return NULL;
+
 	off += sizeof(XbSiloNodeAttr) * idx;
 	return (XbSiloNodeAttr *)(((guint8 *)self) + off);
 }
