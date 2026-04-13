@@ -2313,6 +2313,16 @@ xb_machine_func_in_cb(XbMachine *self,
 		nr_args++;
 	}
 
+	/* sanity check */
+	if (nr_args > XB_MACHINE_STACK_LEVELS_MAX) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_NOT_SUPPORTED,
+			    "too many arguments for in(): %u",
+			    nr_args);
+		return FALSE;
+	}
+
 	/* ensure the needle is also a string */
 	op_needle = xb_stack_peek(stack, xb_stack_get_size(stack) - (nr_args + 1));
 	if (!xb_opcode_cmp_str(op_needle)) {
