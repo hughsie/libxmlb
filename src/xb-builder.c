@@ -45,6 +45,7 @@ typedef struct {
 	GPtrArray *locales;
 	gboolean elem_closed;
 	guint depth;
+	GError *error;
 } XbBuilderCompileHelper;
 
 static guint32
@@ -52,14 +53,34 @@ xb_builder_compile_add_to_strtab(XbBuilderCompileHelper *helper, const gchar *st
 {
 	gpointer val;
 	guint32 idx;
+	gsize str_len;
 
 	/* already exists */
 	if (g_hash_table_lookup_extended(helper->strtab_hash, str, NULL, &val))
 		return GPOINTER_TO_UINT(val);
 
+	/* check for integer truncation */
+	if (helper->strtab->len > G_MAXINT32) {
+		g_set_error(&helper->error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "string table too large");
+		return XB_SILO_UNSET;
+	}
+
+	/* check if adding this string would exceed the limit */
+	str_len = strlen(str) + 1;
+	if (helper->strtab->len + str_len > G_MAXUINT32) {
+		g_set_error(&helper->error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "string table too large");
+		return XB_SILO_UNSET;
+	}
+
 	/* new */
 	idx = helper->strtab->len;
-	g_byte_array_append(helper->strtab, (const guint8 *)str, strlen(str) + 1);
+	g_byte_array_append(helper->strtab, (const guint8 *)str, str_len);
 	g_hash_table_insert(helper->strtab_hash, g_strdup(str), GUINT_TO_POINTER(idx));
 	return idx;
 }
@@ -334,6 +355,7 @@ xb_builder_strtab_element_names_cb(XbBuilderNode *bn, gpointer user_data)
 {
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *)user_data;
 	const gchar *tmp;
+	guint32 strtab_idx;
 
 	/* root node */
 	if (xb_builder_node_get_element(bn) == NULL)
@@ -341,7 +363,10 @@ xb_builder_strtab_element_names_cb(XbBuilderNode *bn, gpointer user_data)
 	if (xb_builder_node_has_flag(bn, XB_BUILDER_NODE_FLAG_IGNORE))
 		return FALSE;
 	tmp = xb_builder_node_get_element(bn);
-	xb_builder_node_set_element_idx(bn, xb_builder_compile_add_to_strtab(helper, tmp));
+	strtab_idx = xb_builder_compile_add_to_strtab(helper, tmp);
+	if (strtab_idx == XB_SILO_UNSET)
+		return TRUE;
+	xb_builder_node_set_element_idx(bn, strtab_idx);
 	return FALSE;
 }
 
@@ -360,6 +385,8 @@ xb_builder_strtab_attr_name_cb(XbBuilderNode *bn, gpointer user_data)
 	for (guint i = 0; attrs != NULL && i < attrs->len; i++) {
 		XbBuilderNodeAttr *attr = g_ptr_array_index(attrs, i);
 		attr->name_idx = xb_builder_compile_add_to_strtab(helper, attr->name);
+		if (attr->name_idx == XB_SILO_UNSET)
+			return TRUE;
 	}
 	return FALSE;
 }
@@ -379,6 +406,8 @@ xb_builder_strtab_attr_value_cb(XbBuilderNode *bn, gpointer user_data)
 	for (guint i = 0; attrs != NULL && i < attrs->len; i++) {
 		XbBuilderNodeAttr *attr = g_ptr_array_index(attrs, i);
 		attr->value_idx = xb_builder_compile_add_to_strtab(helper, attr->value);
+		if (attr->value_idx == XB_SILO_UNSET)
+			return TRUE;
 	}
 	return FALSE;
 }
@@ -388,6 +417,7 @@ xb_builder_strtab_text_cb(XbBuilderNode *bn, gpointer user_data)
 {
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *)user_data;
 	const gchar *tmp;
+	guint32 strtab_idx;
 
 	/* root node */
 	if (xb_builder_node_get_element(bn) == NULL)
@@ -396,11 +426,17 @@ xb_builder_strtab_text_cb(XbBuilderNode *bn, gpointer user_data)
 		return FALSE;
 	if (xb_builder_node_get_text(bn) != NULL) {
 		tmp = xb_builder_node_get_text(bn);
-		xb_builder_node_set_text_idx(bn, xb_builder_compile_add_to_strtab(helper, tmp));
+		strtab_idx = xb_builder_compile_add_to_strtab(helper, tmp);
+		if (strtab_idx == XB_SILO_UNSET)
+			return TRUE;
+		xb_builder_node_set_text_idx(bn, strtab_idx);
 	}
 	if (xb_builder_node_get_tail(bn) != NULL) {
 		tmp = xb_builder_node_get_tail(bn);
-		xb_builder_node_set_tail_idx(bn, xb_builder_compile_add_to_strtab(helper, tmp));
+		strtab_idx = xb_builder_compile_add_to_strtab(helper, tmp);
+		if (strtab_idx == XB_SILO_UNSET)
+			return TRUE;
+		xb_builder_node_set_tail_idx(bn, strtab_idx);
 	}
 	return FALSE;
 }
@@ -410,6 +446,7 @@ xb_builder_strtab_tokens_cb(XbBuilderNode *bn, gpointer user_data)
 {
 	XbBuilderCompileHelper *helper = (XbBuilderCompileHelper *)user_data;
 	GPtrArray *tokens = xb_builder_node_get_tokens(bn);
+	guint32 strtab_idx;
 
 	/* root node */
 	if (xb_builder_node_get_element(bn) == NULL)
@@ -422,7 +459,10 @@ xb_builder_strtab_tokens_cb(XbBuilderNode *bn, gpointer user_data)
 		const gchar *tmp = g_ptr_array_index(tokens, i);
 		if (tmp == NULL)
 			continue;
-		xb_builder_node_add_token_idx(bn, xb_builder_compile_add_to_strtab(helper, tmp));
+		strtab_idx = xb_builder_compile_add_to_strtab(helper, tmp);
+		if (strtab_idx == XB_SILO_UNSET)
+			return TRUE;
+		xb_builder_node_add_token_idx(bn, strtab_idx);
 	}
 	return FALSE;
 }
@@ -665,6 +705,7 @@ xb_builder_compile_helper_free(XbBuilderCompileHelper *helper)
 {
 	g_hash_table_unref(helper->strtab_hash);
 	g_byte_array_unref(helper->strtab);
+	g_clear_error(&helper->error);
 	g_clear_object(&helper->silo);
 	g_object_unref(helper->root);
 	g_free(helper);
@@ -933,6 +974,10 @@ xb_builder_compile(XbBuilder *self,
 				 -1,
 				 xb_builder_strtab_element_names_cb,
 				 helper);
+	if (helper->error != NULL) {
+		g_propagate_error(error, g_steal_pointer(&helper->error));
+		return NULL;
+	}
 	hdr.strtab_ntags = g_hash_table_size(helper->strtab_hash);
 	xb_silo_add_profile(helper->silo, timer, "adding strtab element");
 	xb_builder_node_traverse(helper->root,
@@ -941,6 +986,10 @@ xb_builder_compile(XbBuilder *self,
 				 -1,
 				 xb_builder_strtab_attr_name_cb,
 				 helper);
+	if (helper->error != NULL) {
+		g_propagate_error(error, g_steal_pointer(&helper->error));
+		return NULL;
+	}
 	xb_silo_add_profile(helper->silo, timer, "adding strtab attr name");
 	xb_builder_node_traverse(helper->root,
 				 G_PRE_ORDER,
@@ -948,6 +997,10 @@ xb_builder_compile(XbBuilder *self,
 				 -1,
 				 xb_builder_strtab_attr_value_cb,
 				 helper);
+	if (helper->error != NULL) {
+		g_propagate_error(error, g_steal_pointer(&helper->error));
+		return NULL;
+	}
 	xb_silo_add_profile(helper->silo, timer, "adding strtab attr value");
 	xb_builder_node_traverse(helper->root,
 				 G_PRE_ORDER,
@@ -955,6 +1008,10 @@ xb_builder_compile(XbBuilder *self,
 				 -1,
 				 xb_builder_strtab_text_cb,
 				 helper);
+	if (helper->error != NULL) {
+		g_propagate_error(error, g_steal_pointer(&helper->error));
+		return NULL;
+	}
 	xb_silo_add_profile(helper->silo, timer, "adding strtab text");
 	xb_builder_node_traverse(helper->root,
 				 G_PRE_ORDER,
@@ -962,6 +1019,10 @@ xb_builder_compile(XbBuilder *self,
 				 -1,
 				 xb_builder_strtab_tokens_cb,
 				 helper);
+	if (helper->error != NULL) {
+		g_propagate_error(error, g_steal_pointer(&helper->error));
+		return NULL;
+	}
 	xb_silo_add_profile(helper->silo, timer, "adding strtab tokens");
 
 	/* add the initial header */
