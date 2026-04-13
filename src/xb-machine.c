@@ -1407,6 +1407,7 @@ xb_machine_set_stack_size(XbMachine *self, guint stack_size)
 	XbMachinePrivate *priv = GET_PRIVATE(self);
 	g_return_if_fail(XB_IS_MACHINE(self));
 	g_return_if_fail(stack_size != 0);
+	g_return_if_fail(stack_size < 5000);
 	priv->stack_size = stack_size;
 }
 
