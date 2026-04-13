@@ -771,13 +771,18 @@ xb_silo_load_from_bytes(XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErro
 
 	/* update pointers into blob */
 	priv->data = g_bytes_get_data(priv->blob, &sz);
-	priv->datasz = (guint32)sz;
 
-	/* check size */
+	/* check size  */
 	if (sz < sizeof(XbSiloHeader)) {
 		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA, "blob too small");
 		return FALSE;
 	}
+	if (sz > G_MAXINT32) {
+		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA, "blob too large");
+		return FALSE;
+	}
+
+	priv->datasz = (guint32)sz;
 
 	/* check header magic */
 	hdr = (XbSiloHeader *)priv->data;
