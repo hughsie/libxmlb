@@ -1,3 +1,16 @@
+Version 0.3.26
+~~~~~~~~~~~~~~
+Released: 2026-04-14
+
+New Features:
+ - Parse CDATA as text (Milan Crha)
+
+Bugfixes:
+ - Add bounds check to prevent OOB read in token index lookup (Richard Hughes)
+ - Do not write an invalid silo when more than 63 attrs on one node (Richard Hughes)
+ - No inotify for illumos and Solaris (Marcel Telka)
+ - Prevent stack overflow from unbounded recursion in export (Richard Hughes)
+
 Version 0.3.25
 ~~~~~~~~~~~~~~
 Released: 2026-02-03
