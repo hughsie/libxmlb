@@ -56,6 +56,7 @@ xb_lzma_decompressor_constructed(GObject *object)
 		g_error("XbLzmaDecompressor: Unsupported flags");
 	if (res != LZMA_OK)
 		g_error("XbLzmaDecompressor: Unexpected lzma error");
+	G_OBJECT_CLASS(xb_lzma_decompressor_parent_class)->constructed(object);
 }
 
 static void
