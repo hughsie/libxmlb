@@ -43,6 +43,7 @@ xb_zstd_decompressor_constructed(GObject *object)
 {
 	XbZstdDecompressor *self = XB_ZSTD_DECOMPRESSOR(object);
 	self->zstdstream = ZSTD_createDStream();
+	G_OBJECT_CLASS(xb_zstd_decompressor_parent_class)->constructed(object);
 }
 
 static void
