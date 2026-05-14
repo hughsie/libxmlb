@@ -50,7 +50,7 @@ static inline guint32
 xb_silo_node_get_size(const XbSiloNode *self)
 {
 	if (xb_silo_node_has_flag(self, XB_SILO_NODE_FLAG_IS_ELEMENT)) {
-		guint8 sz = sizeof(XbSiloNode);
+		guint32 sz = sizeof(XbSiloNode);
 		sz += self->attr_count * sizeof(XbSiloNodeAttr);
 		sz += self->token_count * sizeof(guint32);
 		return sz;
