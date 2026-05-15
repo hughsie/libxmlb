@@ -20,6 +20,8 @@
 #include "xb-stack-private.h"
 #include "xb-value-bindings-private.h"
 
+#define XB_QUERY_OR_BRANCH_MAX 64
+
 static gboolean
 xb_silo_query_node_matches(XbSilo *self,
 			   XbMachine *machine,
@@ -330,7 +332,14 @@ silo_query_with_root(XbSilo *self,
 	}
 
 	/* do 'or' searches */
-	split = g_strsplit(xpath, "|", -1);
+	split = g_strsplit(xpath, "|", XB_QUERY_OR_BRANCH_MAX + 1);
+	if (g_strv_length(split) > XB_QUERY_OR_BRANCH_MAX) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "too many OR branches in XPath query");
+		return NULL;
+	}
 	for (guint i = 0; split[i] != NULL; i++) {
 		g_autoptr(GError) error_local = NULL;
 		g_autoptr(XbQuery) query = xb_query_new(self, split[i], &error_local);
