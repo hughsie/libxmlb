@@ -1397,17 +1397,17 @@ xb_silo_machine_func_stem_cb(XbMachine *self,
 			     GError **error)
 {
 	XbSilo *silo = XB_SILO(user_data);
-	XbOpcode *head;
+	XbOpcode *tail;
 	const gchar *str;
 	g_auto(XbOpcode) op = XB_OPCODE_INIT();
 
-	head = xb_stack_peek_head(stack);
-	if (head == NULL || !xb_opcode_cmp_str(head)) {
+	tail = xb_stack_peek_tail(stack);
+	if (tail == NULL || !xb_opcode_cmp_str(tail)) {
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_NOT_SUPPORTED,
 			    "%s type not supported",
-			    (head != NULL) ? xb_opcode_kind_to_string(xb_opcode_get_kind(head))
+			    (tail != NULL) ? xb_opcode_kind_to_string(xb_opcode_get_kind(tail))
 					   : "(null)");
 		return FALSE;
 	}
