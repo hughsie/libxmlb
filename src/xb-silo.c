@@ -668,7 +668,11 @@ guint
 xb_silo_get_node_depth(XbSilo *self, XbSiloNode *n)
 {
 	guint depth = 0;
+	guint32 last_off = xb_silo_get_offset_for_node(self, n);
 	while (n->parent != 0) {
+		if (n->parent >= last_off)
+			break;
+		last_off = n->parent;
 		depth++;
 		n = xb_silo_get_node(self, n->parent, NULL);
 		if (n == NULL)
