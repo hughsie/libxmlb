@@ -2298,6 +2298,13 @@ xb_machine_func_in_cb(XbMachine *self,
 	guint nr_args = 0;
 
 	/* get the size of the haystack, ensuring we only have strings */
+	if (xb_stack_get_size(stack) == 0) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_SUPPORTED,
+				    "not enough arguments for in()");
+		return FALSE;
+	}
 	for (guint i = xb_stack_get_size(stack) - 1; i > 0; i--) {
 		XbOpcode *op_tmp = xb_stack_peek(stack, i);
 
