@@ -1999,6 +1999,8 @@ xb_machine_func_lower_cb(XbMachine *self,
 		return FALSE;
 
 	/* TEXT */
+	if (_xb_opcode_get_str(&op) == NULL)
+		return xb_machine_stack_push_text_static(self, stack, NULL, error);
 	return xb_machine_stack_push_text_steal(self,
 						stack,
 						g_utf8_strdown(_xb_opcode_get_str(&op), -1),
@@ -2021,6 +2023,8 @@ xb_machine_func_upper_cb(XbMachine *self,
 		return FALSE;
 
 	/* TEXT */
+	if (_xb_opcode_get_str(&op) == NULL)
+		return xb_machine_stack_push_text_static(self, stack, NULL, error);
 	return xb_machine_stack_push_text_steal(self,
 						stack,
 						g_utf8_strup(_xb_opcode_get_str(&op), -1),
@@ -2179,6 +2183,8 @@ xb_machine_func_starts_with_cb(XbMachine *self,
 		return FALSE;
 
 	/* TEXT:TEXT */
+	if (_xb_opcode_get_str(&op1) == NULL || _xb_opcode_get_str(&op2) == NULL)
+		return xb_stack_push_bool(stack, FALSE, error);
 	return xb_stack_push_bool(
 	    stack,
 	    g_str_has_prefix(_xb_opcode_get_str(&op2), _xb_opcode_get_str(&op1)),
@@ -2202,6 +2208,8 @@ xb_machine_func_ends_with_cb(XbMachine *self,
 		return FALSE;
 
 	/* TEXT:TEXT */
+	if (_xb_opcode_get_str(&op1) == NULL || _xb_opcode_get_str(&op2) == NULL)
+		return xb_stack_push_bool(stack, FALSE, error);
 	return xb_stack_push_bool(
 	    stack,
 	    g_str_has_suffix(_xb_opcode_get_str(&op2), _xb_opcode_get_str(&op1)),
