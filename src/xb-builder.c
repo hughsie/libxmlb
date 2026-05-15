@@ -978,7 +978,14 @@ xb_builder_compile(XbBuilder *self,
 		g_propagate_error(error, g_steal_pointer(&helper->error));
 		return NULL;
 	}
-	hdr.strtab_ntags = g_hash_table_size(helper->strtab_hash);
+	if (g_hash_table_size(helper->strtab_hash) > G_MAXUINT16) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "too many unique element names for strtab");
+		return NULL;
+	}
+	hdr.strtab_ntags = (guint16)g_hash_table_size(helper->strtab_hash);
 	xb_silo_add_profile(helper->silo, timer, "adding strtab element");
 	xb_builder_node_traverse(helper->root,
 				 G_PRE_ORDER,
