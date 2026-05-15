@@ -466,6 +466,7 @@ xb_machine_parse_section(XbMachine *self,
 			 gssize text_len,
 			 gboolean is_method,
 			 guint8 level,
+			 guint depth,
 			 GError **error)
 {
 	XbMachinePrivate *priv = GET_PRIVATE(self);
@@ -475,6 +476,14 @@ xb_machine_parse_section(XbMachine *self,
 		text_len = strlen(text);
 	if (text_len == 0)
 		return TRUE;
+
+	if (depth > XB_MACHINE_STACK_LEVELS_MAX) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "operator nesting deeper than supported");
+		return FALSE;
+	}
 
 	for (gssize i = 0; i < text_len; i++) {
 		for (guint j = 0; j < priv->operators->len; j++) {
@@ -492,6 +501,7 @@ xb_machine_parse_section(XbMachine *self,
 							      -1,
 							      is_method,
 							      level,
+							      depth + 1,
 							      error))
 					return FALSE;
 				if (i > 0) {
@@ -501,6 +511,7 @@ xb_machine_parse_section(XbMachine *self,
 								      i,
 								      FALSE,
 								      level,
+								      depth + 1,
 								      error))
 						return FALSE;
 				}
@@ -525,6 +536,7 @@ xb_machine_parse_section(XbMachine *self,
 								      i,
 								      FALSE,
 								      level,
+								      depth + 1,
 								      error))
 						return FALSE;
 				}
@@ -534,6 +546,7 @@ xb_machine_parse_section(XbMachine *self,
 							      -1,
 							      is_method,
 							      level,
+							      depth + 1,
 							      error))
 					return FALSE;
 				if (!xb_machine_parse_add_func(self,
@@ -602,13 +615,14 @@ xb_machine_parse_sections(XbMachine *self,
 							      -1,
 							      TRUE,
 							      level,
+							      0,
 							      error))
 					return FALSE;
 			}
 		}
 	}
 	if (tmp[0] != '\0') {
-		if (!xb_machine_parse_section(self, opcodes, tmp, -1, is_method, level, error))
+		if (!xb_machine_parse_section(self, opcodes, tmp, -1, is_method, level, 0, error))
 			return FALSE;
 	}
 	return TRUE;
