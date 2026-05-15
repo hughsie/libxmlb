@@ -1417,6 +1417,8 @@ xb_silo_machine_func_stem_cb(XbMachine *self,
 
 	/* TEXT */
 	str = xb_opcode_get_str(&op);
+	if (str == NULL)
+		return xb_machine_stack_push_text_static(self, stack, NULL, error);
 	return xb_machine_stack_push_text_steal(self, stack, xb_silo_stem(silo, str), error);
 }
 
