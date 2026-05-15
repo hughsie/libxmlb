@@ -352,8 +352,8 @@ xb_value_bindings_copy_binding(XbValueBindings *self,
 		break;
 	case XB_BOUND_VALUE_KIND_INDEXED_TEXT:
 		xb_value_bindings_bind_str(dest, dest_idx, _self->values[idx].ptr, NULL);
-		_dest->values[idx].kind = XB_BOUND_VALUE_KIND_INDEXED_TEXT;
-		_dest->values[idx].val = _self->values[idx].val;
+		_dest->values[dest_idx].kind = XB_BOUND_VALUE_KIND_INDEXED_TEXT;
+		_dest->values[dest_idx].val = _self->values[idx].val;
 		break;
 	case XB_BOUND_VALUE_KIND_NONE:
 	default:
