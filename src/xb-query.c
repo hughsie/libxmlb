@@ -16,7 +16,8 @@
 #include "xb-silo-private.h"
 #include "xb-stack-private.h"
 
-#define XB_QUERY_SECTION_MAX 100
+#define XB_QUERY_SECTION_MAX   100
+#define XB_QUERY_PREDICATE_MAX 20
 
 typedef struct {
 	GPtrArray *sections; /* of XbQuerySection */
@@ -378,6 +379,13 @@ xb_query_parse_predicate(XbQuery *self,
 		section->predicates =
 		    g_ptr_array_new_with_free_func((GDestroyNotify)xb_stack_unref);
 	g_ptr_array_add(section->predicates, g_steal_pointer(&opcodes));
+	if (section->predicates->len > XB_QUERY_PREDICATE_MAX) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "too many predicates in XPath section");
+		return FALSE;
+	}
 	return TRUE;
 }
 
