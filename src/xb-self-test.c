@@ -1856,6 +1856,41 @@ xb_xpath_in_func(void)
 }
 
 static void
+xb_xpath_stem_func(void)
+{
+	XbNode *n;
+	gboolean ret;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new();
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new();
+	g_autoptr(XbSilo) silo = NULL;
+	const gchar *xml = "<component type=\"desktop\">\n"
+			   "  <id>test</id>\n"
+			   "</component>\n";
+
+	ret = xb_builder_source_load_xml(source, xml, XB_BUILDER_SOURCE_FLAG_NONE, &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+	xb_builder_import_source(builder, source);
+	silo = xb_builder_compile(builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	/* stem should type-check the top of stack, not the bottom */
+	n = xb_silo_query_first(silo, "component/id[stem(text())='test']", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(n);
+	g_assert_cmpstr(xb_node_get_text(n), ==, "test");
+	g_clear_object(&n);
+
+	/* stem with no match */
+	n = xb_silo_query_first(silo, "component/id[stem(text())='nope']", &error);
+	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND);
+	g_assert_null(n);
+	g_clear_error(&error);
+}
+
+static void
 xb_manual_token_search_func(void)
 {
 	XbNode *n;
@@ -3098,6 +3133,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/xpath", xb_xpath_func);
 	g_test_add_func("/libxmlb/xpath{null-attr}", xb_xpath_null_attr_func);
 	g_test_add_func("/libxmlb/xpath{in}", xb_xpath_in_func);
+	g_test_add_func("/libxmlb/xpath{stem}", xb_xpath_stem_func);
 	g_test_add_func("/libxmlb/xpath-query", xb_xpath_query_func);
 	g_test_add_func("/libxmlb/xpath-query{reverse}", xb_xpath_query_reverse_func);
 	g_test_add_func("/libxmlb/xpath-query{force-node-cache}",
