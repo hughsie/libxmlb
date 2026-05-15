@@ -16,6 +16,8 @@
 #include "xb-silo-private.h"
 #include "xb-stack-private.h"
 
+#define XB_QUERY_SECTION_MAX 100
+
 typedef struct {
 	GPtrArray *sections; /* of XbQuerySection */
 	XbQueryFlags flags;
@@ -474,6 +476,13 @@ xb_query_parse(XbQuery *self, XbQueryParseContext *context, const gchar *xpath, 
 			if (section == NULL)
 				return FALSE;
 			g_ptr_array_add(priv->sections, section);
+			if (priv->sections->len > XB_QUERY_SECTION_MAX) {
+				g_set_error_literal(error,
+						    G_IO_ERROR,
+						    G_IO_ERROR_INVALID_DATA,
+						    "too many XPath sections");
+				return FALSE;
+			}
 			g_string_truncate(acc, 0);
 			continue;
 		}
