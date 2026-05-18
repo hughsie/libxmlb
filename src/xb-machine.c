@@ -2392,6 +2392,10 @@ xb_machine_func_in_cb(XbMachine *self,
 	if (!xb_machine_stack_pop(self, stack, &op, error))
 		return FALSE;
 
+	/* a NULL needle (e.g. from a missing attribute) can never match */
+	if (_xb_opcode_get_str(&op) == NULL)
+		return xb_stack_push_bool(stack, FALSE, error);
+
 	/* found */
 	for (guint i = 0; i < nr_args; i++) {
 		if (g_strcmp0(haystack[i], _xb_opcode_get_str(&op)) == 0)
