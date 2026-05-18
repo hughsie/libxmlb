@@ -110,7 +110,10 @@ xb_silo_set_enable_node_cache(XbSilo *self, gboolean enable_node_cache) G_GNUC_N
 
 #include "xb-query.h"
 
+G_DEPRECATED_FOR(xb_silo_lookup_query_full)
 XbQuery *
 xb_silo_lookup_query(XbSilo *self, const gchar *xpath) G_GNUC_NON_NULL(1, 2);
+XbQuery *
+xb_silo_lookup_query_full(XbSilo *self, const gchar *xpath, GError **error) G_GNUC_NON_NULL(1, 2);
 
 G_END_DECLS

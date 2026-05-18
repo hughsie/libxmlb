@@ -1913,9 +1913,10 @@ xb_silo_new(void)
 }
 
 /**
- * xb_silo_lookup_query:
+ * xb_silo_lookup_query_full:
  * @self: an #XbSilo
  * @xpath: an XPath query string
+ * @error: the #GError, or %NULL
  *
  * Create an #XbQuery from the given @xpath XPath string, or return it from the
  * query cache in the #XbSilo.
@@ -1926,13 +1927,17 @@ xb_silo_new(void)
  * This function is thread-safe.
  *
  * Returns: (transfer full): an #XbQuery representing @xpath
- * Since: 0.3.0
+ *
+ * Since: 0.3.27
  */
 XbQuery *
-xb_silo_lookup_query(XbSilo *self, const gchar *xpath)
+xb_silo_lookup_query_full(XbSilo *self, const gchar *xpath, GError **error)
 {
 	XbSiloPrivate *priv = GET_PRIVATE(self);
 	XbQuery *result;
+
+	g_return_val_if_fail(XB_IS_SILO(self), NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
 	g_rw_lock_reader_lock(&priv->query_cache_mutex);
 	result = g_hash_table_lookup(priv->query_cache, xpath);
@@ -1949,17 +1954,9 @@ xb_silo_lookup_query(XbSilo *self, const gchar *xpath)
 		if (result != NULL) {
 			g_object_ref(result);
 		} else {
-			g_autoptr(GError) error_local = NULL;
-
-			query = xb_query_new(self, xpath, &error_local);
+			query = xb_query_new(self, xpath, error);
 			if (query == NULL) {
-				/* This should not happen: the caller should
-				 * have written a valid query. */
-				g_error("Invalid XPath query ‘%s’: %s",
-					xpath,
-					error_local->message);
 				g_rw_lock_writer_unlock(&priv->query_cache_mutex);
-				g_assert_not_reached();
 				return NULL;
 			}
 
@@ -1979,4 +1976,35 @@ xb_silo_lookup_query(XbSilo *self, const gchar *xpath)
 	}
 
 	return result;
+}
+
+/**
+ * xb_silo_lookup_query:
+ * @self: an #XbSilo
+ * @xpath: an XPath query string
+ *
+ * Create an #XbQuery from the given @xpath XPath string, or return it from the
+ * query cache in the #XbSilo.
+ *
+ * @xpath must be valid: it is a programmer error if creating the query fails
+ * (i.e. if xb_query_new() returns an error).
+ *
+ * This function is thread-safe.
+ *
+ * Returns: (transfer full): an #XbQuery representing @xpath
+ *
+ * Since: 0.3.0
+ */
+XbQuery *
+xb_silo_lookup_query(XbSilo *self, const gchar *xpath)
+{
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbQuery) query = NULL;
+
+	query = xb_silo_lookup_query_full(self, xpath, &error);
+	if (query == NULL) {
+		g_warning("failed: %s", error->message);
+		return NULL;
+	}
+	return g_steal_pointer(&query);
 }
