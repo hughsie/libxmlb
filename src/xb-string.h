@@ -13,6 +13,8 @@ G_BEGIN_DECLS
 void
 xb_string_append_union(GString *xpath, const gchar *fmt, ...) G_GNUC_PRINTF(2, 3)
     G_GNUC_NON_NULL(1);
+
+GLIB_DEPRECATED_FOR(xb_value_bindings_bind_str)
 gchar *
 xb_string_escape(const gchar *str) G_GNUC_NON_NULL(1);
 
