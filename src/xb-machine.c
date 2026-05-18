@@ -63,6 +63,20 @@ typedef struct {
 
 #define XB_MACHINE_STACK_LEVELS_MAX 20
 
+typedef struct {
+	XbOpcode ops[XB_MACHINE_STACK_LEVELS_MAX];
+	guint len;
+} XbOpcodeArray;
+
+static inline void
+xb_opcode_array_clear(XbOpcodeArray *self)
+{
+	for (guint i = 0; i < self->len; i++)
+		xb_opcode_clear(&self->ops[i]);
+}
+
+G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC(XbOpcodeArray, xb_opcode_array_clear)
+
 /**
  * xb_machine_set_debug_flags:
  * @self: a #XbMachine
@@ -2308,6 +2322,7 @@ xb_machine_func_in_cb(XbMachine *self,
 	XbOpcode *op_needle;
 	const gchar *haystack[XB_MACHINE_STACK_LEVELS_MAX + 1] = {NULL};
 	g_auto(XbOpcode) op = XB_OPCODE_INIT();
+	g_auto(XbOpcodeArray) haystack_ops = {.len = 0};
 	guint8 level = G_MAXUINT8;
 	guint nr_args = 0;
 
@@ -2367,10 +2382,10 @@ xb_machine_func_in_cb(XbMachine *self,
 
 	/* build the haystack */
 	for (guint i = 0; i < nr_args; i++) {
-		g_auto(XbOpcode) op_tmp = XB_OPCODE_INIT();
-		if (!xb_machine_stack_pop(self, stack, &op_tmp, error))
+		if (!xb_machine_stack_pop(self, stack, &haystack_ops.ops[i], error))
 			return FALSE;
-		haystack[i] = _xb_opcode_get_str(&op_tmp);
+		haystack_ops.len++;
+		haystack[i] = _xb_opcode_get_str(&haystack_ops.ops[i]);
 	}
 
 	/* get the needle */
@@ -2378,7 +2393,11 @@ xb_machine_func_in_cb(XbMachine *self,
 		return FALSE;
 
 	/* found */
-	return xb_stack_push_bool(stack, g_strv_contains(haystack, _xb_opcode_get_str(&op)), error);
+	for (guint i = 0; i < nr_args; i++) {
+		if (g_strcmp0(haystack[i], _xb_opcode_get_str(&op)) == 0)
+			return xb_stack_push_bool(stack, TRUE, error);
+	}
+	return xb_stack_push_bool(stack, FALSE, error);
 }
 
 static void
