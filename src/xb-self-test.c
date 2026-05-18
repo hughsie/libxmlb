@@ -1856,6 +1856,39 @@ xb_xpath_in_func(void)
 }
 
 static void
+xb_xpath_in_lower_func(void)
+{
+	XbNode *n;
+	gboolean ret;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new();
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new();
+	g_autoptr(XbSilo) silo = NULL;
+	const gchar *xml = "<component><id>test</id></component>\n";
+
+	ret = xb_builder_source_load_xml(source, xml, XB_BUILDER_SOURCE_FLAG_NONE, &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+	xb_builder_import_source(builder, source);
+	silo = xb_builder_compile(builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	/* in() with lower-case() should match */
+	n = xb_silo_query_first(silo, "component/id[in(text(),lower-case('TEST'))]", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(n);
+	g_assert_cmpstr(xb_node_get_text(n), ==, "test");
+	g_clear_object(&n);
+
+	/* in() with lower-case() no match */
+	n = xb_silo_query_first(silo, "component/id[in(text(),lower-case('NOPE'))]", &error);
+	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND);
+	g_assert_null(n);
+	g_clear_error(&error);
+}
+
+static void
 xb_xpath_stem_func(void)
 {
 	XbNode *n;
@@ -3291,6 +3324,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/xpath", xb_xpath_func);
 	g_test_add_func("/libxmlb/xpath{null-attr}", xb_xpath_null_attr_func);
 	g_test_add_func("/libxmlb/xpath{in}", xb_xpath_in_func);
+	g_test_add_func("/libxmlb/xpath{in-lower}", xb_xpath_in_lower_func);
 	g_test_add_func("/libxmlb/xpath{stem}", xb_xpath_stem_func);
 	g_test_add_func("/libxmlb/xpath{or-limit}", xb_xpath_or_limit_func);
 	g_test_add_func("/libxmlb/xpath{operator-depth-limit}", xb_xpath_operator_depth_limit_func);
