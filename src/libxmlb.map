@@ -276,3 +276,9 @@ LIBXMLB_0.3.19 {
     xb_version_string;
   local: *;
 } LIBXMLB_0.3.4;
+
+LIBXMLB_0.3.27 {
+  global:
+    xb_silo_lookup_query_full;
+  local: *;
+} LIBXMLB_0.3.19;
