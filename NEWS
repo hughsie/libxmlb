@@ -1,3 +1,21 @@
+Version 0.3.27
+~~~~~~~~~~~~~~
+Released: 2026-05-18
+
+New Features:
+ - Bump the required version of GLib to 2.68 (Richard Hughes)
+
+Bugfixes:
+ - Do not construct an invalid silo when processing more than 30 attrs (Richard Hughes)
+ - Fix NULL pointer dereference when searching with NULL needle (Richard Hughes)
+ - Fix potential use-after-free when building the in() haystack (Richard Hughes)
+ - Fix stem() type-checking the wrong stack position (Richard Hughes)
+ - Handle NULL string opcodes in more functions (Richard Hughes)
+ - Limit operator recursion depth in xb_machine_parse_section (Richard Hughes)
+ - Limit the number of predicates and OR branches in each section (Richard Hughes)
+ - Prevent an infinite loop when parsing a corrupt silo (Richard Hughes)
+ - Reject XML with more than 65535 unique element names (Richard Hughes)
+
 Version 0.3.26
 ~~~~~~~~~~~~~~
 Released: 2026-04-14
