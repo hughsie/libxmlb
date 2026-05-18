@@ -1934,48 +1934,32 @@ XbQuery *
 xb_silo_lookup_query_full(XbSilo *self, const gchar *xpath, GError **error)
 {
 	XbSiloPrivate *priv = GET_PRIVATE(self);
-	XbQuery *result;
+	XbQuery *query;
+	g_autoptr(GRWLockReaderLocker) locker_ro = NULL;
+	g_autoptr(GRWLockWriterLocker) locker_rw = NULL;
 
 	g_return_val_if_fail(XB_IS_SILO(self), NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
-	g_rw_lock_reader_lock(&priv->query_cache_mutex);
-	result = g_hash_table_lookup(priv->query_cache, xpath);
-	g_rw_lock_reader_unlock(&priv->query_cache_mutex);
+	/* read only */
+	locker_ro = g_rw_lock_reader_locker_new(&priv->query_cache_mutex);
+	query = g_hash_table_lookup(priv->query_cache, xpath);
+	if (query != NULL)
+		return g_object_ref(query);
+	g_clear_pointer(&locker_ro, g_rw_lock_reader_locker_free);
 
-	if (result != NULL) {
-		g_object_ref(result);
-	} else {
-		g_autoptr(XbQuery) query = NULL;
+	/* check again with an exclusive lock */
+	locker_rw = g_rw_lock_writer_locker_new(&priv->query_cache_mutex);
+	query = g_hash_table_lookup(priv->query_cache, xpath);
+	if (query != NULL)
+		return g_object_ref(query);
 
-		/* check again with an exclusive lock */
-		g_rw_lock_writer_lock(&priv->query_cache_mutex);
-		result = g_hash_table_lookup(priv->query_cache, xpath);
-		if (result != NULL) {
-			g_object_ref(result);
-		} else {
-			query = xb_query_new(self, xpath, error);
-			if (query == NULL) {
-				g_rw_lock_writer_unlock(&priv->query_cache_mutex);
-				return NULL;
-			}
-
-			result = g_object_ref(query);
-
-			g_hash_table_insert(priv->query_cache,
-					    g_strdup(xpath),
-					    g_steal_pointer(&query));
-			g_debug(
-			    "Caching query ‘%s’ (%p) in silo %p; query cache now has %u entries",
-			    xpath,
-			    query,
-			    self,
-			    g_hash_table_size(priv->query_cache));
-		}
-		g_rw_lock_writer_unlock(&priv->query_cache_mutex);
-	}
-
-	return result;
+	/* add it */
+	query = xb_query_new(self, xpath, error);
+	if (query == NULL)
+		return NULL;
+	g_hash_table_insert(priv->query_cache, g_strdup(xpath), g_object_ref(query));
+	return query;
 }
 
 /**
