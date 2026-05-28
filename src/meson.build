@@ -16,6 +16,7 @@ xb_headers = files(
   'xb-builder-source.h',
   'xb-builder-source-ctx.h',
   'xb-compile.h',
+  'xb-compile-glib-2-62.h',
   'xb-machine.h',
   'xb-node.h',
   'xb-node-query.h',

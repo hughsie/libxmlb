@@ -16,3 +16,7 @@
 #define G_GNUC_NON_NULL(params...)
 #endif
 #endif
+
+#if !GLIB_CHECK_VERSION(2, 62, 0)
+#include "xb-compile-glib-2-62.h"
+#endif

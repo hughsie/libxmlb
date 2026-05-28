@@ -1,7 +1,7 @@
 project('libxmlb', 'c',
   version : '0.3.28',
   license : 'LGPL-2.1-or-later',
-  meson_version : '>=0.60.0',
+  meson_version : '>=0.58.2',
   default_options : ['warning_level=2', 'c_std=c99'],
 )
 
@@ -129,7 +129,7 @@ else
 endif
 mandir = join_paths(prefix, get_option('mandir'))
 
-gio = dependency('gio-2.0', version : '>= 2.68.0')
+gio = dependency('gio-2.0', version : '>= 2.56.0')
 giounix = dependency('gio-unix-2.0', required: false)
 lzma = dependency('liblzma', required: get_option('lzma'))
 if lzma.found()
@@ -142,12 +142,6 @@ endif
 if giounix.found()
   conf.set('HAVE_GIO_UNIX', '1')
 endif
-
-# Limit our use of GLib API to our minimum version requirement, and what’s
-# available in RHEL 9. Use of more modern API has to be optional and
-# protected by GLIB_CHECK_VERSION.
-add_project_arguments('-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_46', language: 'c')
-add_project_arguments('-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_68', language: 'c')
 
 libxmlb_deps = [
   gio,

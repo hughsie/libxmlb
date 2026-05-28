@@ -11,8 +11,8 @@ gchar *
 xb_silo_node_to_string(const XbSiloNode *self)
 {
 	GString *str = g_string_new("XbSiloNode:\n");
-	g_string_append_printf(str, "  flags: 0x%x\n", self->flags);
-	g_string_append_printf(str, "  attr_count: %u\n", self->attr_count);
+	g_string_append_printf(str, "  flags: 0x%x\n", (guint)self->flags);
+	g_string_append_printf(str, "  attr_count: %u\n", (guint)self->attr_count);
 	if (self->flags & XB_SILO_NODE_FLAG_IS_ELEMENT) {
 		if (self->element_name != XB_SILO_UNSET)
 			g_string_append_printf(str, "  element_name: %u\n", self->element_name);
