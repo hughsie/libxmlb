@@ -6,7 +6,7 @@ libxmlb_version_h = configure_file(
 
 install_headers(
   'xmlb.h',
-  subdir : 'libxmlb-2',
+  subdir : 'libxmlb-@0@'.format(lt_current),
 )
 
 xb_headers = files(
@@ -34,7 +34,7 @@ xb_headers = files(
 
 install_headers(
   xb_headers,
-  subdir : 'libxmlb-2/libxmlb',
+  subdir : 'libxmlb-@0@/libxmlb'.format(lt_current),
 )
 
 subdir('libxmlb')
@@ -139,7 +139,7 @@ endif
 pkgg = import('pkgconfig')
 pkgg.generate(libxmlb,
   requires : [ 'gio-2.0' ],
-  subdirs : 'libxmlb-2',
+  subdirs : 'libxmlb-@0@'.format(lt_current),
   version : meson.project_version(),
   name : 'libxmlb',
   filebase : 'xmlb',
