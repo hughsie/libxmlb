@@ -121,8 +121,11 @@ typedef struct {
 static gboolean
 xb_silo_query_section_add_result(XbSilo *self, XbSiloQueryHelper *helper, XbSiloNode *sn)
 {
-	if (g_hash_table_lookup(helper->results_hash, sn) != NULL)
-		return FALSE;
+	if (helper->results_hash != NULL) {
+		if (g_hash_table_lookup(helper->results_hash, sn) != NULL)
+			return FALSE;
+		g_hash_table_add(helper->results_hash, sn);
+	}
 	if (helper->flags & XB_SILO_QUERY_HELPER_USE_SN) {
 		g_ptr_array_add(helper->results, sn);
 	} else {
@@ -130,7 +133,6 @@ xb_silo_query_section_add_result(XbSilo *self, XbSiloQueryHelper *helper, XbSilo
 		    (helper->flags & XB_SILO_QUERY_HELPER_FORCE_NODE_CACHE) > 0;
 		g_ptr_array_add(helper->results, xb_silo_create_node(self, sn, force_node_cache));
 	}
-	g_hash_table_add(helper->results_hash, sn);
 	return helper->results->len == helper->limit;
 }
 
@@ -489,7 +491,7 @@ xb_silo_query_with_root_full(XbSilo *self,
 			     GError **error)
 {
 	XbSiloNode *sn = NULL;
-	g_autoptr(GHashTable) results_hash = g_hash_table_new(g_direct_hash, g_direct_equal);
+	g_autoptr(GHashTable) results_hash = NULL;
 	g_autoptr(GPtrArray) results =
 	    g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
 	g_autoptr(GTimer) timer = xb_silo_start_profile(self);
@@ -519,7 +521,10 @@ xb_silo_query_with_root_full(XbSilo *self,
 	if (n != NULL)
 		sn = xb_node_get_sn(n);
 
-	/* only one query allowed */
+	/* only one query, so dedup is only needed for multi-result queries
+	 * where parent traversal could fan in to the same node */
+	if (!first_result_only)
+		results_hash = g_hash_table_new(g_direct_hash, g_direct_equal);
 	if (!xb_silo_query_part(self,
 				sn,
 				results,
