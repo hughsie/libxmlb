@@ -2065,22 +2065,18 @@ xb_xpath_section_limit_func(void)
 static void
 xb_builder_strtab_ntags_limit_func(void)
 {
-	gboolean ret;
 	g_autoptr(GError) error = NULL;
-	g_autoptr(GString) xml = g_string_new("<root>");
 	g_autoptr(XbBuilder) builder = xb_builder_new();
-	g_autoptr(XbBuilderSource) source = xb_builder_source_new();
+	g_autoptr(XbBuilderNode) root = xb_builder_node_new("root");
 	g_autoptr(XbSilo) silo = NULL;
 
-	/* generate XML with more than 65535 unique element names */
-	for (guint i = 0; i <= G_MAXUINT16; i++)
-		g_string_append_printf(xml, "<e%u/>", i);
-	g_string_append(xml, "</root>");
+	/* build a node tree with more than 65535 unique element names */
+	for (guint i = 0; i <= G_MAXUINT16; i++) {
+		g_autofree gchar *name = g_strdup_printf("e%u", i);
+		xb_builder_node_insert_text(root, name, NULL, NULL);
+	}
 
-	ret = xb_builder_source_load_xml(source, xml->str, XB_BUILDER_SOURCE_FLAG_NONE, &error);
-	g_assert_no_error(error);
-	g_assert_true(ret);
-	xb_builder_import_source(builder, source);
+	xb_builder_import_node(builder, root);
 	silo = xb_builder_compile(builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
 	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
 	g_assert_null(silo);
