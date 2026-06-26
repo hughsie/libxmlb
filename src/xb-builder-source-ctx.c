@@ -70,9 +70,9 @@ _g_input_stream_read_bytes_in_chunks(GInputStream *stream,
 			g_set_error(error,
 				    G_IO_ERROR,
 				    G_IO_ERROR_FAILED,
-				    "cannot read from fd: 0x%x > 0x%x",
+				    "cannot read from fd: 0x%x > 0x%zx",
 				    buf->len,
-				    (guint)count);
+				    count);
 			return NULL;
 		}
 	}

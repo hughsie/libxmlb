@@ -266,8 +266,8 @@ xb_silo_get_root_node(XbSilo *self, GError **error)
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_INVALID_DATA,
-			    "blob too small: 0x%x",
-			    (guint)g_bytes_get_size(priv->blob));
+			    "blob too small: 0x%zx",
+			    g_bytes_get_size(priv->blob));
 		return NULL;
 	}
 	if (G_UNLIKELY(g_bytes_get_size(priv->blob) == sizeof(XbSiloHeader))) {
