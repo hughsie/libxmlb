@@ -48,39 +48,45 @@ xb_silo_query_node_matches(XbSilo *self,
 	if (section->predicates != NULL) {
 		for (guint i = 0; i < section->predicates->len; i++) {
 			XbStack *opcodes = g_ptr_array_index(section->predicates, i);
-			g_auto(XbValueBindings) predicate_bindings = XB_VALUE_BINDINGS_INIT();
-			guint predicate_bindings_idx = 0;
-			XbValueBindings *predicate_bindings_ptr = NULL;
 
-			if (bindings != NULL)
-				predicate_bindings_ptr = &predicate_bindings;
+			if (bindings != NULL) {
+				g_auto(XbValueBindings) predicate_bindings =
+				    XB_VALUE_BINDINGS_INIT();
+				guint predicate_bindings_idx = 0;
 
-			/* set up the bindings for this predicate */
-			for (guint k = 0; bindings != NULL && k < xb_stack_get_size(opcodes); k++) {
-				XbOpcode *op = xb_stack_peek(opcodes, k);
-				if (xb_opcode_is_binding(op)) {
-					/* ignore errors as they’ll be caught by xb_machine_run() */
-					xb_value_bindings_copy_binding(bindings,
-								       bindings_offset +
-									   predicate_bindings_idx,
-								       &predicate_bindings,
-								       predicate_bindings_idx);
-					predicate_bindings_idx++;
+				for (guint k = 0; k < xb_stack_get_size(opcodes); k++) {
+					XbOpcode *op = xb_stack_peek(opcodes, k);
+					if (xb_opcode_is_binding(op)) {
+						xb_value_bindings_copy_binding(
+						    bindings,
+						    bindings_offset + predicate_bindings_idx,
+						    &predicate_bindings,
+						    predicate_bindings_idx);
+						predicate_bindings_idx++;
+					}
 				}
+				if (!xb_machine_run_with_bindings(machine,
+								  opcodes,
+								  &predicate_bindings,
+								  result,
+								  query_data,
+								  error))
+					return FALSE;
+				if (!*result)
+					break;
+
+				bindings_offset += predicate_bindings_idx;
+			} else {
+				if (!xb_machine_run_with_bindings(machine,
+								  opcodes,
+								  NULL,
+								  result,
+								  query_data,
+								  error))
+					return FALSE;
+				if (!*result)
+					break;
 			}
-
-			/* run the predicate; pass NULL for the bindings iff
-			 * (bindings == NULL), as that means we’ve been called
-			 * with pre-0.3.0-style pre-bound values */
-			if (!xb_machine_run_with_bindings(machine,
-							  opcodes,
-							  predicate_bindings_ptr,
-							  result,
-							  query_data,
-							  error))
-				return FALSE;
-
-			bindings_offset += predicate_bindings_idx;
 		}
 	}
 
