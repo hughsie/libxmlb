@@ -3297,6 +3297,52 @@ xb_speed_func(void)
 	g_print("query[x%u]: %.3fms\n", n_components, g_timer_elapsed(timer, NULL) * 1000);
 }
 
+static void
+xb_speed_precompiled_func(void)
+{
+	guint n_components = 5000;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(GString) xml = g_string_new(NULL);
+	g_autoptr(GTimer) timer = g_timer_new();
+	g_autoptr(XbSilo) silo = NULL;
+	g_autoptr(XbQuery) query = NULL;
+
+#ifdef __s390x__
+	g_test_skip("s390 too slow, skipping");
+	return;
+#endif
+
+	/* create a huge document */
+	g_string_append(xml, "<components>");
+	for (guint i = 0; i < n_components; i++) {
+		g_string_append(xml, "<component type=\"firmware\">");
+		g_string_append_printf(xml, "  <id>%06u.firmware</id>", i);
+		g_string_append(xml, "  <name>ColorHug2</name>");
+		g_string_append(xml, "  <summary>Firmware</summary>");
+		g_string_append(xml, "</component>");
+	}
+	g_string_append(xml, "</components>");
+
+	silo = xb_silo_new_from_xml(xml->str, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	query = xb_query_new(silo, "components/component[@type='firmware']", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(query);
+
+	g_timer_reset(timer);
+	for (guint i = 0; i < n_components; i += 20) {
+		g_autoptr(GPtrArray) results = NULL;
+		results = xb_silo_query_full(silo, query, &error);
+		g_assert_no_error(error);
+		g_assert_nonnull(results);
+		if (i == 0)
+			g_assert_cmpint(results->len, ==, n_components);
+	}
+	g_print("query_full[x%u]: %.3fms\n", n_components, g_timer_elapsed(timer, NULL) * 1000);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -3378,6 +3424,7 @@ main(int argc, char **argv)
 	if (g_test_perf()) {
 		g_test_add_func("/libxmlb/threading", xb_threading_func);
 		g_test_add_func("/libxmlb/speed", xb_speed_func);
+		g_test_add_func("/libxmlb/speed-precompiled", xb_speed_precompiled_func);
 	}
 	return g_test_run();
 }
