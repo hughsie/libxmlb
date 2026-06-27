@@ -137,34 +137,56 @@ typedef enum {
 	XB_SILO_QUERY_HELPER_NONE = 0,
 	XB_SILO_QUERY_HELPER_USE_SN = 1 << 0,
 	XB_SILO_QUERY_HELPER_FORCE_NODE_CACHE = 1 << 1,
+	XB_SILO_QUERY_HELPER_USE_HASH = 1 << 2,
 } XbSiloQueryHelperFlags;
 
 typedef struct {
-	GPtrArray *sections; /* of XbQuerySection */
-	GPtrArray *results;  /* of XbNode or XbSiloNode (see @flags) */
+	GPtrArray *sections;	/* of XbQuerySection */
+	GPtrArray *nodes;	/* of XbNode or XbSiloNode (see @flags) */
+	GHashTable *nodes_hash; /* of sn:1 */
 	XbValueBindings *bindings;
-	GHashTable *results_hash; /* of sn:1 */
 	guint limit;
 	XbSiloQueryHelperFlags flags;
 	XbSiloQueryData *query_data;
 } XbSiloQueryHelper;
 
-static gboolean
-xb_silo_query_section_add_result(XbSilo *self, XbSiloQueryHelper *helper, XbSiloNode *sn)
+static void
+xb_silo_query_helper_free(XbSiloQueryHelper *helper)
 {
-	if (helper->results_hash != NULL) {
-		if (g_hash_table_lookup(helper->results_hash, sn) != NULL)
-			return FALSE;
-		g_hash_table_add(helper->results_hash, sn);
+	if (helper->nodes != NULL)
+		g_ptr_array_unref(helper->nodes);
+	if (helper->nodes_hash != NULL)
+		g_hash_table_unref(helper->nodes_hash);
+}
+
+G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC(XbSiloQueryHelper, xb_silo_query_helper_free)
+
+static gboolean
+xb_silo_query_section_add_node(XbSilo *self, XbSiloQueryHelper *helper, XbSiloNode *sn)
+{
+	if (helper->flags & XB_SILO_QUERY_HELPER_USE_HASH) {
+		if (helper->nodes_hash == NULL) {
+			helper->nodes_hash = g_hash_table_new(g_direct_hash, g_direct_equal);
+		} else {
+			if (g_hash_table_lookup(helper->nodes_hash, sn) != NULL)
+				return FALSE;
+		}
+		g_hash_table_add(helper->nodes_hash, sn);
 	}
 	if (helper->flags & XB_SILO_QUERY_HELPER_USE_SN) {
-		g_ptr_array_add(helper->results, sn);
+		if (helper->nodes == NULL)
+			helper->nodes = g_ptr_array_new();
+		g_ptr_array_add(helper->nodes, sn);
 	} else {
 		gboolean force_node_cache =
 		    (helper->flags & XB_SILO_QUERY_HELPER_FORCE_NODE_CACHE) > 0;
-		g_ptr_array_add(helper->results, xb_silo_create_node(self, sn, force_node_cache));
+		if (helper->nodes == NULL) {
+			helper->nodes =
+			    g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
+		}
+		g_ptr_array_add(helper->nodes, xb_silo_create_node(self, sn, force_node_cache));
 	}
-	return helper->results->len == helper->limit;
+	return helper->nodes->len == helper->limit;
 }
 
 /*
@@ -196,7 +218,7 @@ xb_silo_query_section_root(XbSilo *self,
 		if (parent == NULL)
 			return FALSE;
 		if (i == helper->sections->len - 1) {
-			xb_silo_query_section_add_result(self, helper, parent);
+			xb_silo_query_section_add_node(self, helper, parent);
 			return TRUE;
 		}
 		return xb_silo_query_section_root(self,
@@ -245,7 +267,7 @@ xb_silo_query_section_root(XbSilo *self,
 			return FALSE;
 		if (result) {
 			if (i == helper->sections->len - 1) {
-				if (xb_silo_query_section_add_result(self, helper, sn))
+				if (xb_silo_query_section_add_node(self, helper, sn))
 					break;
 			} else {
 				if (!xb_silo_query_section_root(self,
@@ -255,8 +277,7 @@ xb_silo_query_section_root(XbSilo *self,
 								helper,
 								error))
 					return FALSE;
-				if (helper->results->len > 0 &&
-				    helper->results->len == helper->limit)
+				if (helper->nodes != NULL && helper->nodes->len == helper->limit)
 					break;
 			}
 		}
@@ -282,35 +303,28 @@ xb_silo_query_section_root(XbSilo *self,
 static gboolean
 xb_silo_query_part(XbSilo *self,
 		   XbSiloNode *sroot,
-		   GPtrArray *results,
-		   GHashTable *results_hash,
+		   XbSiloQueryHelper *helper,
 		   XbQuery *query,
 		   XbQueryContext *context,
 		   gboolean first_result_only,
-		   XbSiloQueryData *query_data,
-		   XbSiloQueryHelperFlags flags,
 		   GError **error)
 {
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-	XbSiloQueryHelper helper = {
-	    .results = results,
-	    .bindings = (context != NULL) ? xb_query_context_get_bindings(context) : NULL,
-	    .limit = first_result_only	 ? 1
-		     : (context != NULL) ? xb_query_context_get_limit(context)
-					 : xb_query_get_limit(query),
-	    .flags = flags,
-	    .results_hash = results_hash,
-	    .query_data = query_data,
-	};
-	XbQueryFlags query_flags = (context != NULL) ? xb_query_context_get_flags(context)
-						     : xb_query_get_flags(query);
-	G_GNUC_END_IGNORE_DEPRECATIONS
+	if (context != NULL) {
+		if (xb_query_context_get_flags(context) & XB_QUERY_FLAG_FORCE_NODE_CACHE)
+			helper->flags |= XB_SILO_QUERY_HELPER_FORCE_NODE_CACHE;
+		helper->bindings = xb_query_context_get_bindings(context);
+		helper->limit = first_result_only ? 1 : xb_query_context_get_limit(context);
+	} else {
+		G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+		if (xb_query_get_flags(query) & XB_QUERY_FLAG_FORCE_NODE_CACHE)
+			helper->flags |= XB_SILO_QUERY_HELPER_FORCE_NODE_CACHE;
+		helper->limit = first_result_only ? 1 : xb_query_get_limit(query);
+		G_GNUC_END_IGNORE_DEPRECATIONS
+	}
 
 	/* find each section */
-	helper.sections = xb_query_get_sections(query);
-	if (query_flags & XB_QUERY_FLAG_FORCE_NODE_CACHE)
-		helper.flags |= XB_SILO_QUERY_HELPER_FORCE_NODE_CACHE;
-	return xb_silo_query_section_root(self, sroot, 0, 0, &helper, error);
+	helper->sections = xb_query_get_sections(query);
+	return xb_silo_query_section_root(self, sroot, 0, 0, helper, error);
 }
 
 /* Returns an array with (element-type XbSiloNode) if
@@ -325,13 +339,12 @@ silo_query_with_root(XbSilo *self,
 {
 	XbSiloNode *sn = NULL;
 	g_auto(GStrv) split = NULL;
-	g_autoptr(GHashTable) results_hash = g_hash_table_new(g_direct_hash, g_direct_equal);
-	g_autoptr(GPtrArray) results = NULL;
 	g_autoptr(GTimer) timer = xb_silo_start_profile(self);
 	XbSiloQueryData query_data = {
 	    .sn = NULL,
 	    .position = 0,
 	};
+	g_auto(XbSiloQueryHelper) helper = {.flags = flags, .query_data = &query_data};
 
 	g_return_val_if_fail(XB_IS_SILO(self), NULL);
 	g_return_val_if_fail(xpath != NULL, NULL);
@@ -342,11 +355,6 @@ silo_query_with_root(XbSilo *self,
 		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "silo has no data");
 		return NULL;
 	}
-
-	if (flags & XB_SILO_QUERY_HELPER_USE_SN)
-		results = g_ptr_array_new_with_free_func(NULL);
-	else
-		results = g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
 
 	/* subtree query */
 	if (n != NULL) {
@@ -380,7 +388,7 @@ silo_query_with_root(XbSilo *self,
 
 		if (query == NULL) {
 			if (g_error_matches(error_local, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT) &&
-			    (split[i + 1] != NULL || results->len > 0)) {
+			    (split[i + 1] != NULL || helper.nodes != NULL)) {
 				if (xb_silo_get_profile_flags(self) & XB_SILO_PROFILE_FLAG_DEBUG) {
 					g_debug("ignoring for OR statement: %s",
 						error_local->message);
@@ -395,18 +403,8 @@ silo_query_with_root(XbSilo *self,
 		}
 
 		xb_query_context_set_limit(&context, limit);
-		if (!xb_silo_query_part(self,
-					sn,
-					results,
-					results_hash,
-					query,
-					&context,
-					FALSE,
-					&query_data,
-					flags,
-					error)) {
+		if (!xb_silo_query_part(self, sn, &helper, query, &context, FALSE, error))
 			return NULL;
-		}
 	}
 
 	/* profile */
@@ -417,11 +415,11 @@ silo_query_with_root(XbSilo *self,
 				    n != NULL ? xb_node_get_element(n) : "/",
 				    xpath,
 				    limit,
-				    results->len);
+				    helper.nodes != NULL ? helper.nodes->len : 0);
 	}
 
 	/* nothing found */
-	if (results->len == 0) {
+	if (helper.nodes == NULL) {
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_NOT_FOUND,
@@ -429,7 +427,7 @@ silo_query_with_root(XbSilo *self,
 			    xpath);
 		return NULL;
 	}
-	return g_steal_pointer(&results);
+	return g_steal_pointer(&helper.nodes);
 }
 
 /**
@@ -522,13 +520,14 @@ xb_silo_query_with_root_full(XbSilo *self,
 			     GError **error)
 {
 	XbSiloNode *sn = NULL;
-	g_autoptr(GHashTable) results_hash = NULL;
-	g_autoptr(GPtrArray) results =
-	    g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
 	g_autoptr(GTimer) timer = xb_silo_start_profile(self);
 	XbSiloQueryData query_data = {
 	    .sn = NULL,
 	    .position = 0,
+	};
+	g_auto(XbSiloQueryHelper) helper = {
+	    .flags = first_result_only ? XB_SILO_QUERY_HELPER_NONE : XB_SILO_QUERY_HELPER_USE_HASH,
+	    .query_data = &query_data,
 	};
 	G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 	XbQueryFlags query_flags = (context != NULL) ? xb_query_context_get_flags(context)
@@ -554,18 +553,7 @@ xb_silo_query_with_root_full(XbSilo *self,
 
 	/* only one query, so dedup is only needed for multi-result queries
 	 * where parent traversal could fan in to the same node */
-	if (!first_result_only)
-		results_hash = g_hash_table_new(g_direct_hash, g_direct_equal);
-	if (!xb_silo_query_part(self,
-				sn,
-				results,
-				results_hash,
-				query,
-				context,
-				first_result_only,
-				&query_data,
-				XB_SILO_QUERY_HELPER_NONE,
-				error))
+	if (!xb_silo_query_part(self, sn, &helper, query, context, first_result_only, error))
 		return NULL;
 
 	/* profile */
@@ -590,11 +578,11 @@ xb_silo_query_with_root_full(XbSilo *self,
 				    tmp,
 				    bindings_str != NULL ? bindings_str : "",
 				    limit,
-				    results->len);
+				    helper.nodes != NULL ? helper.nodes->len : 0);
 	}
 
 	/* nothing found */
-	if (results->len == 0) {
+	if (helper.nodes == NULL) {
 		if (error != NULL)
 			g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "no results");
 		return NULL;
@@ -602,9 +590,9 @@ xb_silo_query_with_root_full(XbSilo *self,
 
 	/* reverse order */
 	if (query_flags & XB_QUERY_FLAG_REVERSE)
-		_g_ptr_array_reverse(results);
+		_g_ptr_array_reverse(helper.nodes);
 
-	return g_steal_pointer(&results);
+	return g_steal_pointer(&helper.nodes);
 }
 
 /**
