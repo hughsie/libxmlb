@@ -22,6 +22,50 @@
 
 #define XB_QUERY_OR_BRANCH_MAX 64
 
+static inline gboolean
+xb_silo_query_node_matches_predicate_with_bindings(XbSilo *self,
+						   XbStack *opcodes,
+						   XbSiloQueryData *query_data,
+						   XbValueBindings *bindings,
+						   guint *bindings_offset,
+						   gboolean *result,
+						   GError **error)
+{
+	XbMachine *machine = xb_silo_get_machine(self);
+	g_auto(XbValueBindings) predicate_bindings = XB_VALUE_BINDINGS_INIT();
+	guint predicate_bindings_idx = 0;
+	XbValueBindings *predicate_bindings_ptr = &predicate_bindings;
+
+	/* set up the bindings for this predicate */
+	for (guint k = 0; k < xb_stack_get_size(opcodes); k++) {
+		XbOpcode *op = xb_stack_peek(opcodes, k);
+		if (xb_opcode_is_binding(op)) {
+			/* ignore errors as they’ll be caught by xb_machine_run() */
+			xb_value_bindings_copy_binding(bindings,
+						       *bindings_offset + predicate_bindings_idx,
+						       &predicate_bindings,
+						       predicate_bindings_idx);
+			predicate_bindings_idx++;
+		}
+	}
+
+	/* run the predicate; pass NULL for the bindings iff
+	 * (bindings == NULL), as that means we’ve been called
+	 * with pre-0.3.0-style pre-bound values */
+	if (!xb_machine_run_with_bindings(machine,
+					  opcodes,
+					  predicate_bindings_ptr,
+					  result,
+					  query_data,
+					  error))
+		return FALSE;
+
+	*bindings_offset += predicate_bindings_idx;
+
+	/* success */
+	return TRUE;
+}
+
 static gboolean
 xb_silo_query_node_matches(XbSilo *self,
 			   XbMachine *machine,
@@ -48,39 +92,26 @@ xb_silo_query_node_matches(XbSilo *self,
 	if (section->predicates != NULL) {
 		for (guint i = 0; i < section->predicates->len; i++) {
 			XbStack *opcodes = g_ptr_array_index(section->predicates, i);
-			g_auto(XbValueBindings) predicate_bindings = XB_VALUE_BINDINGS_INIT();
-			guint predicate_bindings_idx = 0;
-			XbValueBindings *predicate_bindings_ptr = NULL;
-
-			if (bindings != NULL)
-				predicate_bindings_ptr = &predicate_bindings;
-
-			/* set up the bindings for this predicate */
-			for (guint k = 0; bindings != NULL && k < xb_stack_get_size(opcodes); k++) {
-				XbOpcode *op = xb_stack_peek(opcodes, k);
-				if (xb_opcode_is_binding(op)) {
-					/* ignore errors as they’ll be caught by xb_machine_run() */
-					xb_value_bindings_copy_binding(bindings,
-								       bindings_offset +
-									   predicate_bindings_idx,
-								       &predicate_bindings,
-								       predicate_bindings_idx);
-					predicate_bindings_idx++;
-				}
+			if (bindings != NULL) {
+				if (!xb_silo_query_node_matches_predicate_with_bindings(
+					self,
+					opcodes,
+					query_data,
+					bindings,
+					&bindings_offset,
+					result,
+					error))
+					return FALSE;
+			} else {
+				/* we’ve been called with pre-0.3.0-style pre-bound values */
+				if (!xb_machine_run_with_bindings(machine,
+								  opcodes,
+								  NULL,
+								  result,
+								  query_data,
+								  error))
+					return FALSE;
 			}
-
-			/* run the predicate; pass NULL for the bindings iff
-			 * (bindings == NULL), as that means we’ve been called
-			 * with pre-0.3.0-style pre-bound values */
-			if (!xb_machine_run_with_bindings(machine,
-							  opcodes,
-							  predicate_bindings_ptr,
-							  result,
-							  query_data,
-							  error))
-				return FALSE;
-
-			bindings_offset += predicate_bindings_idx;
 		}
 	}
 
