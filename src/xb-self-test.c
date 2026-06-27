@@ -2341,23 +2341,6 @@ xb_builder_native_lang2_func(void)
 }
 
 static void
-xb_builder_native_lang_no_locales_func(void)
-{
-	gboolean ret;
-	g_autoptr(GError) error = NULL;
-	g_autoptr(XbBuilder) builder = xb_builder_new();
-	g_autoptr(XbSilo) silo = NULL;
-
-	/* import from XML */
-	ret = xb_test_import_xml(builder, "<id>gimp.desktop</id>", &error);
-	g_assert_no_error(error);
-	g_assert_true(ret);
-	silo = xb_builder_compile(builder, XB_BUILDER_COMPILE_FLAG_SINGLE_LANG, NULL, &error);
-	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
-	g_assert_null(silo);
-}
-
-static void
 xb_xpath_parent_func(void)
 {
 	XbNode *n;
@@ -3374,8 +3357,6 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/builder{cdata}", xb_builder_cdata_func);
 	g_test_add_func("/libxmlb/builder{native-lang}", xb_builder_native_lang_func);
 	g_test_add_func("/libxmlb/builder{native-lang-nested}", xb_builder_native_lang2_func);
-	g_test_add_func("/libxmlb/builder{native-lang-locale}",
-			xb_builder_native_lang_no_locales_func);
 	g_test_add_func("/libxmlb/builder{empty}", xb_builder_empty_func);
 	g_test_add_func("/libxmlb/builder{ensure}", xb_builder_ensure_func);
 	g_test_add_func("/libxmlb/builder{ensure-watch-source}",

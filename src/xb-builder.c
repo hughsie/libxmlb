@@ -869,11 +869,9 @@ xb_builder_compile(XbBuilder *self,
 
 	/* the builder needs to know the locales */
 	if (priv->locales->len == 0 && (flags & XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS)) {
-		g_set_error_literal(error,
-				    G_IO_ERROR,
-				    G_IO_ERROR_INVALID_DATA,
-				    "No locales set and using NATIVE_LANGS");
-		return NULL;
+		const gchar *const *locales = g_get_language_names();
+		for (guint i = 0; locales[i] != NULL; i++)
+			xb_builder_add_locale(self, locales[i]);
 	}
 
 	/* create helper used for compiling */
