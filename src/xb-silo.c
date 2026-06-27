@@ -726,7 +726,6 @@ XbMachine *
 xb_silo_get_machine(XbSilo *self)
 {
 	XbSiloPrivate *priv = GET_PRIVATE(self);
-	g_return_val_if_fail(XB_IS_SILO(self), NULL);
 	return priv->machine;
 }
 

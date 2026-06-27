@@ -112,7 +112,6 @@ typedef struct {
 	GPtrArray *sections; /* of XbQuerySection */
 	GPtrArray *results;  /* of XbNode or XbSiloNode (see @flags) */
 	XbValueBindings *bindings;
-	XbMachine *machine;
 	GHashTable *results_hash; /* of sn:1 */
 	guint limit;
 	XbSiloQueryHelperFlags flags;
@@ -148,6 +147,7 @@ xb_silo_query_section_root(XbSilo *self,
 			   XbSiloQueryHelper *helper,
 			   GError **error)
 {
+	XbMachine *machine = xb_silo_get_machine(self);
 	XbSiloQueryData *query_data = helper->query_data;
 	XbQuerySection *section = g_ptr_array_index(helper->sections, i);
 
@@ -202,7 +202,7 @@ xb_silo_query_section_root(XbSilo *self,
 		guint bindings_offset_end = 0;
 		query_data->sn = sn;
 		if (!xb_silo_query_node_matches(self,
-						helper->machine,
+						machine,
 						sn,
 						section,
 						query_data,
@@ -264,7 +264,6 @@ xb_silo_query_part(XbSilo *self,
 	XbSiloQueryHelper helper = {
 	    .results = results,
 	    .bindings = (context != NULL) ? xb_query_context_get_bindings(context) : NULL,
-	    .machine = xb_silo_get_machine(self),
 	    .limit = first_result_only	 ? 1
 		     : (context != NULL) ? xb_query_context_get_limit(context)
 					 : xb_query_get_limit(query),
