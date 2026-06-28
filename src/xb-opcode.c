@@ -357,7 +357,7 @@ xb_opcode_init(XbOpcode *self,
 	self->val = val;
 	self->tokens_len = 0;
 	self->destroy_func = destroy_func;
-	memset(self->tokens, 0, sizeof(self->tokens));
+	self->tokens[0] = NULL;
 }
 
 /**
@@ -466,6 +466,7 @@ xb_opcode_append_token(XbOpcode *self, const gchar *val)
 	if (self->tokens_len >= XB_OPCODE_TOKEN_MAX)
 		return FALSE;
 	self->tokens[self->tokens_len++] = val;
+	self->tokens[self->tokens_len] = NULL;
 	self->kind |= XB_OPCODE_FLAG_TOKENIZED;
 	return TRUE;
 }
