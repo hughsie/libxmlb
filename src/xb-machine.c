@@ -31,12 +31,6 @@ G_DEFINE_TYPE_WITH_PRIVATE(XbMachine, xb_machine, G_TYPE_OBJECT)
 #define GET_PRIVATE(o) (xb_machine_get_instance_private(o))
 
 typedef struct {
-	gchar *str;
-	gsize strsz;
-	gchar *name;
-} XbMachineOperator;
-
-typedef struct {
 	XbMachineOpcodeFixupFunc fixup_cb;
 	gpointer user_data;
 	GDestroyNotify user_data_free;
@@ -56,6 +50,12 @@ typedef struct {
 	gpointer user_data;
 	GDestroyNotify user_data_free;
 } XbMachineMethodItem;
+
+typedef struct {
+	gchar *str;
+	gsize strsz;
+	XbMachineMethodItem *method;
+} XbMachineOperator;
 
 #define XB_MACHINE_STACK_LEVELS_MAX 20
 
@@ -90,6 +90,21 @@ xb_machine_set_debug_flags(XbMachine *self, XbMachineDebugFlags flags)
 	priv->debug_flags = flags;
 }
 
+static XbMachineMethodItem *
+xb_machine_find_func(XbMachine *self, const gchar *func_name, gssize func_name_len)
+{
+	XbMachinePrivate *priv = GET_PRIVATE(self);
+
+	if (func_name_len < 0)
+		func_name_len = strlen(func_name);
+	for (guint i = 0; i < priv->methods->len; i++) {
+		XbMachineMethodItem *item = g_ptr_array_index(priv->methods, i);
+		if (strncmp(item->name, func_name, func_name_len) == 0)
+			return item;
+	}
+	return NULL;
+}
+
 /**
  * xb_machine_add_operator:
  * @self: a #XbMachine
@@ -118,7 +133,7 @@ xb_machine_add_operator(XbMachine *self, const gchar *str, const gchar *name)
 	op = g_slice_new0(XbMachineOperator);
 	op->str = g_strdup(str);
 	op->strsz = strlen(str);
-	op->name = g_strdup(name);
+	op->method = xb_machine_find_func(self, name, -1);
 	g_ptr_array_add(priv->operators, op);
 }
 
@@ -223,16 +238,10 @@ xb_machine_add_text_handler(XbMachine *self,
 	g_ptr_array_add(priv->text_handlers, item);
 }
 
-static XbMachineMethodItem *
-xb_machine_find_func(XbMachine *self, const gchar *func_name)
+static void
+xb_machine_opcode_func_init_internal(XbMachine *self, XbOpcode *opcode, XbMachineMethodItem *item)
 {
-	XbMachinePrivate *priv = GET_PRIVATE(self);
-	for (guint i = 0; i < priv->methods->len; i++) {
-		XbMachineMethodItem *item = g_ptr_array_index(priv->methods, i);
-		if (g_strcmp0(item->name, func_name) == 0)
-			return item;
-	}
-	return NULL;
+	xb_opcode_init(opcode, XB_OPCODE_KIND_FUNCTION, g_strdup(item->name), item->idx, g_free);
 }
 
 /**
@@ -252,7 +261,7 @@ xb_machine_find_func(XbMachine *self, const gchar *func_name)
 gboolean
 xb_machine_opcode_func_init(XbMachine *self, XbOpcode *opcode, const gchar *func_name)
 {
-	XbMachineMethodItem *item = xb_machine_find_func(self, func_name);
+	XbMachineMethodItem *item = xb_machine_find_func(self, func_name, -1);
 	if (item == NULL)
 		return FALSE;
 	xb_opcode_init(opcode, XB_OPCODE_KIND_FUNCTION, g_strdup(func_name), item->idx, g_free);
@@ -263,28 +272,45 @@ static gboolean
 xb_machine_parse_add_func(XbMachine *self,
 			  XbStack *opcodes,
 			  const gchar *func_name,
+			  gssize func_name_len,
 			  guint8 level,
 			  GError **error)
+{
+	XbOpcode *opcode;
+	XbMachineMethodItem *method;
+
+	method = xb_machine_find_func(self, func_name, func_name_len);
+	if (method == NULL) {
+		g_autofree gchar *func_name_safe = g_strndup(func_name, func_name_len);
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_NOT_SUPPORTED,
+			    "function not found: %s",
+			    func_name);
+		return FALSE;
+	}
+
+	if (!xb_stack_push(opcodes, &opcode, error))
+		return FALSE;
+	xb_machine_opcode_func_init_internal(self, opcode, method);
+	xb_opcode_set_level(opcode, level);
+
+	return TRUE;
+}
+
+static gboolean
+xb_machine_parse_add_func_internal(XbMachine *self,
+				   XbStack *opcodes,
+				   XbMachineMethodItem *method,
+				   guint8 level,
+				   GError **error)
 {
 	XbOpcode *opcode;
 
 	if (!xb_stack_push(opcodes, &opcode, error))
 		return FALSE;
-
-	/* match opcode, which should always exist */
-	if (!xb_machine_opcode_func_init(self, opcode, func_name)) {
-		if (error != NULL) {
-			g_set_error(error,
-				    G_IO_ERROR,
-				    G_IO_ERROR_NOT_SUPPORTED,
-				    "built-in function not found: %s",
-				    func_name);
-		}
-		xb_stack_pop(opcodes, NULL, NULL);
-		return FALSE;
-	}
+	xb_machine_opcode_func_init_internal(self, opcode, method);
 	xb_opcode_set_level(opcode, level);
-
 	return TRUE;
 }
 
@@ -399,7 +425,7 @@ static gboolean
 xb_machine_parse_section(XbMachine *self,
 			 XbStack *opcodes,
 			 const gchar *text,
-			 gssize text_len,
+			 gsize text_len,
 			 gboolean is_method,
 			 guint8 level,
 			 guint depth,
@@ -407,9 +433,7 @@ xb_machine_parse_section(XbMachine *self,
 {
 	XbMachinePrivate *priv = GET_PRIVATE(self);
 
-	/* fall back for simplicity */
-	if (text_len < 0)
-		text_len = strlen(text);
+	/* nothing to do */
 	if (text_len == 0)
 		return TRUE;
 
@@ -421,20 +445,19 @@ xb_machine_parse_section(XbMachine *self,
 		return FALSE;
 	}
 
-	for (gssize i = 0; i < text_len; i++) {
+	for (gsize i = 0; i < text_len; i++) {
 		for (guint j = 0; j < priv->operators->len; j++) {
 			XbMachineOperator *op = g_ptr_array_index(priv->operators, j);
 			if (strncmp(text + i, op->str, op->strsz) != 0)
 				continue;
 			if (is_method) {
 				XbOpcode *op_tail;
-				const gchar *op_name = op->name;
 
 				/* after then before */
 				if (!xb_machine_parse_section(self,
 							      opcodes,
 							      text + i + op->strsz,
-							      -1,
+							      text_len - (i + op->strsz),
 							      is_method,
 							      level,
 							      depth + 1,
@@ -455,14 +478,22 @@ xb_machine_parse_section(XbMachine *self,
 				/* multiple "eq" sections are converted to "in" */
 				op_tail = xb_stack_peek_tail(opcodes);
 				if (op_tail != NULL && _xb_opcode_get_level(op_tail) != level &&
-				    g_strcmp0(op_name, "eq") == 0)
-					op_name = "in";
-				if (!xb_machine_parse_add_func(self,
-							       opcodes,
-							       op_name,
-							       level,
-							       error))
-					return FALSE;
+				    g_strcmp0(op->method->name, "eq") == 0) {
+					if (!xb_machine_parse_add_func(self,
+								       opcodes,
+								       "in",
+								       -1,
+								       level,
+								       error))
+						return FALSE;
+				} else {
+					if (!xb_machine_parse_add_func_internal(self,
+										opcodes,
+										op->method,
+										level,
+										error))
+						return FALSE;
+				}
 			} else {
 				/* before then after */
 				if (i > 0) {
@@ -479,17 +510,17 @@ xb_machine_parse_section(XbMachine *self,
 				if (!xb_machine_parse_section(self,
 							      opcodes,
 							      text + i + op->strsz,
-							      -1,
+							      text_len - (i + op->strsz),
 							      is_method,
 							      level,
 							      depth + 1,
 							      error))
 					return FALSE;
-				if (!xb_machine_parse_add_func(self,
-							       opcodes,
-							       op->name,
-							       level,
-							       error))
+				if (!xb_machine_parse_add_func_internal(self,
+									opcodes,
+									op->method,
+									level,
+									error))
 					return FALSE;
 			}
 			return TRUE;
@@ -505,9 +536,24 @@ xb_machine_parse_section(XbMachine *self,
 					       text_len,
 					       level,
 					       &error_local)) {
+			XbMachineMethodItem *method;
 			if (priv->debug_flags & XB_MACHINE_DEBUG_FLAG_SHOW_PARSING)
 				g_debug("Failed to add text %s, trying function", text);
-			return xb_machine_parse_add_func(self, opcodes, text, level, error);
+			method = xb_machine_find_func(self, text, text_len);
+			if (method == NULL) {
+				g_autofree gchar *text_safe = g_strndup(text, text_len);
+				g_set_error(error,
+					    G_IO_ERROR,
+					    G_IO_ERROR_INVALID_DATA,
+					    "missing %s() method",
+					    text_safe);
+				return FALSE;
+			}
+			return xb_machine_parse_add_func_internal(self,
+								  opcodes,
+								  method,
+								  level,
+								  error);
 		}
 		return TRUE;
 	}
@@ -523,23 +569,23 @@ xb_machine_parse_sections(XbMachine *self,
 			  guint8 level,
 			  GError **error)
 {
-	g_autofree gchar *tmp = NULL;
+	gsize last = text_len;
+
 	if (text_len == 0)
 		return TRUE;
 
 	/* leading comma */
 	if (text[0] == ',') {
-		tmp = g_strndup(text + 1, text_len - 1);
-	} else {
-		tmp = g_strndup(text, text_len);
+		text += 1;
+		last -= 1;
 	}
 	for (gint i = text_len - 1; i >= 0; i--) {
-		if (tmp[i] == ',') {
-			tmp[i] = '\0';
+		if (text[i] == ',') {
 			if (is_method) {
 				if (!xb_machine_parse_add_func(self,
 							       opcodes,
-							       tmp + i + 1,
+							       text + i + 1,
+							       last - (i + 1),
 							       level,
 							       error))
 					return FALSE;
@@ -547,18 +593,26 @@ xb_machine_parse_sections(XbMachine *self,
 			} else {
 				if (!xb_machine_parse_section(self,
 							      opcodes,
-							      tmp + i + 1,
-							      -1,
+							      text + i + 1,
+							      last - (i + 1),
 							      TRUE,
 							      level,
 							      0,
 							      error))
 					return FALSE;
 			}
+			last = i;
 		}
 	}
-	if (tmp[0] != '\0') {
-		if (!xb_machine_parse_section(self, opcodes, tmp, -1, is_method, level, 0, error))
+	if (text[0] != '\0') {
+		if (!xb_machine_parse_section(self,
+					      opcodes,
+					      text,
+					      last,
+					      is_method,
+					      level,
+					      0,
+					      error))
 			return FALSE;
 	}
 	return TRUE;
@@ -2355,7 +2409,6 @@ static void
 xb_machine_operator_free(XbMachineOperator *op)
 {
 	g_free(op->str);
-	g_free(op->name);
 	g_slice_free(XbMachineOperator, op);
 }
 
