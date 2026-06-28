@@ -70,8 +70,6 @@ xb_value_bindings_clear_index(XbValueBindings *self, guint idx)
 {
 	RealValueBindings *_self = (RealValueBindings *)self;
 
-	g_return_if_fail(idx < G_N_ELEMENTS(_self->values));
-
 	if (_self->values[idx].ptr != NULL && _self->values[idx].destroy_func)
 		_self->values[idx].destroy_func(_self->values[idx].ptr);
 	_self->values[idx].kind = XB_BOUND_VALUE_KIND_NONE;
