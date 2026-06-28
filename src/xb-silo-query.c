@@ -186,7 +186,7 @@ xb_silo_query_section_add_node(XbSilo *self, XbSiloQueryHelper *helper, XbSiloNo
 		}
 		g_ptr_array_add(helper->nodes, xb_silo_create_node(self, sn, force_node_cache));
 	}
-	return helper->nodes->len == helper->limit;
+	return helper->limit > 0 && helper->nodes->len >= helper->limit;
 }
 
 /*
