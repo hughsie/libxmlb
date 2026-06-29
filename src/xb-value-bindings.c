@@ -70,11 +70,11 @@ xb_value_bindings_clear_index(XbValueBindings *self, guint idx)
 {
 	RealValueBindings *_self = (RealValueBindings *)self;
 
-	if (_self->values[idx].ptr != NULL && _self->values[idx].destroy_func)
+	if (_self->values[idx].ptr != NULL && _self->values[idx].destroy_func) {
 		_self->values[idx].destroy_func(_self->values[idx].ptr);
-	_self->values[idx].kind = XB_BOUND_VALUE_KIND_NONE;
-	_self->values[idx].ptr = NULL;
-	_self->values[idx].destroy_func = NULL;
+		_self->values[idx].ptr = NULL;
+		_self->values[idx].destroy_func = NULL;
+	}
 }
 
 /**
