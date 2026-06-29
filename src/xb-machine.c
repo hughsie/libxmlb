@@ -1011,7 +1011,7 @@ xb_machine_run_with_bindings(XbMachine *self,
 					 kind == XB_OPCODE_KIND_BOUND_INDEXED_TEXT ||
 					 kind == XB_OPCODE_KIND_BOUND_INTEGER)) {
 			XbOpcode *machine_opcode;
-			if (!xb_machine_stack_push(self, stack, &machine_opcode, error))
+			if (!xb_stack_push(stack, &machine_opcode, error))
 				return FALSE;
 			if (!xb_value_bindings_lookup_opcode(bindings,
 							     bound_opcode_idx++,
@@ -1061,7 +1061,7 @@ xb_machine_run_with_bindings(XbMachine *self,
 					  kind == XB_OPCODE_KIND_BOUND_INDEXED_TEXT ||
 					  kind == XB_OPCODE_KIND_BOUND_INTEGER))) {
 			XbOpcode *machine_opcode;
-			if (!xb_machine_stack_push(self, stack, &machine_opcode, error))
+			if (!xb_stack_push(stack, &machine_opcode, error))
 				return FALSE;
 			*machine_opcode = *opcode;
 			machine_opcode->destroy_func = NULL;
