@@ -1,3 +1,17 @@
+Version 0.3.28
+~~~~~~~~~~~~~~
+Released: 2026-06-30
+
+New Features:
+ - Automatically add system locales when using native-langs (Richard Hughes)
+ - Lower the Meson and GLib deps for RHEL-8 (Richard Hughes)
+
+Bugfixes:
+ - Lazy clear opcode tokens for a ~2% speedup (Richard Hughes)
+ - Speed up negative queries by 11% by defer creating the results objects (Richard Hughes)
+ - Speed up predicates with no bindings by 9% (Richard Hughes)
+ - Speed up the no-results query by 2.5% by using a constant error (Richard Hughes)
+
 Version 0.3.27
 ~~~~~~~~~~~~~~
 Released: 2026-05-18
