@@ -1,5 +1,5 @@
 project('libxmlb', 'c',
-  version : '0.3.28',
+  version : '0.3.29',
   license : 'LGPL-2.1-or-later',
   meson_version : '>=0.58.2',
   default_options : ['warning_level=2', 'c_std=c99'],
