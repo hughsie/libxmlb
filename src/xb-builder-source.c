@@ -469,7 +469,7 @@ xb_builder_source_get_istream(XbBuilderSource *self, GCancellable *cancellable, 
 		g_debug("detected content type of %s to be %s", basename, content_type);
 		if (content_type == NULL)
 			return NULL;
-		if (g_strcmp0(content_type, "application/xml") == 0)
+		if (g_content_type_is_a(content_type, "application/xml"))
 			break;
 		/* Also accept the text/xml alias, just in case the user’s content-type database is
 		 * slightly broken (application/xml should normally be what’s used): */
