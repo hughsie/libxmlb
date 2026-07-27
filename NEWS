@@ -1,3 +1,14 @@
+Version 0.3.29
+~~~~~~~~~~~~~~
+Released: 2026-07-27
+
+New Features:
+Bugfixes:
+ - Avoid stale query indexes when reloading the silo (Richard Hughes)
+ - Clear the query cache when reloading the silo (Richard Hughes)
+ - Correctly mark the silo as invalid when re-loading malformed data (Richard Hughes)
+ - Fix building the silo when shared-mime-info is installed (Richard Hughes)
+
 Version 0.3.28
 ~~~~~~~~~~~~~~
 Released: 2026-06-30
