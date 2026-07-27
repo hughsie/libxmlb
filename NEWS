@@ -2,7 +2,6 @@ Version 0.3.29
 ~~~~~~~~~~~~~~
 Released: 2026-07-27
 
-New Features:
 Bugfixes:
  - Avoid stale query indexes when reloading the silo (Richard Hughes)
  - Clear the query cache when reloading the silo (Richard Hughes)
