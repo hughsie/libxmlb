@@ -758,6 +758,7 @@ xb_silo_load_from_bytes(XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErro
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	/* no longer valid */
+	xb_silo_invalidate(self);
 	if (priv->enable_node_cache) {
 		locker = g_mutex_locker_new(&priv->nodes_mutex);
 		if (priv->nodes != NULL)
@@ -847,7 +848,7 @@ xb_silo_load_from_bytes(XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErro
 	xb_silo_add_profile(self, timer, "parse blob");
 
 	/* success */
-	priv->valid = TRUE;
+	xb_silo_uninvalidate(self);
 	return TRUE;
 }
 
