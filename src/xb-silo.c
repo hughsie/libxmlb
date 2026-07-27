@@ -53,6 +53,7 @@ typedef struct {
 	guint32 strtab;
 	GHashTable *strtab_tags;
 	GHashTable *strindex;
+	GRWLock strindex_mutex;
 	gboolean enable_node_cache;
 	GHashTable *nodes; /* (mutex nodes_mutex) */
 	GMutex nodes_mutex;
@@ -199,11 +200,13 @@ xb_silo_strtab_index_insert(XbSilo *self, guint32 offset, GError **error)
 {
 	XbSiloPrivate *priv = GET_PRIVATE(self);
 	const gchar *tmp;
+	g_autoptr(GRWLockWriterLocker) locker_rw = NULL;
 
 	/* get the string version */
 	tmp = xb_silo_from_strtab(self, offset, error);
 	if (tmp == NULL)
 		return FALSE;
+	locker_rw = g_rw_lock_writer_locker_new(&priv->strindex_mutex);
 	if (g_hash_table_lookup(priv->strindex, tmp) != NULL)
 		return TRUE;
 	g_hash_table_insert(priv->strindex, (gpointer)tmp, GUINT_TO_POINTER(offset));
@@ -216,6 +219,9 @@ xb_silo_strtab_index_lookup(XbSilo *self, const gchar *str)
 {
 	XbSiloPrivate *priv = GET_PRIVATE(self);
 	gpointer val = NULL;
+	g_autoptr(GRWLockReaderLocker) locker_ro = NULL;
+
+	locker_ro = g_rw_lock_reader_locker_new(&priv->strindex_mutex);
 	if (!g_hash_table_lookup_extended(priv->strindex, str, NULL, &val))
 		return XB_SILO_UNSET;
 	return GPOINTER_TO_INT(val);
@@ -766,7 +772,11 @@ xb_silo_load_from_bytes(XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErro
 	}
 
 	g_hash_table_remove_all(priv->strtab_tags);
+
+	g_rw_lock_writer_lock(&priv->strindex_mutex);
 	g_hash_table_remove_all(priv->strindex);
+	g_rw_lock_writer_unlock(&priv->strindex_mutex);
+
 	g_clear_pointer(&priv->guid, g_free);
 
 	g_rw_lock_writer_lock(&priv->query_cache_mutex);
@@ -1758,6 +1768,7 @@ xb_silo_init(XbSilo *self)
 
 	priv->strtab_tags = g_hash_table_new(g_str_hash, g_str_equal);
 	priv->strindex = g_hash_table_new(g_str_hash, g_str_equal);
+	g_rw_lock_init(&priv->strindex_mutex);
 	priv->profile_str = g_string_new(NULL);
 	priv->query_cache = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_object_unref);
 	g_rw_lock_init(&priv->query_cache_mutex);
@@ -1832,6 +1843,7 @@ xb_silo_finalize(GObject *obj)
 	g_rw_lock_clear(&priv->query_cache_mutex);
 	g_object_unref(priv->machine);
 	g_hash_table_unref(priv->strindex);
+	g_rw_lock_clear(&priv->strindex_mutex);
 	g_hash_table_unref(priv->file_monitors);
 	g_mutex_clear(&priv->file_monitors_mutex);
 	g_hash_table_unref(priv->strtab_tags);
