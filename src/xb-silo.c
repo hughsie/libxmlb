@@ -769,6 +769,10 @@ xb_silo_load_from_bytes(XbSilo *self, GBytes *blob, XbSiloLoadFlags flags, GErro
 	g_hash_table_remove_all(priv->strindex);
 	g_clear_pointer(&priv->guid, g_free);
 
+	g_rw_lock_writer_lock(&priv->query_cache_mutex);
+	g_hash_table_remove_all(priv->query_cache);
+	g_rw_lock_writer_unlock(&priv->query_cache_mutex);
+
 	/* refcount internally */
 	if (priv->blob != NULL)
 		g_bytes_unref(priv->blob);
