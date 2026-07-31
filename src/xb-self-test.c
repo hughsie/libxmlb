@@ -2696,6 +2696,20 @@ xb_builder_node_token_max_func(void)
 }
 
 static void
+xb_builder_node_nul_func(void)
+{
+	const gchar buf[] = {'A', '\n', 'B'};
+	g_autoptr(XbBuilderNode) root = xb_builder_node_new(NULL);
+
+	xb_builder_node_set_text(root, "\n", 0);
+	g_assert_cmpstr(xb_builder_node_get_text(root), ==, NULL);
+	xb_builder_node_set_text(root, "dave", -1);
+	g_assert_cmpstr(xb_builder_node_get_text(root), ==, "dave");
+	xb_builder_node_set_text(root, buf, sizeof(buf));
+	g_assert_cmpstr(xb_builder_node_get_text(root), ==, "A B");
+}
+
+static void
 xb_builder_node_func(void)
 {
 	g_autofree gchar *xml = NULL;
@@ -3372,6 +3386,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/builder{source-lzma}", xb_builder_source_lzma_func);
 	g_test_add_func("/libxmlb/builder{source-zstd}", xb_builder_source_zstd_func);
 	g_test_add_func("/libxmlb/builder-node", xb_builder_node_func);
+	g_test_add_func("/libxmlb/builder-node/nul", xb_builder_node_nul_func);
 	g_test_add_func("/libxmlb/builder-node{token-max}", xb_builder_node_token_max_func);
 	g_test_add_func("/libxmlb/builder-node{info}", xb_builder_node_info_func);
 	g_test_add_func("/libxmlb/builder-node{literal-text}", xb_builder_node_literal_text_func);
