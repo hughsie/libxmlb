@@ -141,3 +141,28 @@ xb_file_set_contents(GFile *file,
 				       cancellable,
 				       error);
 }
+
+/**
+ * xb_strsplit:
+ * @str: (not nullable): a string to split
+ * @sz: size of @str, which must be more than 0
+ * @delimiter: a string which specifies the places at which to split the string
+ * @max_tokens: the maximum number of pieces to split @str into
+ *
+ * Splits a string into a maximum of @max_tokens pieces, using the given
+ * delimiter. If @max_tokens is reached, the remainder of string is appended
+ * to the last token.
+ *
+ * Returns: (transfer full): a newly-allocated NULL-terminated array of strings
+ **/
+gchar **
+xb_strsplit(const gchar *str, gsize sz, const gchar *delimiter, gint max_tokens)
+{
+	g_return_val_if_fail(str != NULL, NULL);
+	g_return_val_if_fail(sz > 0, NULL);
+	if (str[sz - 1] != '\0') {
+		g_autofree gchar *str2 = g_strndup(str, sz);
+		return g_strsplit(str2, delimiter, max_tokens);
+	}
+	return g_strsplit(str, delimiter, max_tokens);
+}

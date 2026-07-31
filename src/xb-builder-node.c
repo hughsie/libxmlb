@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "xb-builder-node-private.h"
+#include "xb-common-private.h"
 #include "xb-opcode-private.h"
 #include "xb-silo-private.h"
 #include "xb-string-private.h"
@@ -277,7 +278,7 @@ xb_builder_node_parse_literal_text(XbBuilderNode *self, const gchar *text, gssiz
 
 	/* split the text into lines */
 	tmp = g_string_sized_new((gsize)text_len_safe + 1);
-	split = g_strsplit(text, "\n", -1);
+	split = xb_strsplit(text, text_len_safe, "\n", -1);
 	for (guint i = 0; split[i] != NULL; i++) {
 		/* if this is a blank line we end the paragraph mode
 		 * and swallow the newline. If we see exactly two

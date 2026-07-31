@@ -16,3 +16,5 @@ xb_file_set_contents(GFile *file,
 		     gsize bufsz,
 		     GCancellable *cancellable,
 		     GError **error) G_GNUC_NON_NULL(1);
+gchar **
+xb_strsplit(const gchar *str, gsize sz, const gchar *delimiter, gint max_tokens) G_GNUC_NON_NULL(1);
