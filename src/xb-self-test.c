@@ -3029,6 +3029,67 @@ xb_threading_func(void)
 }
 
 typedef struct {
+	XbSilo *silo;
+	XbQuery *query;
+} XbThreadingSearchHelper;
+
+static void
+xb_threading_search_cb(gpointer data, gpointer user_data)
+{
+	XbThreadingSearchHelper *helper = (XbThreadingSearchHelper *)user_data;
+	guint offset = GPOINTER_TO_UINT(data) * 1000;
+
+	/* unique terms force every query to intern a new token */
+	for (guint i = 0; i < 1000; i++) {
+		g_auto(XbQueryContext) context = XB_QUERY_CONTEXT_INIT();
+		g_autoptr(GError) error = NULL;
+		g_autoptr(GPtrArray) results = NULL;
+
+		xb_value_bindings_bind_str(xb_query_context_get_bindings(&context),
+					   0,
+					   g_strdup_printf("term%u", offset + i),
+					   g_free);
+		results = xb_silo_query_with_context(helper->silo, helper->query, &context, &error);
+		g_assert_error(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND);
+		g_assert_null(results);
+	}
+}
+
+static void
+xb_threading_search_func(void)
+{
+	GThreadPool *pool;
+	gboolean ret;
+	XbThreadingSearchHelper helper = {NULL};
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbQuery) query = NULL;
+	g_autoptr(XbSilo) silo = NULL;
+
+	silo = xb_silo_new_from_xml("<components>"
+				    "<component><name>ColorHug2</name></component>"
+				    "</components>",
+				    &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+	query = xb_query_new(silo, "components/component/name[text()~=?]", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(query);
+	helper.silo = silo;
+	helper.query = query;
+
+	/* every query on the silo shares one XbMachine */
+	pool = g_thread_pool_new(xb_threading_search_cb, &helper, 8, TRUE, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(pool);
+	for (guint i = 1; i <= 8; i++) {
+		ret = g_thread_pool_push(pool, GUINT_TO_POINTER(i), &error);
+		g_assert_no_error(error);
+		g_assert_true(ret);
+	}
+	g_thread_pool_free(pool, FALSE, TRUE);
+}
+
+typedef struct {
 	guint cnt;
 	GString *str;
 } XbMarkupHelper;
@@ -3417,6 +3478,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/xpath-parent-subnode", xb_xpath_parent_subnode_func);
 	g_test_add_func("/libxmlb/multiple-roots", xb_builder_multiple_roots_func);
 	g_test_add_func("/libxmlb/single-root", xb_builder_single_root_func);
+	g_test_add_func("/libxmlb/threading{search}", xb_threading_search_func);
 	if (g_test_perf()) {
 		g_test_add_func("/libxmlb/threading", xb_threading_func);
 		g_test_add_func("/libxmlb/speed", xb_speed_func);
