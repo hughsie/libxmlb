@@ -70,6 +70,8 @@ void
 xb_opcode_set_val(XbOpcode *self, guint32 val) G_GNUC_NON_NULL(1);
 gboolean
 xb_opcode_append_token(XbOpcode *self, const gchar *val) G_GNUC_NON_NULL(1, 2);
+void
+xb_opcode_tokenize(XbOpcode *self, GStrv *tokens, GStrv *ascii_tokens) G_GNUC_NON_NULL(1, 2, 3);
 const gchar **
 xb_opcode_get_tokens(XbOpcode *self) G_GNUC_NON_NULL(1);
 gchar *

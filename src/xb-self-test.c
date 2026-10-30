@@ -3028,6 +3028,120 @@ xb_threading_func(void)
 	g_thread_pool_free(pool, FALSE, TRUE);
 }
 
+static void
+xb_threading_run_tasks(GFunc func, gpointer user_data)
+{
+	GThreadPool *pool;
+	gboolean ret;
+	guint n_threads = 8;
+	g_autoptr(GError) error = NULL;
+
+	pool = g_thread_pool_new(func, user_data, n_threads, TRUE, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(pool);
+
+	/* tasks are numbered from 1 as the pool cannot queue NULL */
+	for (guint i = 1; i <= n_threads; i++) {
+		ret = g_thread_pool_push(pool, GUINT_TO_POINTER(i), &error);
+		g_assert_no_error(error);
+		g_assert_true(ret);
+	}
+	g_thread_pool_free(pool, FALSE, TRUE);
+}
+
+static XbSilo *
+xb_threading_search_silo_new(void)
+{
+	XbSilo *silo;
+	g_autoptr(GError) error = NULL;
+
+	silo = xb_silo_new_from_xml("<components>"
+				    "<component><name>ColorHug2</name></component>"
+				    "</components>",
+				    &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+	return silo;
+}
+
+typedef struct {
+	XbSilo *silo;
+	XbQuery *query;
+} XbThreadingSearchHelper;
+
+static guint
+xb_threading_search_count(XbThreadingSearchHelper *helper, const gchar *term)
+{
+	g_auto(XbQueryContext) context = XB_QUERY_CONTEXT_INIT();
+	g_autoptr(GError) error = NULL;
+	g_autoptr(GPtrArray) results = NULL;
+
+	xb_value_bindings_bind_str(xb_query_context_get_bindings(&context), 0, term, NULL);
+	results = xb_silo_query_with_context(helper->silo, helper->query, &context, &error);
+	if (g_error_matches(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
+		return 0;
+	g_assert_no_error(error);
+	return results->len;
+}
+
+static void
+xb_threading_search_cb(gpointer data, gpointer user_data)
+{
+	XbThreadingSearchHelper *helper = (XbThreadingSearchHelper *)user_data;
+	guint n_queries = 1000;
+	guint offset = GPOINTER_TO_UINT(data) * n_queries;
+
+	/* every thread shares one matching term, and the unique terms would grow
+	 * any token table shared between threads */
+	for (guint i = 0; i < n_queries; i++) {
+		g_autofree gchar *term = g_strdup_printf("term%u", offset + i);
+		g_assert_cmpint(xb_threading_search_count(helper, "colorhug"), ==, 1);
+		g_assert_cmpint(xb_threading_search_count(helper, term), ==, 0);
+	}
+}
+
+static void
+xb_threading_search_func(void)
+{
+	XbThreadingSearchHelper helper = {NULL};
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbSilo) silo = xb_threading_search_silo_new();
+	g_autoptr(XbQuery) query = NULL;
+
+	query = xb_query_new(silo, "components/component/name[text()~=?]", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(query);
+	helper.silo = silo;
+	helper.query = query;
+	xb_threading_run_tasks(xb_threading_search_cb, &helper);
+}
+
+static void
+xb_threading_search_literal_cb(gpointer data, gpointer user_data)
+{
+	XbSilo *silo = XB_SILO(user_data);
+	guint n_queries = 1000;
+	guint offset = GPOINTER_TO_UINT(data) * n_queries;
+
+	/* each literal is tokenized and interned while its query compiles */
+	for (guint i = 0; i < n_queries; i++) {
+		g_autofree gchar *xpath =
+		    g_strdup_printf("components/component/name[text()~='term%u']", offset + i);
+		g_autoptr(GError) error = NULL;
+		g_autoptr(GPtrArray) results = xb_silo_query(silo, xpath, 0, &error);
+
+		g_assert_error(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND);
+		g_assert_null(results);
+	}
+}
+
+static void
+xb_threading_search_literal_func(void)
+{
+	g_autoptr(XbSilo) silo = xb_threading_search_silo_new();
+	xb_threading_run_tasks(xb_threading_search_literal_cb, silo);
+}
+
 typedef struct {
 	guint cnt;
 	GString *str;
@@ -3417,6 +3531,8 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/xpath-parent-subnode", xb_xpath_parent_subnode_func);
 	g_test_add_func("/libxmlb/multiple-roots", xb_builder_multiple_roots_func);
 	g_test_add_func("/libxmlb/single-root", xb_builder_single_root_func);
+	g_test_add_func("/libxmlb/threading{search}", xb_threading_search_func);
+	g_test_add_func("/libxmlb/threading{search-literal}", xb_threading_search_literal_func);
 	if (g_test_perf()) {
 		g_test_add_func("/libxmlb/threading", xb_threading_func);
 		g_test_add_func("/libxmlb/speed", xb_speed_func);

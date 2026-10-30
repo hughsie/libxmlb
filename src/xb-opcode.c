@@ -11,6 +11,7 @@
 #include <gio/gio.h>
 
 #include "xb-opcode-private.h"
+#include "xb-string-private.h"
 
 /**
  * xb_opcode_kind_to_string:
@@ -469,6 +470,38 @@ xb_opcode_append_token(XbOpcode *self, const gchar *val)
 	self->tokens[self->tokens_len] = NULL;
 	self->kind |= XB_OPCODE_FLAG_TOKENIZED;
 	return TRUE;
+}
+
+static void
+xb_opcode_append_valid_tokens(XbOpcode *self, gchar **tokens)
+{
+	for (guint i = 0; tokens[i] != NULL; i++) {
+		if (!xb_string_token_valid(tokens[i]))
+			continue;
+		xb_opcode_append_token(self, tokens[i]);
+	}
+}
+
+/**
+ * xb_opcode_tokenize:
+ * @self: a #XbOpcode
+ * @tokens: (out) (transfer full): the folded tokens of the opcode text
+ * @ascii_tokens: (out) (transfer full): the ASCII alternates of @tokens
+ *
+ * Splits the opcode text into search tokens and appends the valid ones.
+ *
+ * The appended tokens point into @tokens and @ascii_tokens, so the caller
+ * must keep both alive for as long as it uses the tokens of @self.
+ **/
+void
+xb_opcode_tokenize(XbOpcode *self, GStrv *tokens, GStrv *ascii_tokens)
+{
+	/* use the fast token path even if there are no valid tokens */
+	xb_opcode_add_flag(self, XB_OPCODE_FLAG_TOKENIZED);
+
+	*tokens = g_str_tokenize_and_fold(_xb_opcode_get_str(self), NULL, ascii_tokens);
+	xb_opcode_append_valid_tokens(self, *tokens);
+	xb_opcode_append_valid_tokens(self, *ascii_tokens);
 }
 
 /* private */
