@@ -3116,6 +3116,32 @@ xb_threading_search_func(void)
 	xb_threading_run_tasks(xb_threading_search_cb, &helper);
 }
 
+static void
+xb_threading_search_literal_cb(gpointer data, gpointer user_data)
+{
+	XbSilo *silo = XB_SILO(user_data);
+	guint n_queries = 1000;
+	guint offset = GPOINTER_TO_UINT(data) * n_queries;
+
+	/* each literal is tokenized and interned while its query compiles */
+	for (guint i = 0; i < n_queries; i++) {
+		g_autofree gchar *xpath =
+		    g_strdup_printf("components/component/name[text()~='term%u']", offset + i);
+		g_autoptr(GError) error = NULL;
+		g_autoptr(GPtrArray) results = xb_silo_query(silo, xpath, 0, &error);
+
+		g_assert_error(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND);
+		g_assert_null(results);
+	}
+}
+
+static void
+xb_threading_search_literal_func(void)
+{
+	g_autoptr(XbSilo) silo = xb_threading_search_silo_new();
+	xb_threading_run_tasks(xb_threading_search_literal_cb, silo);
+}
+
 typedef struct {
 	guint cnt;
 	GString *str;
@@ -3506,6 +3532,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/multiple-roots", xb_builder_multiple_roots_func);
 	g_test_add_func("/libxmlb/single-root", xb_builder_single_root_func);
 	g_test_add_func("/libxmlb/threading{search}", xb_threading_search_func);
+	g_test_add_func("/libxmlb/threading{search-literal}", xb_threading_search_literal_func);
 	if (g_test_perf()) {
 		g_test_add_func("/libxmlb/threading", xb_threading_func);
 		g_test_add_func("/libxmlb/speed", xb_speed_func);

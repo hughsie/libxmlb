@@ -1386,6 +1386,7 @@ xb_machine_intern_token(XbMachine *self, const gchar *str)
 	XbMachinePrivate *priv = GET_PRIVATE(self);
 	const gchar *tmp;
 	gchar *newstr;
+	/* entries are only freed in finalize, so the returned string outlives the lock */
 	g_autoptr(GMutexLocker) locker = g_mutex_locker_new(&priv->opcode_tokens_mutex);
 
 	/* existing value */
@@ -1403,25 +1404,16 @@ xb_machine_intern_token(XbMachine *self, const gchar *str)
 void
 xb_machine_opcode_tokenize(XbMachine *self, XbOpcode *op)
 {
-	const gchar *str;
-	g_auto(GStrv) tokens = NULL;
-	g_auto(GStrv) ascii_tokens = NULL;
+	const gchar **tokens;
+	g_auto(GStrv) folded = NULL;
+	g_auto(GStrv) ascii_folded = NULL;
 
-	/* use the fast token path even if there are no valid tokens */
-	xb_opcode_add_flag(op, XB_OPCODE_FLAG_TOKENIZED);
+	xb_opcode_tokenize(op, &folded, &ascii_folded);
 
-	str = _xb_opcode_get_str(op);
-	tokens = g_str_tokenize_and_fold(str, NULL, &ascii_tokens);
-	for (guint i = 0; tokens[i] != NULL; i++) {
-		if (!xb_string_token_valid(tokens[i]))
-			continue;
-		xb_opcode_append_token(op, xb_machine_intern_token(self, tokens[i]));
-	}
-	for (guint i = 0; ascii_tokens[i] != NULL; i++) {
-		if (!xb_string_token_valid(ascii_tokens[i]))
-			continue;
-		xb_opcode_append_token(op, xb_machine_intern_token(self, ascii_tokens[i]));
-	}
+	/* the compiled query outlives the folded strings */
+	tokens = xb_opcode_get_tokens(op);
+	for (guint i = 0; tokens[i] != NULL; i++)
+		tokens[i] = xb_machine_intern_token(self, tokens[i]);
 }
 
 typedef gboolean (*OpcodeCheckFunc)(XbOpcode *op);

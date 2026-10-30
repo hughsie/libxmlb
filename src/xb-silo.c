@@ -1608,6 +1608,10 @@ xb_silo_machine_func_search_cb(XbMachine *self,
 	const gchar *search;
 	XbOpcode *head1 = NULL;
 	XbOpcode *head2 = NULL;
+	g_auto(GStrv) op1_tokens = NULL;
+	g_auto(GStrv) op1_ascii_tokens = NULL;
+	g_auto(GStrv) op2_tokens = NULL;
+	g_auto(GStrv) op2_ascii_tokens = NULL;
 	g_auto(XbOpcode) op1 = XB_OPCODE_INIT();
 	g_auto(XbOpcode) op2 = XB_OPCODE_INIT();
 
@@ -1631,14 +1635,15 @@ xb_silo_machine_func_search_cb(XbMachine *self,
 	if (!xb_machine_stack_pop_two(self, stack, &op1, &op2, error))
 		return FALSE;
 
-	/* this cannot be optimized away when constructing the query */
+	/* this cannot be optimized away when constructing the query, and the tokens
+	 * only have to outlive this call, so they are not interned in the machine */
 	if (!_xb_opcode_has_flag(&op1, XB_OPCODE_FLAG_TOKENIZED) &&
 	    _xb_opcode_get_kind(&op1) == XB_OPCODE_KIND_BOUND_TEXT) {
-		xb_machine_opcode_tokenize(self, &op1);
+		xb_opcode_tokenize(&op1, &op1_tokens, &op1_ascii_tokens);
 	}
 	if (!_xb_opcode_has_flag(&op2, XB_OPCODE_FLAG_TOKENIZED) &&
 	    _xb_opcode_get_kind(&op2) == XB_OPCODE_KIND_BOUND_TEXT) {
-		xb_machine_opcode_tokenize(self, &op2);
+		xb_opcode_tokenize(&op2, &op2_tokens, &op2_ascii_tokens);
 	}
 
 	/* TOKN:TOKN */
