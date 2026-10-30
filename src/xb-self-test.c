@@ -3028,42 +3028,32 @@ xb_threading_func(void)
 	g_thread_pool_free(pool, FALSE, TRUE);
 }
 
-typedef struct {
-	XbSilo *silo;
-	XbQuery *query;
-} XbThreadingSearchHelper;
-
 static void
-xb_threading_search_cb(gpointer data, gpointer user_data)
-{
-	XbThreadingSearchHelper *helper = (XbThreadingSearchHelper *)user_data;
-	guint offset = GPOINTER_TO_UINT(data) * 1000;
-
-	/* unique terms force every query to intern a new token */
-	for (guint i = 0; i < 1000; i++) {
-		g_auto(XbQueryContext) context = XB_QUERY_CONTEXT_INIT();
-		g_autoptr(GError) error = NULL;
-		g_autoptr(GPtrArray) results = NULL;
-
-		xb_value_bindings_bind_str(xb_query_context_get_bindings(&context),
-					   0,
-					   g_strdup_printf("term%u", offset + i),
-					   g_free);
-		results = xb_silo_query_with_context(helper->silo, helper->query, &context, &error);
-		g_assert_error(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND);
-		g_assert_null(results);
-	}
-}
-
-static void
-xb_threading_search_func(void)
+xb_threading_run_tasks(GFunc func, gpointer user_data)
 {
 	GThreadPool *pool;
 	gboolean ret;
-	XbThreadingSearchHelper helper = {NULL};
+	guint n_threads = 8;
 	g_autoptr(GError) error = NULL;
-	g_autoptr(XbQuery) query = NULL;
-	g_autoptr(XbSilo) silo = NULL;
+
+	pool = g_thread_pool_new(func, user_data, n_threads, TRUE, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(pool);
+
+	/* tasks are numbered from 1 as the pool cannot queue NULL */
+	for (guint i = 1; i <= n_threads; i++) {
+		ret = g_thread_pool_push(pool, GUINT_TO_POINTER(i), &error);
+		g_assert_no_error(error);
+		g_assert_true(ret);
+	}
+	g_thread_pool_free(pool, FALSE, TRUE);
+}
+
+static XbSilo *
+xb_threading_search_silo_new(void)
+{
+	XbSilo *silo;
+	g_autoptr(GError) error = NULL;
 
 	silo = xb_silo_new_from_xml("<components>"
 				    "<component><name>ColorHug2</name></component>"
@@ -3071,22 +3061,59 @@ xb_threading_search_func(void)
 				    &error);
 	g_assert_no_error(error);
 	g_assert_nonnull(silo);
+	return silo;
+}
+
+typedef struct {
+	XbSilo *silo;
+	XbQuery *query;
+} XbThreadingSearchHelper;
+
+static guint
+xb_threading_search_count(XbThreadingSearchHelper *helper, const gchar *term)
+{
+	g_auto(XbQueryContext) context = XB_QUERY_CONTEXT_INIT();
+	g_autoptr(GError) error = NULL;
+	g_autoptr(GPtrArray) results = NULL;
+
+	xb_value_bindings_bind_str(xb_query_context_get_bindings(&context), 0, term, NULL);
+	results = xb_silo_query_with_context(helper->silo, helper->query, &context, &error);
+	if (g_error_matches(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
+		return 0;
+	g_assert_no_error(error);
+	return results->len;
+}
+
+static void
+xb_threading_search_cb(gpointer data, gpointer user_data)
+{
+	XbThreadingSearchHelper *helper = (XbThreadingSearchHelper *)user_data;
+	guint n_queries = 1000;
+	guint offset = GPOINTER_TO_UINT(data) * n_queries;
+
+	/* every thread shares one matching term, and the unique terms would grow
+	 * any token table shared between threads */
+	for (guint i = 0; i < n_queries; i++) {
+		g_autofree gchar *term = g_strdup_printf("term%u", offset + i);
+		g_assert_cmpint(xb_threading_search_count(helper, "colorhug"), ==, 1);
+		g_assert_cmpint(xb_threading_search_count(helper, term), ==, 0);
+	}
+}
+
+static void
+xb_threading_search_func(void)
+{
+	XbThreadingSearchHelper helper = {NULL};
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbSilo) silo = xb_threading_search_silo_new();
+	g_autoptr(XbQuery) query = NULL;
+
 	query = xb_query_new(silo, "components/component/name[text()~=?]", &error);
 	g_assert_no_error(error);
 	g_assert_nonnull(query);
 	helper.silo = silo;
 	helper.query = query;
-
-	/* every query on the silo shares one XbMachine */
-	pool = g_thread_pool_new(xb_threading_search_cb, &helper, 8, TRUE, &error);
-	g_assert_no_error(error);
-	g_assert_nonnull(pool);
-	for (guint i = 1; i <= 8; i++) {
-		ret = g_thread_pool_push(pool, GUINT_TO_POINTER(i), &error);
-		g_assert_no_error(error);
-		g_assert_true(ret);
-	}
-	g_thread_pool_free(pool, FALSE, TRUE);
+	xb_threading_run_tasks(xb_threading_search_cb, &helper);
 }
 
 typedef struct {
