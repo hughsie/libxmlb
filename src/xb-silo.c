@@ -227,7 +227,7 @@ xb_silo_strtab_index_lookup(XbSilo *self, const gchar *str)
 	locker_ro = g_rw_lock_reader_locker_new(&priv->strindex_mutex);
 	if (!g_hash_table_lookup_extended(priv->strindex, str, NULL, &val))
 		return XB_SILO_UNSET;
-	return GPOINTER_TO_INT(val);
+	return GPOINTER_TO_UINT(val);
 }
 
 /* private */
