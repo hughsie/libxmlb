@@ -362,6 +362,18 @@ xb_value_bindings_copy_binding(XbValueBindings *self,
 }
 
 /* private */
+void
+xb_value_bindings_copy_into(XbValueBindings *self, XbValueBindings *dest)
+{
+	RealValueBindings *_self = (RealValueBindings *)self;
+
+	/* copy every slot; copy_binding() is a no-op for unbound slots, so we
+	 * must not stop at the first unbound index */
+	for (gsize i = 0; i < G_N_ELEMENTS(_self->values); i++)
+		xb_value_bindings_copy_binding(self, i, dest, i);
+}
+
+/* private */
 gboolean
 xb_value_bindings_indexed_text_lookup(XbValueBindings *self, XbSilo *silo, GError **error)
 {

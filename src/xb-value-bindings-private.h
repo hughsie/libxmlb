@@ -11,6 +11,8 @@
 
 gchar *
 xb_value_bindings_to_string(XbValueBindings *self) G_GNUC_NON_NULL(1);
+void
+xb_value_bindings_copy_into(XbValueBindings *self, XbValueBindings *dest) G_GNUC_NON_NULL(1, 2);
 gboolean
 xb_value_bindings_indexed_text_lookup(XbValueBindings *self, XbSilo *silo, GError **error)
     G_GNUC_NON_NULL(1, 2);
