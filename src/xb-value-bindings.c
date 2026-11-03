@@ -213,8 +213,8 @@ xb_value_bindings_bind_str(XbValueBindings *self,
 	g_return_if_fail(self != NULL);
 	g_return_if_fail(str != NULL);
 
-	/* Currently limited to two values, but this restriction could be lifted
-	 * in future. */
+	/* Currently limited to a defined number of values, but this restriction
+	 * could be lifted in future. */
 	g_return_if_fail(idx < G_N_ELEMENTS(_self->values));
 
 	xb_value_bindings_clear_index(self, idx);
@@ -243,8 +243,8 @@ xb_value_bindings_bind_val(XbValueBindings *self, guint idx, guint32 val)
 
 	g_return_if_fail(self != NULL);
 
-	/* Currently limited to two values, but this restriction could be lifted
-	 * in future. */
+	/* Currently limited to a defined number of values, but this restriction
+	 * could be lifted in future. */
 	g_return_if_fail(idx < G_N_ELEMENTS(_self->values));
 
 	xb_value_bindings_clear_index(self, idx);
