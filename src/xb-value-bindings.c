@@ -136,15 +136,11 @@ xb_value_bindings_to_string(XbValueBindings *self)
 XbValueBindings *
 xb_value_bindings_copy(XbValueBindings *self)
 {
-	RealValueBindings *_self = (RealValueBindings *)self;
 	g_autoptr(XbValueBindings) copy = g_new0(XbValueBindings, 1);
 
 	xb_value_bindings_init(copy);
 
-	for (gsize i = 0; i < G_N_ELEMENTS(_self->values); i++) {
-		gboolean copied = xb_value_bindings_copy_binding(self, i, copy, i);
-		g_assert(copied);
-	}
+	xb_value_bindings_copy_into(self, copy);
 
 	return g_steal_pointer(&copy);
 }
