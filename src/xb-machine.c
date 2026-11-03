@@ -23,7 +23,8 @@ typedef struct {
 	GPtrArray *operators;	   /* of XbMachineOperator */
 	GPtrArray *text_handlers;  /* of XbMachineTextHandlerItem */
 	GHashTable *opcode_fixup;  /* of str[XbMachineOpcodeFixupItem] */
-	GHashTable *opcode_tokens; /* of utf8 */
+	GHashTable *opcode_tokens; /* of utf8 (lock opcode_tokens_lock) */
+	GRWLock opcode_tokens_lock;
 	guint stack_size;
 } XbMachinePrivate;
 
@@ -1380,13 +1381,31 @@ xb_machine_get_stack_size(XbMachine *self)
 }
 
 static const gchar *
+xb_machine_lookup_token(XbMachine *self, const gchar *str)
+{
+	XbMachinePrivate *priv = GET_PRIVATE(self);
+	/* entries are only freed in finalize, so the returned string outlives the lock */
+	g_autoptr(GRWLockReaderLocker) locker =
+	    g_rw_lock_reader_locker_new(&priv->opcode_tokens_lock);
+
+	return g_hash_table_lookup(priv->opcode_tokens, str);
+}
+
+static const gchar *
 xb_machine_intern_token(XbMachine *self, const gchar *str)
 {
 	XbMachinePrivate *priv = GET_PRIVATE(self);
 	const gchar *tmp;
 	gchar *newstr;
+	g_autoptr(GRWLockWriterLocker) locker = NULL;
 
 	/* existing value */
+	tmp = xb_machine_lookup_token(self, str);
+	if (tmp != NULL)
+		return tmp;
+
+	/* another thread may have added it since the read lock was released */
+	locker = g_rw_lock_writer_locker_new(&priv->opcode_tokens_lock);
 	tmp = g_hash_table_lookup(priv->opcode_tokens, str);
 	if (tmp != NULL)
 		return tmp;
@@ -2373,6 +2392,7 @@ xb_machine_init(XbMachine *self)
 						   g_free,
 						   (GDestroyNotify)xb_machine_opcode_fixup_free);
 	priv->opcode_tokens = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+	g_rw_lock_init(&priv->opcode_tokens_lock);
 
 	/* built-in functions */
 	xb_machine_add_method(self, "and", 2, xb_machine_func_and_cb, NULL, NULL);
@@ -2418,6 +2438,7 @@ xb_machine_finalize(GObject *obj)
 	g_ptr_array_unref(priv->text_handlers);
 	g_hash_table_unref(priv->opcode_fixup);
 	g_hash_table_unref(priv->opcode_tokens);
+	g_rw_lock_clear(&priv->opcode_tokens_lock);
 	G_OBJECT_CLASS(xb_machine_parent_class)->finalize(obj);
 }
 
