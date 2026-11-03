@@ -77,16 +77,18 @@ static void
 xb_lzma_decompressor_reset(GConverter *converter)
 {
 	XbLzmaDecompressor *self = XB_LZMA_DECOMPRESSOR(converter);
+	lzma_stream tmp = LZMA_STREAM_INIT;
 	lzma_ret res;
 
-	/* lzma doesn't have a reset function.  Ending and reiniting
-	 * might do the trick.  But this is untested.  If reset matters
-	 * to you, test this.
-	 */
+	/* lzma doesn't have a reset function, so end the current stream and
+	 * re-initialise the decoder, just as the constructor does */
 	lzma_end(&self->lzmastream);
-	res = lzma_code(&self->lzmastream, LZMA_RUN);
+	self->lzmastream = tmp;
+	res = lzma_auto_decoder(&self->lzmastream, SIZE_MAX, 0);
 	if (res == LZMA_MEM_ERROR)
 		g_error("XbLzmaDecompressor: Not enough memory for lzma use");
+	if (res == LZMA_OPTIONS_ERROR)
+		g_error("XbLzmaDecompressor: Unsupported flags");
 	if (res != LZMA_OK)
 		g_error("XbLzmaDecompressor: Unexpected lzma error");
 }
