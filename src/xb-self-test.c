@@ -207,6 +207,17 @@ xb_opcodes_kind_func(void)
 	g_auto(XbOpcode) op1 = XB_OPCODE_INIT();
 	g_auto(XbOpcode) op2 = XB_OPCODE_INIT();
 	g_auto(XbOpcode) op3 = XB_OPCODE_INIT();
+	const XbOpcodeKind roundtrip_kinds[] = {
+	    XB_OPCODE_KIND_INTEGER,
+	    XB_OPCODE_KIND_TEXT,
+	    XB_OPCODE_KIND_FUNCTION,
+	    XB_OPCODE_KIND_BOUND_UNSET,
+	    XB_OPCODE_KIND_BOUND_INTEGER,
+	    XB_OPCODE_KIND_BOUND_TEXT,
+	    XB_OPCODE_KIND_BOUND_INDEXED_TEXT,
+	    XB_OPCODE_KIND_INDEXED_TEXT,
+	    XB_OPCODE_KIND_BOOLEAN,
+	};
 
 	xb_opcode_func_init(&op1, 0);
 	xb_opcode_integer_init(&op2, 1);
@@ -224,8 +235,16 @@ xb_opcodes_kind_func(void)
 	g_assert_cmpint(xb_opcode_kind_from_string("dave"), ==, XB_OPCODE_KIND_UNKNOWN);
 	g_assert_cmpstr(xb_opcode_kind_to_string(XB_OPCODE_KIND_TEXT), ==, "TEXT");
 	g_assert_cmpstr(xb_opcode_kind_to_string(XB_OPCODE_KIND_FUNCTION), ==, "FUNC");
+	g_assert_cmpint(xb_opcode_kind_from_string("BIND"), ==, XB_OPCODE_KIND_BOUND_UNSET);
 	g_assert_cmpstr(xb_opcode_kind_to_string(XB_OPCODE_KIND_INTEGER), ==, "INTE");
 	g_assert_cmpstr(xb_opcode_kind_to_string(XB_OPCODE_KIND_UNKNOWN), ==, NULL);
+
+	/* the kind<->string mapping must round-trip for every real kind */
+	for (gsize i = 0; i < G_N_ELEMENTS(roundtrip_kinds); i++) {
+		const gchar *str = xb_opcode_kind_to_string(roundtrip_kinds[i]);
+		g_assert_nonnull(str);
+		g_assert_cmpint(xb_opcode_kind_from_string(str), ==, roundtrip_kinds[i]);
+	}
 
 	/* integer compare */
 	g_assert_false(xb_opcode_cmp_val(&op1));

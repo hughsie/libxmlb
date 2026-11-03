@@ -69,7 +69,7 @@ xb_opcode_kind_from_string(const gchar *str)
 	if (g_strcmp0(str, "INTE") == 0)
 		return XB_OPCODE_KIND_INTEGER;
 	if (g_strcmp0(str, "BIND") == 0)
-		return XB_OPCODE_KIND_BOUND_INTEGER;
+		return XB_OPCODE_KIND_BOUND_UNSET;
 	if (g_strcmp0(str, "?TXT") == 0)
 		return XB_OPCODE_KIND_BOUND_TEXT;
 	if (g_strcmp0(str, "?ITX") == 0)
