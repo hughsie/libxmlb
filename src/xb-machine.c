@@ -1905,7 +1905,6 @@ xb_machine_func_le_cb(XbMachine *self,
 		    stack,
 		    g_strcmp0(_xb_opcode_get_str(&op2), _xb_opcode_get_str(&op1)) <= 0,
 		    error);
-		return TRUE;
 	}
 
 	/* INTE:TEXT */
