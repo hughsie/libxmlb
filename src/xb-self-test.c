@@ -3467,6 +3467,31 @@ xb_speed_precompiled_func(void)
 	g_print("query_full[x%u]: %.3fms\n", n_components, g_timer_elapsed(timer, NULL) * 1000);
 }
 
+static void
+xb_query_context_copy_func(void)
+{
+	g_auto(XbQueryContext) context = XB_QUERY_CONTEXT_INIT();
+	XbValueBindings *bindings = xb_query_context_get_bindings(&context);
+	g_autoptr(XbQueryContext) copy = NULL;
+	XbValueBindings *copy_bindings;
+
+	/* leave index 0 unbound, but bind index 1 and 3; a buggy copy that stops
+	 * at the first unbound slot would silently drop these */
+	xb_value_bindings_bind_str(bindings, 1, "one", NULL);
+	xb_value_bindings_bind_val(bindings, 3, 3);
+	xb_query_context_set_limit(&context, 123);
+
+	copy = xb_query_context_copy(&context);
+	g_assert_nonnull(copy);
+	g_assert_cmpuint(xb_query_context_get_limit(copy), ==, 123);
+
+	copy_bindings = xb_query_context_get_bindings(copy);
+	g_assert_false(xb_value_bindings_is_bound(copy_bindings, 0));
+	g_assert_true(xb_value_bindings_is_bound(copy_bindings, 1));
+	g_assert_false(xb_value_bindings_is_bound(copy_bindings, 2));
+	g_assert_true(xb_value_bindings_is_bound(copy_bindings, 3));
+}
+
 int
 main(int argc, char **argv)
 {
@@ -3488,6 +3513,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/opcodes", xb_predicate_func);
 	g_test_add_func("/libxmlb/opcodes{optimize}", xb_predicate_optimize_func);
 	g_test_add_func("/libxmlb/opcodes{kind}", xb_opcodes_kind_func);
+	g_test_add_func("/libxmlb/query-context{copy}", xb_query_context_copy_func);
 	g_test_add_func("/libxmlb/stack", xb_stack_func);
 	g_test_add_func("/libxmlb/stack{peek}", xb_stack_peek_func);
 	g_test_add_func("/libxmlb/node{data}", xb_node_data_func);

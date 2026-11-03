@@ -16,6 +16,7 @@
 
 #include "xb-query-context.h"
 #include "xb-query.h"
+#include "xb-value-bindings-private.h"
 #include "xb-value-bindings.h"
 
 /* Why are #XbQueryContext and #XbValueBindings not the same object?
@@ -91,15 +92,13 @@ xb_query_context_copy(XbQueryContext *self)
 	RealQueryContext *_self = (RealQueryContext *)self;
 	g_autoptr(XbQueryContext) copy = g_new0(XbQueryContext, 1);
 	RealQueryContext *_copy = (RealQueryContext *)copy;
-	gsize i = 0;
 
 	xb_query_context_init(copy);
 
 	_copy->limit = _self->limit;
 	_copy->flags = _self->flags;
 
-	while (xb_value_bindings_copy_binding(&_self->bindings, i, &_copy->bindings, i))
-		i++;
+	xb_value_bindings_copy_into(&_self->bindings, &_copy->bindings);
 
 	return g_steal_pointer(&copy);
 }
