@@ -21,6 +21,8 @@ typedef struct {
 
 GPtrArray *
 xb_builder_node_get_attrs(XbBuilderNode *self) G_GNUC_NON_NULL(1);
+XbBuilderNode *
+xb_builder_node_copy(XbBuilderNode *self) G_GNUC_NON_NULL(1);
 guint32
 xb_builder_node_size(XbBuilderNode *self) G_GNUC_NON_NULL(1);
 guint32

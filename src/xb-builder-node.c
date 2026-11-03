@@ -544,6 +544,48 @@ xb_builder_node_add_child(XbBuilderNode *self, XbBuilderNode *child)
 	g_ptr_array_add(priv->children, g_object_ref(child));
 }
 
+/* private */
+XbBuilderNode *
+xb_builder_node_copy(XbBuilderNode *self)
+{
+	XbBuilderNodePrivate *priv;
+	XbBuilderNode *copy;
+	XbBuilderNodePrivate *priv_copy;
+
+	g_return_val_if_fail(XB_IS_BUILDER_NODE(self), NULL);
+
+	priv = GET_PRIVATE(self);
+	copy = xb_builder_node_new(priv->element);
+	priv_copy = GET_PRIVATE(copy);
+
+	/* copy scalar data directly to avoid setter side-effects */
+	priv_copy->flags = priv->flags;
+	priv_copy->priority = priv->priority;
+	priv_copy->text = g_strdup(priv->text);
+	priv_copy->tail = g_strdup(priv->tail);
+
+	/* copy attributes */
+	for (guint i = 0; priv->attrs != NULL && i < priv->attrs->len; i++) {
+		XbBuilderNodeAttr *a = g_ptr_array_index(priv->attrs, i);
+		xb_builder_node_set_attr(copy, a->name, a->value);
+	}
+
+	/* copy tokens */
+	for (guint i = 0; priv->tokens != NULL && i < priv->tokens->len; i++) {
+		const gchar *token = g_ptr_array_index(priv->tokens, i);
+		xb_builder_node_add_token(copy, token);
+	}
+
+	/* copy children recursively */
+	for (guint i = 0; priv->children != NULL && i < priv->children->len; i++) {
+		XbBuilderNode *child = g_ptr_array_index(priv->children, i);
+		g_autoptr(XbBuilderNode) child_copy = xb_builder_node_copy(child);
+		xb_builder_node_add_child(copy, child_copy);
+	}
+
+	return copy;
+}
+
 /**
  * xb_builder_node_remove_child:
  * @self: A XbBuilderNode

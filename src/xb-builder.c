@@ -327,8 +327,14 @@ xb_builder_compile_source(XbBuilderCompileHelper *helper,
 		children = xb_builder_node_get_children(helper->current);
 		for (guint i = 0; i < children->len; i++) {
 			XbBuilderNode *bn = g_ptr_array_index(children, i);
-			if (!xb_builder_node_has_flag(bn, XB_BUILDER_NODE_FLAG_IGNORE))
-				xb_builder_node_add_child(bn, info);
+			g_autoptr(XbBuilderNode) info_copy = NULL;
+			if (xb_builder_node_has_flag(bn, XB_BUILDER_NODE_FLAG_IGNORE))
+				continue;
+			/* a node can only have one parent, so give each root its own
+			 * copy; this also leaves the source's info node unmodified so
+			 * it can be reused across roots and recompiles */
+			info_copy = xb_builder_node_copy(info);
+			xb_builder_node_add_child(bn, info_copy);
 		}
 	}
 
