@@ -651,13 +651,13 @@ xb_machine_opcodes_optimize_fn(XbMachine *self,
 		return TRUE;
 	}
 
-	/* the predicate will always evalulate to FALSE */
+	/* the predicate will always evaluate to FALSE */
 	if (error != NULL) {
 		stack_str = xb_stack_to_string(opcodes);
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_INVALID_DATA,
-			    "the predicate will always evalulate to FALSE: %s",
+			    "the predicate will always evaluate to FALSE: %s",
 			    stack_str);
 	}
 	return FALSE;
