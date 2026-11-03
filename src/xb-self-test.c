@@ -3468,6 +3468,25 @@ xb_speed_precompiled_func(void)
 }
 
 static void
+xb_value_bindings_copy_func(void)
+{
+	g_auto(XbValueBindings) bindings = XB_VALUE_BINDINGS_INIT();
+	g_autoptr(XbValueBindings) copy = NULL;
+
+	/* leave index 0 unbound; a buggy copy would assert-abort on the first
+	 * unbound slot instead of skipping it */
+	xb_value_bindings_bind_str(&bindings, 1, "one", NULL);
+	xb_value_bindings_bind_val(&bindings, 3, 3);
+
+	copy = xb_value_bindings_copy(&bindings);
+	g_assert_nonnull(copy);
+	g_assert_false(xb_value_bindings_is_bound(copy, 0));
+	g_assert_true(xb_value_bindings_is_bound(copy, 1));
+	g_assert_false(xb_value_bindings_is_bound(copy, 2));
+	g_assert_true(xb_value_bindings_is_bound(copy, 3));
+}
+
+static void
 xb_query_context_copy_func(void)
 {
 	g_auto(XbQueryContext) context = XB_QUERY_CONTEXT_INIT();
@@ -3513,6 +3532,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/opcodes", xb_predicate_func);
 	g_test_add_func("/libxmlb/opcodes{optimize}", xb_predicate_optimize_func);
 	g_test_add_func("/libxmlb/opcodes{kind}", xb_opcodes_kind_func);
+	g_test_add_func("/libxmlb/value-bindings{copy}", xb_value_bindings_copy_func);
 	g_test_add_func("/libxmlb/query-context{copy}", xb_query_context_copy_func);
 	g_test_add_func("/libxmlb/stack", xb_stack_func);
 	g_test_add_func("/libxmlb/stack{peek}", xb_stack_peek_func);
