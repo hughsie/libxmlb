@@ -166,7 +166,10 @@ xb_silo_stem(XbSilo *self, const gchar *value)
 					     (guchar *)value_casefold,
 					     (gint)len_src);
 	len_dst = (gsize)sb_stemmer_length(priv->stemmer_ctx);
-	if (len_src == len_dst)
+	/* the stemmer can return a string of the same length that has still been
+	 * modified, e.g. "happy" → "happi", so only reuse the casefolded string
+	 * when the bytes are actually identical */
+	if (len_src == len_dst && memcmp(value_casefold, tmp, len_dst) == 0)
 		return g_steal_pointer(&value_casefold);
 	return g_strndup(tmp, len_dst);
 #else
