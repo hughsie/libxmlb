@@ -3487,6 +3487,45 @@ xb_speed_precompiled_func(void)
 }
 
 static void
+xb_builder_multiroot_info_func(void)
+{
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new();
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new();
+	g_autoptr(XbBuilderNode) info = xb_builder_node_insert(NULL, "info", NULL);
+	g_autoptr(XbSilo) silo = NULL;
+	g_autoptr(XbNode) na = NULL;
+	g_autoptr(XbNode) nb = NULL;
+	gboolean ret;
+
+	/* a document with two root elements and an info node: each root must get
+	 * its own copy of the info metadata */
+	xb_builder_node_insert_text(info, "foo", "bar", NULL);
+	ret = xb_builder_source_load_xml(source,
+					 "<a>1</a><b>2</b>",
+					 XB_BUILDER_SOURCE_FLAG_NONE,
+					 &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+	xb_builder_source_set_info(source, info);
+	xb_builder_import_source(builder, source);
+
+	silo = xb_builder_compile(builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	na = xb_silo_query_first(silo, "a/info/foo", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(na);
+	g_assert_cmpstr(xb_node_get_text(na), ==, "bar");
+
+	nb = xb_silo_query_first(silo, "b/info/foo", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(nb);
+	g_assert_cmpstr(xb_node_get_text(nb), ==, "bar");
+}
+
+static void
 xb_value_bindings_copy_func(void)
 {
 	g_auto(XbValueBindings) bindings = XB_VALUE_BINDINGS_INIT();
@@ -3551,6 +3590,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/opcodes", xb_predicate_func);
 	g_test_add_func("/libxmlb/opcodes{optimize}", xb_predicate_optimize_func);
 	g_test_add_func("/libxmlb/opcodes{kind}", xb_opcodes_kind_func);
+	g_test_add_func("/libxmlb/builder{multiroot-info}", xb_builder_multiroot_info_func);
 	g_test_add_func("/libxmlb/value-bindings{copy}", xb_value_bindings_copy_func);
 	g_test_add_func("/libxmlb/query-context{copy}", xb_query_context_copy_func);
 	g_test_add_func("/libxmlb/stack", xb_stack_func);
