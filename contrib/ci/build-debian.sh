@@ -8,5 +8,5 @@ meson .. \
     -Dtests=true $@
 ninja -v || bash
 ninja test -v
-DESTDIR=/tmp/install-ninja ninja install
+DESTDIR=${DESTDIR:-/tmp/install-ninja} ninja install
 cd ..

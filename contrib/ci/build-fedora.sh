@@ -11,5 +11,5 @@ ninja -v || bash
 ninja test -v
 ninja coverage-text
 cat meson-logs/coverage.txt
-DESTDIR=/tmp/install-ninja ninja install
+DESTDIR=${DESTDIR:-/tmp/install-ninja} ninja install
 cd ..

@@ -11,5 +11,5 @@ meson .. \
 ninja -v || bash
 wine reg add "HKEY_CURRENT_USER\Environment" /v PATH /d /usr/x86_64-w64-mingw32/sys-root/mingw/bin
 ninja test -v
-DESTDIR=/tmp/install-ninja ninja install
+DESTDIR=${DESTDIR:-/tmp/install-ninja} ninja install
 cd ..
