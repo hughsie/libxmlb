@@ -181,7 +181,7 @@ xb_builder_node_get_attr_as_uint(XbBuilderNode *self, const gchar *name)
 		return 0;
 	if (g_str_has_prefix(tmp, "0x"))
 		return g_ascii_strtoull(tmp + 2, NULL, 16);
-	return g_ascii_strtoll(tmp, NULL, 10);
+	return g_ascii_strtoull(tmp, NULL, 10);
 }
 
 /**
@@ -220,7 +220,7 @@ xb_builder_node_get_text_as_uint(XbBuilderNode *self)
 		return 0;
 	if (g_str_has_prefix(tmp, "0x"))
 		return g_ascii_strtoull(tmp + 2, NULL, 16);
-	return g_ascii_strtoll(tmp, NULL, 10);
+	return g_ascii_strtoull(tmp, NULL, 10);
 }
 
 /**

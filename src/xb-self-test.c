@@ -1126,6 +1126,22 @@ xb_builder_ignore_invalid_depth_func(void)
 }
 
 static void
+xb_builder_node_as_uint_func(void)
+{
+	g_autoptr(XbBuilderNode) n = xb_builder_node_new("value");
+
+	/* decimal values must parse unsigned, like the hex values */
+	xb_builder_node_set_attr(n, "hex", "0x20");
+	xb_builder_node_set_attr(n, "big", "10000000000000000000");
+	xb_builder_node_set_text(n, "10000000000000000000", -1);
+	g_assert_cmpuint(xb_builder_node_get_attr_as_uint(n, "hex"), ==, 32);
+	g_assert_true(xb_builder_node_get_attr_as_uint(n, "big") ==
+		      G_GUINT64_CONSTANT(10000000000000000000));
+	g_assert_true(xb_builder_node_get_text_as_uint(n) ==
+		      G_GUINT64_CONSTANT(10000000000000000000));
+}
+
+static void
 xb_builder_node_export_collapse_func(void)
 {
 	g_autofree gchar *xml = NULL;
@@ -3814,6 +3830,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/builder/source-lzma", xb_builder_source_lzma_func);
 	g_test_add_func("/libxmlb/builder/source-zstd", xb_builder_source_zstd_func);
 	g_test_add_func("/libxmlb/builder-node", xb_builder_node_func);
+	g_test_add_func("/libxmlb/builder-node/as-uint", xb_builder_node_as_uint_func);
 	g_test_add_func("/libxmlb/builder-node/export-collapse",
 			xb_builder_node_export_collapse_func);
 	g_test_add_func("/libxmlb/builder-node/nul", xb_builder_node_nul_func);
