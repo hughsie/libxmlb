@@ -270,6 +270,8 @@ xb_builder_compile_source(XbBuilderCompileHelper *helper,
 
 	/* add the source to a fake root in case it fails during processing */
 	helper->current = root_tmp;
+	helper->depth = 0;
+	helper->elem_closed = FALSE;
 	helper->source_flags = xb_builder_source_get_flags(source);
 
 	/* decompress */
