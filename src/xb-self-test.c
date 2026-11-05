@@ -1977,6 +1977,23 @@ xb_xpath_stem_func(void)
 }
 
 static void
+xb_xpath_unfinished_func(void)
+{
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbNode) n = NULL;
+	g_autoptr(XbSilo) silo =
+	    xb_silo_new_from_xml("<component><id>test</id></component>", &error);
+
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	/* an unfinished predicate is an error even at the start of a section */
+	n = xb_silo_query_first(silo, "[id", &error);
+	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT);
+	g_assert_null(n);
+}
+
+static void
 xb_xpath_unbound_func(void)
 {
 	g_autoptr(GError) error = NULL;
@@ -3750,6 +3767,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/xpath/in-lower", xb_xpath_in_lower_func);
 	g_test_add_func("/libxmlb/xpath/in-null-needle", xb_xpath_in_null_needle_func);
 	g_test_add_func("/libxmlb/xpath/stem", xb_xpath_stem_func);
+	g_test_add_func("/libxmlb/xpath/unfinished", xb_xpath_unfinished_func);
 	g_test_add_func("/libxmlb/xpath/unbound", xb_xpath_unbound_func);
 	g_test_add_func("/libxmlb/xpath/escape", xb_xpath_escape_func);
 	g_test_add_func("/libxmlb/xpath/or-dedup", xb_xpath_or_dedup_func);

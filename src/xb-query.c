@@ -397,7 +397,7 @@ xb_query_parse_section(XbQuery *self,
 		       GError **error)
 {
 	g_autoptr(XbQuerySection) section = g_slice_new0(XbQuerySection);
-	guint start = 0;
+	gint start = -1;
 
 	/* common XPath sections */
 	if (g_strcmp0(xpath, "parent::*") == 0 || g_strcmp0(xpath, "..") == 0) {
@@ -407,13 +407,13 @@ xb_query_parse_section(XbQuery *self,
 
 	/* parse element and predicate */
 	for (guint i = 0; xpath[i] != '\0'; i++) {
-		if (start == 0 && xpath[i] == '[') {
+		if (start == -1 && xpath[i] == '[') {
 			if (section->element == NULL)
 				section->element = g_strndup(xpath, i);
 			start = i;
 			continue;
 		}
-		if (start > 0 && xpath[i] == ']') {
+		if (start >= 0 && xpath[i] == ']') {
 			if (!xb_query_parse_predicate(self,
 						      context,
 						      section,
@@ -422,13 +422,13 @@ xb_query_parse_section(XbQuery *self,
 						      error)) {
 				return NULL;
 			}
-			start = 0;
+			start = -1;
 			continue;
 		}
 	}
 
 	/* incomplete predicate */
-	if (start != 0) {
+	if (start != -1) {
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_INVALID_ARGUMENT,
