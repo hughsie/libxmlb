@@ -1086,6 +1086,46 @@ xb_builder_ignore_invalid_func(void)
 }
 
 static void
+xb_builder_ignore_invalid_depth_func(void)
+{
+	gboolean ret;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(GPtrArray) results = NULL;
+	g_autoptr(GString) deep = g_string_new("<root>");
+	g_autoptr(XbBuilder) builder = xb_builder_new();
+	g_autoptr(XbSilo) silo = NULL;
+
+	/* the depth limit is per source, not per compile; nest to just inside
+	 * the 100 level limit supported by the builder */
+	for (guint i = 0; i < 98; i++)
+		g_string_append(deep, "<child>");
+	g_string_append(deep, "<leaf/>");
+	for (guint i = 0; i < 98; i++)
+		g_string_append(deep, "</child>");
+	g_string_append(deep, "</root>");
+
+	/* import some incorrect XML, leaving the parser mid-tree */
+	ret = xb_test_import_xml(builder, "<book><id>foobar</id>", &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+
+	/* import a valid document nested exactly to the depth limit */
+	ret = xb_test_import_xml(builder, deep->str, &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+
+	silo = xb_builder_compile(builder, XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID, NULL, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	/* the deep document must not be dropped for exceeding a leaked depth count */
+	results = xb_silo_query(silo, "root", 1, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(results);
+	g_assert_cmpuint(results->len, ==, 1);
+}
+
+static void
 xb_builder_empty_func(void)
 {
 	gboolean ret;
@@ -3749,6 +3789,8 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/builder/node-vfunc-error", xb_builder_node_vfunc_error_func);
 	g_test_add_func("/libxmlb/builder/node-vfunc-ignore", xb_builder_node_vfunc_ignore_func);
 	g_test_add_func("/libxmlb/builder/ignore-invalid", xb_builder_ignore_invalid_func);
+	g_test_add_func("/libxmlb/builder/ignore-invalid-depth",
+			xb_builder_ignore_invalid_depth_func);
 	g_test_add_func("/libxmlb/builder/custom-mime", xb_builder_custom_mime_func);
 	g_test_add_func("/libxmlb/builder/chained-adapters", xb_builder_chained_adapters_func);
 	g_test_add_func("/libxmlb/builder/source-lzma", xb_builder_source_lzma_func);
