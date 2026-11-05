@@ -1161,7 +1161,7 @@ xb_builder_node_export_helper(XbBuilderNode *self,
 	}
 
 	if (helper->flags & XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY && priv->text == NULL &&
-	    priv->children == NULL) {
+	    (priv->children == NULL || priv->children->len == 0)) {
 		g_string_append(helper->xml, " />");
 	} else {
 		/* finish the opening tag and add any text if it exists */

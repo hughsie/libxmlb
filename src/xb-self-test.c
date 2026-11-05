@@ -1126,6 +1126,24 @@ xb_builder_ignore_invalid_depth_func(void)
 }
 
 static void
+xb_builder_node_export_collapse_func(void)
+{
+	g_autofree gchar *xml = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilderNode) n = xb_builder_node_new("empty");
+
+	/* getting the children lazily allocates the array, which must not
+	 * stop the node being collapsed on export */
+	g_assert_nonnull(xb_builder_node_get_children(n));
+	g_assert_cmpuint(xb_builder_node_get_children(n)->len, ==, 0);
+
+	xml = xb_builder_node_export(n, XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(xml);
+	g_assert_cmpstr("<empty />", ==, xml);
+}
+
+static void
 xb_builder_empty_func(void)
 {
 	gboolean ret;
@@ -3796,6 +3814,8 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/builder/source-lzma", xb_builder_source_lzma_func);
 	g_test_add_func("/libxmlb/builder/source-zstd", xb_builder_source_zstd_func);
 	g_test_add_func("/libxmlb/builder-node", xb_builder_node_func);
+	g_test_add_func("/libxmlb/builder-node/export-collapse",
+			xb_builder_node_export_collapse_func);
 	g_test_add_func("/libxmlb/builder-node/nul", xb_builder_node_nul_func);
 	g_test_add_func("/libxmlb/builder-node/token-max", xb_builder_node_token_max_func);
 	g_test_add_func("/libxmlb/builder-node/info", xb_builder_node_info_func);
