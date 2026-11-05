@@ -235,7 +235,7 @@ XbSiloNode *
 xb_silo_get_node(XbSilo *self, guint32 off, GError **error)
 {
 	XbSiloPrivate *priv = GET_PRIVATE(self);
-	if (G_UNLIKELY(off + 1 > priv->strtab)) {
+	if (G_UNLIKELY(off >= priv->strtab)) {
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_INVALID_DATA,

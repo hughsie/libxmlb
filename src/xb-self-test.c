@@ -1977,6 +1977,22 @@ xb_xpath_stem_func(void)
 }
 
 static void
+xb_silo_node_offset_func(void)
+{
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbSilo) silo = xb_silo_new_from_xml("<component><id>test</id></component>", &error);
+	XbSiloNode *sn = NULL;
+
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	/* unset offsets must be rejected, not wrapped around by the bounds check */
+	sn = xb_silo_get_node(silo, XB_SILO_UNSET, &error);
+	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
+	g_assert_null(sn);
+}
+
+static void
 xb_xpath_or_limit_func(void)
 {
 	gboolean ret;
@@ -3631,6 +3647,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/xpath/in-lower", xb_xpath_in_lower_func);
 	g_test_add_func("/libxmlb/xpath/in-null-needle", xb_xpath_in_null_needle_func);
 	g_test_add_func("/libxmlb/xpath/stem", xb_xpath_stem_func);
+	g_test_add_func("/libxmlb/silo/node-offset", xb_silo_node_offset_func);
 	g_test_add_func("/libxmlb/xpath/or-limit", xb_xpath_or_limit_func);
 	g_test_add_func("/libxmlb/xpath/operator-depth-limit", xb_xpath_operator_depth_limit_func);
 	g_test_add_func("/libxmlb/xpath/section-limit", xb_xpath_section_limit_func);
