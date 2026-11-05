@@ -2050,6 +2050,85 @@ xb_xpath_stem_func(void)
 	g_clear_error(&error);
 }
 
+typedef struct {
+	const gchar *pred;
+	gboolean matches;
+	gboolean literal; /* all the operands are literals */
+} XbXpathPredicateTest;
+
+/* runs each predicate both optimized and unoptimized, checking the reason for
+ * any failure rather than just that one happened */
+static void
+xb_xpath_predicate_assert(XbSilo *silo, const XbXpathPredicateTest *tests)
+{
+	for (guint i = 0; tests[i].pred != NULL; i++) {
+		g_autofree gchar *xpath = g_strdup_printf("component/id[%s]", tests[i].pred);
+
+		for (guint j = 0; j < 2; j++) {
+			gboolean optimize = (j == 0);
+			g_autoptr(GError) error = NULL;
+			g_autoptr(XbNode) n = NULL;
+			g_autoptr(XbQuery) query = NULL;
+
+			query = xb_query_new_full(silo,
+						  xpath,
+						  optimize ? XB_QUERY_FLAG_OPTIMIZE
+							   : XB_QUERY_FLAG_NONE,
+						  &error);
+
+			/* a predicate of literals that can never be true is
+			 * folded away by the optimizer at parse time */
+			if (optimize && tests[i].literal && !tests[i].matches) {
+				g_assert_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
+				g_assert_true(g_str_has_prefix(
+				    error->message,
+				    "the predicate will always evaluate to FALSE"));
+				g_assert_null(query);
+				continue;
+			}
+			g_assert_no_error(error);
+			g_assert_nonnull(query);
+
+			/* everything else has to be decided at run time */
+			n = xb_silo_query_first_full(silo, query, &error);
+			if (tests[i].matches) {
+				g_assert_no_error(error);
+				g_assert_nonnull(n);
+			} else {
+				g_assert_error(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND);
+				g_assert_null(n);
+			}
+		}
+	}
+}
+
+static void
+xb_xpath_compare_func(void)
+{
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbSilo) silo =
+	    xb_silo_new_from_xml("<component><id>test</id></component>", &error);
+	const XbXpathPredicateTest tests[] = {{"5<'3'", FALSE, TRUE},
+					      {"'3'<5", TRUE, TRUE},
+					      {"5<='3'", FALSE, TRUE},
+					      {"'3'<=5", TRUE, TRUE},
+					      {"5>'3'", TRUE, TRUE},
+					      {"'3'>5", FALSE, TRUE},
+					      {"5>='3'", TRUE, TRUE},
+					      {"'3'>=5", FALSE, TRUE},
+					      /* compared against the node text at run time */
+					      {"text()<'zz'", TRUE, FALSE},
+					      {"text()>'zz'", FALSE, FALSE},
+					      {"text()<='test'", TRUE, FALSE},
+					      {"text()>='zz'", FALSE, FALSE},
+					      {NULL, FALSE, FALSE}};
+
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	xb_xpath_predicate_assert(silo, tests);
+}
+
 static void
 xb_xpath_unfinished_func(void)
 {
@@ -3846,6 +3925,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/xpath/in-lower", xb_xpath_in_lower_func);
 	g_test_add_func("/libxmlb/xpath/in-null-needle", xb_xpath_in_null_needle_func);
 	g_test_add_func("/libxmlb/xpath/stem", xb_xpath_stem_func);
+	g_test_add_func("/libxmlb/xpath/compare", xb_xpath_compare_func);
 	g_test_add_func("/libxmlb/xpath/unfinished", xb_xpath_unfinished_func);
 	g_test_add_func("/libxmlb/xpath/unbound", xb_xpath_unbound_func);
 	g_test_add_func("/libxmlb/xpath/escape", xb_xpath_escape_func);

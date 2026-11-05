@@ -1781,7 +1781,7 @@ xb_machine_func_lt_cb(XbMachine *self,
 						error)) {
 			return FALSE;
 		}
-		return xb_stack_push_bool(stack, val < _xb_opcode_get_val(&op2), error);
+		return xb_stack_push_bool(stack, _xb_opcode_get_val(&op2) < val, error);
 	}
 
 	/* should have been checked above */
@@ -1859,7 +1859,7 @@ xb_machine_func_gt_cb(XbMachine *self,
 						error)) {
 			return FALSE;
 		}
-		return xb_stack_push_bool(stack, val > _xb_opcode_get_val(&op2), error);
+		return xb_stack_push_bool(stack, _xb_opcode_get_val(&op2) > val, error);
 	}
 
 	/* should have been checked above */
@@ -1937,7 +1937,7 @@ xb_machine_func_le_cb(XbMachine *self,
 						error)) {
 			return FALSE;
 		}
-		return xb_stack_push_bool(stack, val <= _xb_opcode_get_val(&op2), error);
+		return xb_stack_push_bool(stack, _xb_opcode_get_val(&op2) <= val, error);
 	}
 
 	/* should have been checked above */
@@ -2097,7 +2097,7 @@ xb_machine_func_ge_cb(XbMachine *self,
 						error)) {
 			return FALSE;
 		}
-		return xb_stack_push_bool(stack, val >= _xb_opcode_get_val(&op2), error);
+		return xb_stack_push_bool(stack, _xb_opcode_get_val(&op2) >= val, error);
 	}
 
 	/* should have been checked above */
