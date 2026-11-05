@@ -1977,6 +1977,26 @@ xb_xpath_stem_func(void)
 }
 
 static void
+xb_xpath_unbound_func(void)
+{
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbQuery) query = NULL;
+	g_autoptr(XbSilo) silo =
+	    xb_silo_new_from_xml("<component timestamp=\"1631923200\"><id>test</id></component>",
+				 &error);
+
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	/* a query with an unbound variable must error, not compare against 0 */
+	query = xb_query_new(silo, "component[@timestamp=?]", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(query);
+	g_assert_null(xb_silo_query_first_full(silo, query, &error));
+	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
+}
+
+static void
 xb_xpath_escape_func(void)
 {
 	gboolean ret;
@@ -3730,6 +3750,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/xpath/in-lower", xb_xpath_in_lower_func);
 	g_test_add_func("/libxmlb/xpath/in-null-needle", xb_xpath_in_null_needle_func);
 	g_test_add_func("/libxmlb/xpath/stem", xb_xpath_stem_func);
+	g_test_add_func("/libxmlb/xpath/unbound", xb_xpath_unbound_func);
 	g_test_add_func("/libxmlb/xpath/escape", xb_xpath_escape_func);
 	g_test_add_func("/libxmlb/xpath/or-dedup", xb_xpath_or_dedup_func);
 	g_test_add_func("/libxmlb/xpath/or-limit-results", xb_xpath_or_limit_results_func);

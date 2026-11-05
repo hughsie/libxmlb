@@ -422,7 +422,7 @@ xb_opcode_func_init(XbOpcode *self, guint32 func)
 void
 xb_opcode_bind_init(XbOpcode *self)
 {
-	xb_opcode_init(self, XB_OPCODE_KIND_BOUND_INTEGER, NULL, 0, NULL);
+	xb_opcode_init(self, XB_OPCODE_KIND_BOUND_UNSET, NULL, 0, NULL);
 }
 
 /* private */

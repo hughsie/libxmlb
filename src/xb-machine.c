@@ -1008,9 +1008,10 @@ xb_machine_run_with_bindings(XbMachine *self,
 		XbOpcodeKind kind = _xb_opcode_get_kind(opcode);
 
 		/* replace post-0.3.0-style bound opcodes with their bound values */
-		if (bindings != NULL && (kind == XB_OPCODE_KIND_BOUND_TEXT ||
-					 kind == XB_OPCODE_KIND_BOUND_INDEXED_TEXT ||
-					 kind == XB_OPCODE_KIND_BOUND_INTEGER)) {
+		if (bindings != NULL &&
+		    (kind == XB_OPCODE_KIND_BOUND_TEXT ||
+		     kind == XB_OPCODE_KIND_BOUND_INDEXED_TEXT ||
+		     kind == XB_OPCODE_KIND_BOUND_INTEGER || kind == XB_OPCODE_KIND_BOUND_UNSET)) {
 			XbOpcode *machine_opcode;
 			if (!xb_stack_push(stack, &machine_opcode, error))
 				return FALSE;
