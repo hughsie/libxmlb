@@ -298,7 +298,7 @@ xb_builder_node_parse_literal_text(XbBuilderNode *self, const gchar *text, gssiz
 		if (newline_count > 1)
 			g_string_append(tmp, "\n\n");
 
-		/* add the actual stripped text */
+		/* add the actual text */
 		g_string_append(tmp, split[i]);
 
 		/* this last section was paragraph */
