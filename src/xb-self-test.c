@@ -1977,6 +1977,39 @@ xb_xpath_stem_func(void)
 }
 
 static void
+xb_xpath_escape_func(void)
+{
+	gboolean ret;
+	g_autofree gchar *esc = NULL;
+	g_autofree gchar *xpath = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new();
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new();
+	g_autoptr(XbNode) n = NULL;
+	g_autoptr(XbSilo) silo = NULL;
+	const gchar *xml = "<component><summary>foo\tbar\nbaz</summary></component>";
+
+	/* import some XML, keeping the literal control characters in the text */
+	ret = xb_builder_source_load_xml(source, xml, XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT, &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+	xb_builder_import_source(builder, source);
+	silo = xb_builder_compile(builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	/* text escaped with xb_string_escape() must round-trip through the
+	 * query parser back to the original control characters */
+	esc = xb_string_escape("foo\tbar\nbaz");
+	g_assert_cmpstr(esc, ==, "foo\\tbar\\nbaz");
+	xpath = g_strdup_printf("component/summary[text()='%s']", esc);
+	n = xb_silo_query_first(silo, xpath, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(n);
+	g_assert_cmpstr(xb_node_get_text(n), ==, "foo\tbar\nbaz");
+}
+
+static void
 xb_xpath_or_dedup_func(void)
 {
 	g_autoptr(GError) error = NULL;
@@ -3697,6 +3730,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/xpath/in-lower", xb_xpath_in_lower_func);
 	g_test_add_func("/libxmlb/xpath/in-null-needle", xb_xpath_in_null_needle_func);
 	g_test_add_func("/libxmlb/xpath/stem", xb_xpath_stem_func);
+	g_test_add_func("/libxmlb/xpath/escape", xb_xpath_escape_func);
 	g_test_add_func("/libxmlb/xpath/or-dedup", xb_xpath_or_dedup_func);
 	g_test_add_func("/libxmlb/xpath/or-limit-results", xb_xpath_or_limit_results_func);
 	g_test_add_func("/libxmlb/silo/node-offset", xb_silo_node_offset_func);

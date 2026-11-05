@@ -465,7 +465,12 @@ xb_query_parse(XbQuery *self, XbQueryParseContext *context, const gchar *xpath, 
 		/* escaped chars */
 		if (xpath[i] == '\\') {
 			if (xpath[i + 1] == '/' || xpath[i + 1] == 't' || xpath[i + 1] == 'n') {
-				g_string_append_c(acc, xpath[i + 1]);
+				if (xpath[i + 1] == 't')
+					g_string_append_c(acc, '\t');
+				else if (xpath[i + 1] == 'n')
+					g_string_append_c(acc, '\n');
+				else
+					g_string_append_c(acc, '/');
 				i += 1;
 				continue;
 			}
