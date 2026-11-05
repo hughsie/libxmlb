@@ -525,42 +525,38 @@ xb_machine_parse_sections(XbMachine *self,
 			  GError **error)
 {
 	g_autofree gchar *tmp = NULL;
+	gsize start = 0;
+	gboolean first = TRUE;
 	if (text_len == 0)
 		return TRUE;
 
 	/* leading comma */
 	if (text[0] == ',') {
 		tmp = g_strndup(text + 1, text_len - 1);
+		text_len--;
 	} else {
 		tmp = g_strndup(text, text_len);
 	}
-	for (gint i = text_len - 1; i >= 0; i--) {
-		if (tmp[i] == ',') {
+
+	/* parse each section in source order, so that the first argument is
+	 * pushed onto the stack first, i.e. ends up the deepest opcode */
+	for (gsize i = 0; i <= text_len; i++) {
+		if (i < text_len && tmp[i] != ',')
+			continue;
+		if (i > start) {
 			tmp[i] = '\0';
-			if (is_method) {
-				if (!xb_machine_parse_add_func(self,
-							       opcodes,
-							       tmp + i + 1,
-							       level,
-							       error))
-					return FALSE;
-				is_method = FALSE;
-			} else {
-				if (!xb_machine_parse_section(self,
-							      opcodes,
-							      tmp + i + 1,
-							      -1,
-							      TRUE,
-							      level,
-							      0,
-							      error))
-					return FALSE;
-			}
+			if (!xb_machine_parse_section(self,
+						      opcodes,
+						      tmp + start,
+						      i - start,
+						      first ? is_method : TRUE,
+						      level,
+						      0,
+						      error))
+				return FALSE;
 		}
-	}
-	if (tmp[0] != '\0') {
-		if (!xb_machine_parse_section(self, opcodes, tmp, -1, is_method, level, 0, error))
-			return FALSE;
+		first = FALSE;
+		start = i + 1;
 	}
 	return TRUE;
 }
