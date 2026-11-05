@@ -1977,10 +1977,34 @@ xb_xpath_stem_func(void)
 }
 
 static void
+xb_xpath_or_dedup_func(void)
+{
+	g_autoptr(GError) error = NULL;
+	g_autoptr(GPtrArray) results = NULL;
+	g_autoptr(XbSilo) silo = xb_silo_new_from_xml("<components>"
+						      "<component><id>a</id></component>"
+						      "<component><id>b</id></component>"
+						      "</components>",
+						      &error);
+
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	/* an XPath union returns each matching node once */
+	results = xb_silo_query(silo, "components/component/id|components/component/id", 0, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(results);
+	g_assert_cmpuint(results->len, ==, 2);
+	g_assert_cmpstr(xb_node_get_text(g_ptr_array_index(results, 0)), ==, "a");
+	g_assert_cmpstr(xb_node_get_text(g_ptr_array_index(results, 1)), ==, "b");
+}
+
+static void
 xb_silo_node_offset_func(void)
 {
 	g_autoptr(GError) error = NULL;
-	g_autoptr(XbSilo) silo = xb_silo_new_from_xml("<component><id>test</id></component>", &error);
+	g_autoptr(XbSilo) silo =
+	    xb_silo_new_from_xml("<component><id>test</id></component>", &error);
 	XbSiloNode *sn = NULL;
 
 	g_assert_no_error(error);
@@ -3647,6 +3671,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/xpath/in-lower", xb_xpath_in_lower_func);
 	g_test_add_func("/libxmlb/xpath/in-null-needle", xb_xpath_in_null_needle_func);
 	g_test_add_func("/libxmlb/xpath/stem", xb_xpath_stem_func);
+	g_test_add_func("/libxmlb/xpath/or-dedup", xb_xpath_or_dedup_func);
 	g_test_add_func("/libxmlb/silo/node-offset", xb_silo_node_offset_func);
 	g_test_add_func("/libxmlb/xpath/or-limit", xb_xpath_or_limit_func);
 	g_test_add_func("/libxmlb/xpath/operator-depth-limit", xb_xpath_operator_depth_limit_func);

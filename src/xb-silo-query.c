@@ -344,7 +344,10 @@ silo_query_with_root(XbSilo *self,
 	    .sn = NULL,
 	    .position = 0,
 	};
-	g_auto(XbSiloQueryHelper) helper = {.flags = flags, .query_data = &query_data};
+	g_auto(XbSiloQueryHelper) helper = {
+	    .flags = flags | XB_SILO_QUERY_HELPER_USE_HASH,
+	    .query_data = &query_data,
+	};
 
 	g_return_val_if_fail(XB_IS_SILO(self), NULL);
 	g_return_val_if_fail(xpath != NULL, NULL);
