@@ -164,6 +164,10 @@ G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC(XbSiloQueryHelper, xb_silo_query_helper_free)
 static gboolean
 xb_silo_query_section_add_node(XbSilo *self, XbSiloQueryHelper *helper, XbSiloNode *sn)
 {
+	/* the limit has already been reached, so stop scanning */
+	if (helper->limit > 0 && helper->nodes != NULL && helper->nodes->len >= helper->limit)
+		return TRUE;
+
 	if (helper->flags & XB_SILO_QUERY_HELPER_USE_HASH) {
 		if (helper->nodes_hash == NULL) {
 			helper->nodes_hash = g_hash_table_new(g_direct_hash, g_direct_equal);
