@@ -283,7 +283,7 @@ xb_predicate_func(void)
 		     {"text()=lower-case('firefox')", "text(),'firefox'^1,lower-case(),eq()"},
 		     {"$'a'=$'b'", "$'a',$'b',eq()"},
 		     {"('a'='b')&&('c'='d')", "'a'^1,'b'^1,eq()^1,'c'^1,'d'^1,eq()^1,and()"},
-		     {"text()==('a','b','c')", "text(),'c'^1,'b'^1,'a'^1,in()"},
+		     {"text()==('a','b','c')", "text(),'a'^1,'b'^1,'c'^1,in()"},
 		     /* sentinel */
 		     {NULL, NULL}};
 	const gchar *invalid[] = {"text(",
@@ -337,7 +337,7 @@ xb_predicate_optimize_func(void)
 		     {"lower-case('Fire')", "'fire'"},
 		     {"upper-case('Τάχιστη')", "'ΤΆΧΙΣΤΗ'"},
 		     {"upper-case(lower-case('Fire'))", "'FIRE'"}, /* 2nd pass */
-		     {"text()==('a','b','c')", "text(),'c'^1,'b'^1,'a'^1,in()"},
+		     {"text()==('a','b','c')", "text(),'a'^1,'b'^1,'c'^1,in()"},
 		     /* sentinel */
 		     {NULL, NULL}};
 	const gchar *invalid[] = {"'a'='b'", "123>=999", "not(1)", NULL};
@@ -2122,6 +2122,33 @@ xb_xpath_compare_func(void)
 					      {"text()<='test'", TRUE, FALSE},
 					      {"text()>='zz'", FALSE, FALSE},
 					      {NULL, FALSE, FALSE}};
+
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	xb_xpath_predicate_assert(silo, tests);
+}
+
+static void
+xb_xpath_func_args_func(void)
+{
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbSilo) silo =
+	    xb_silo_new_from_xml("<component><id>test</id></component>", &error);
+	const XbXpathPredicateTest tests[] = {
+	    {"contains('test','es')", TRUE, TRUE},
+	    {"contains('es','test')", FALSE, TRUE},
+	    {"starts-with('test','te')", TRUE, TRUE},
+	    {"starts-with('te','test')", FALSE, TRUE},
+	    {"ends-with('test','st')", TRUE, TRUE},
+	    {"ends-with('st','test')", FALSE, TRUE},
+	    /* arguments not separated by the comma parser */
+	    {"contains(text(),'es')", TRUE, FALSE},
+	    {"contains(text(),'zz')", FALSE, FALSE},
+	    {"starts-with(text(),'te')", TRUE, FALSE},
+	    {"starts-with(text(),'zz')", FALSE, FALSE},
+	    {NULL, FALSE, FALSE},
+	};
 
 	g_assert_no_error(error);
 	g_assert_nonnull(silo);
@@ -3926,6 +3953,7 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/xpath/in-null-needle", xb_xpath_in_null_needle_func);
 	g_test_add_func("/libxmlb/xpath/stem", xb_xpath_stem_func);
 	g_test_add_func("/libxmlb/xpath/compare", xb_xpath_compare_func);
+	g_test_add_func("/libxmlb/xpath/func-args", xb_xpath_func_args_func);
 	g_test_add_func("/libxmlb/xpath/unfinished", xb_xpath_unfinished_func);
 	g_test_add_func("/libxmlb/xpath/unbound", xb_xpath_unbound_func);
 	g_test_add_func("/libxmlb/xpath/escape", xb_xpath_escape_func);
