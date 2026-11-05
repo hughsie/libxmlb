@@ -76,8 +76,8 @@ typedef gboolean (*XbMachineTextHandlerFunc)(XbMachine *self,
 typedef gboolean (*XbMachineMethodFunc)(XbMachine *self,
 					XbStack *stack,
 					gboolean *result_unused,
-					gpointer exec_data,
 					gpointer user_data,
+					gpointer exec_data,
 					GError **error);
 
 XbMachine *
