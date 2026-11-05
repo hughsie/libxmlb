@@ -483,7 +483,7 @@ main(int argc, char *argv[])
 					 "Print verbose debug statements",
 					 NULL},
 					{"force",
-					 'v',
+					 'f',
 					 0,
 					 G_OPTION_ARG_NONE,
 					 &priv->force,
