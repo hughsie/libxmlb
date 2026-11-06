@@ -1014,6 +1014,9 @@ xb_machine_run_with_bindings(XbMachine *self,
 			if (!xb_value_bindings_lookup_opcode(bindings,
 							     bound_opcode_idx++,
 							     machine_opcode)) {
+				/* the pushed opcode was never initialized, so
+				 * it cannot be printed or cleared */
+				xb_stack_pop(stack, NULL, NULL);
 				if (error != NULL) {
 					g_autofree gchar *tmp1 = xb_stack_to_string(stack);
 					g_autofree gchar *tmp2 = xb_stack_to_string(opcodes);
