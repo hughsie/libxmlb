@@ -2197,14 +2197,27 @@ static void
 xb_xpath_escape_func(void)
 {
 	gboolean ret;
-	g_autofree gchar *esc = NULL;
-	g_autofree gchar *xpath = NULL;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(XbBuilder) builder = xb_builder_new();
 	g_autoptr(XbBuilderSource) source = xb_builder_source_new();
-	g_autoptr(XbNode) n = NULL;
 	g_autoptr(XbSilo) silo = NULL;
-	const gchar *xml = "<component><summary>foo\tbar\nbaz</summary></component>";
+	const gchar *xml = "<component>"
+			   "<summary>foo\tbar\nbaz</summary>"
+			   "<description>back\\slash</description>"
+			   "<name>literal\\tescape</name>"
+			   "</component>";
+	struct {
+		const gchar *element;
+		const gchar *text;
+		const gchar *escaped;
+	} tests[] = {
+	    /* real control characters */
+	    {"summary", "foo\tbar\nbaz", "foo\\tbar\\nbaz"},
+	    /* a literal backslash has to survive the round-trip */
+	    {"description", "back\\slash", "back\\\\slash"},
+	    /* ...including when it is followed by an escape character */
+	    {"name", "literal\\tescape", "literal\\\\tescape"},
+	};
 
 	/* import some XML, keeping the literal control characters in the text */
 	ret = xb_builder_source_load_xml(source, xml, XB_BUILDER_SOURCE_FLAG_LITERAL_TEXT, &error);
@@ -2216,14 +2229,19 @@ xb_xpath_escape_func(void)
 	g_assert_nonnull(silo);
 
 	/* text escaped with xb_string_escape() must round-trip through the
-	 * query parser back to the original control characters */
-	esc = xb_string_escape("foo\tbar\nbaz");
-	g_assert_cmpstr(esc, ==, "foo\\tbar\\nbaz");
-	xpath = g_strdup_printf("component/summary[text()='%s']", esc);
-	n = xb_silo_query_first(silo, xpath, &error);
-	g_assert_no_error(error);
-	g_assert_nonnull(n);
-	g_assert_cmpstr(xb_node_get_text(n), ==, "foo\tbar\nbaz");
+	 * query parser back to the original text */
+	for (gsize i = 0; i < G_N_ELEMENTS(tests); i++) {
+		g_autofree gchar *esc = xb_string_escape(tests[i].text);
+		g_autofree gchar *xpath = NULL;
+		g_autoptr(XbNode) n = NULL;
+
+		g_assert_cmpstr(esc, ==, tests[i].escaped);
+		xpath = g_strdup_printf("component/%s[text()='%s']", tests[i].element, esc);
+		n = xb_silo_query_first(silo, xpath, &error);
+		g_assert_no_error(error);
+		g_assert_nonnull(n);
+		g_assert_cmpstr(xb_node_get_text(n), ==, tests[i].text);
+	}
 }
 
 static void

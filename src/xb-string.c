@@ -239,7 +239,8 @@ xb_string_token_valid(const gchar *text)
  * xb_string_escape:
  * @str: string, e.g. `app/org.gnome.ghex/x86_64/stable`
  *
- * Escapes XPath control sequences such as newlines, tabs, and forward slashes.
+ * Escapes XPath control sequences such as backslashes, newlines, tabs, and
+ * forward slashes.
  *
  * Returns: (transfer full): new string that is safe to use for queries
  *
@@ -249,6 +250,8 @@ gchar *
 xb_string_escape(const gchar *str)
 {
 	GString *tmp = g_string_new(str);
+	/* this has to be done first, as the other replacements add backslashes */
+	xb_string_replace(tmp, "\\", "\\\\");
 	xb_string_replace(tmp, "/", "\\/");
 	xb_string_replace(tmp, "\t", "\\t");
 	xb_string_replace(tmp, "\n", "\\n");

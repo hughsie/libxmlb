@@ -464,13 +464,25 @@ xb_query_parse(XbQuery *self, XbQueryParseContext *context, const gchar *xpath, 
 	for (gsize i = 0; xpath[i] != '\0'; i++) {
 		/* escaped chars */
 		if (xpath[i] == '\\') {
-			if (xpath[i + 1] == '/' || xpath[i + 1] == 't' || xpath[i + 1] == 'n') {
-				if (xpath[i + 1] == 't')
-					g_string_append_c(acc, '\t');
-				else if (xpath[i + 1] == 'n')
-					g_string_append_c(acc, '\n');
-				else
-					g_string_append_c(acc, '/');
+			gchar unescaped = '\0';
+			switch (xpath[i + 1]) {
+			case '/':
+				unescaped = '/';
+				break;
+			case 't':
+				unescaped = '\t';
+				break;
+			case 'n':
+				unescaped = '\n';
+				break;
+			case '\\':
+				unescaped = '\\';
+				break;
+			default:
+				break;
+			}
+			if (unescaped != '\0') {
+				g_string_append_c(acc, unescaped);
 				i += 1;
 				continue;
 			}
