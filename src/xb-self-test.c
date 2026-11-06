@@ -2294,6 +2294,29 @@ xb_xpath_or_limit_results_func(void)
 }
 
 static void
+xb_xpath_or_limit_short_circuit_func(void)
+{
+	g_autoptr(GError) error = NULL;
+	g_autoptr(GPtrArray) results = NULL;
+	g_autoptr(XbSilo) silo = xb_silo_new_from_xml("<components>"
+						      "<component><id>a</id></component>"
+						      "</components>",
+						      &error);
+	const gchar *xpath = "components/component/id[text()='a']|components//id";
+
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	/* the first branch fills the limit, so the invalid second branch must
+	 * never be evaluated -- and must not discard the collected results */
+	results = xb_silo_query(silo, xpath, 1, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(results);
+	g_assert_cmpuint(results->len, ==, 1);
+	g_assert_cmpstr(xb_node_get_text(g_ptr_array_index(results, 0)), ==, "a");
+}
+
+static void
 xb_silo_node_offset_func(void)
 {
 	g_autoptr(GError) error = NULL;
@@ -3977,6 +4000,8 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/xpath/escape", xb_xpath_escape_func);
 	g_test_add_func("/libxmlb/xpath/or-dedup", xb_xpath_or_dedup_func);
 	g_test_add_func("/libxmlb/xpath/or-limit-results", xb_xpath_or_limit_results_func);
+	g_test_add_func("/libxmlb/xpath/or-limit-short-circuit",
+			xb_xpath_or_limit_short_circuit_func);
 	g_test_add_func("/libxmlb/silo/node-offset", xb_silo_node_offset_func);
 	g_test_add_func("/libxmlb/xpath/or-limit", xb_xpath_or_limit_func);
 	g_test_add_func("/libxmlb/xpath/operator-depth-limit", xb_xpath_operator_depth_limit_func);

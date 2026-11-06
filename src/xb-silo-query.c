@@ -390,9 +390,16 @@ silo_query_with_root(XbSilo *self,
 	}
 	for (guint i = 0; split[i] != NULL; i++) {
 		g_autoptr(GError) error_local = NULL;
-		g_autoptr(XbQuery) query = xb_query_new(self, split[i], &error_local);
+		g_autoptr(XbQuery) query = NULL;
 		g_auto(XbQueryContext) context = XB_QUERY_CONTEXT_INIT();
 
+		/* the limit has been reached, so there is nothing a further
+		 * branch could add -- and evaluating one could either waste
+		 * time walking the silo, or fail and discard what we have */
+		if (limit > 0 && helper.nodes != NULL && helper.nodes->len >= limit)
+			break;
+
+		query = xb_query_new(self, split[i], &error_local);
 		if (query == NULL) {
 			if (g_error_matches(error_local, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT) &&
 			    (split[i + 1] != NULL || helper.nodes != NULL)) {
