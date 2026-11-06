@@ -15,6 +15,7 @@
 #include "xb-builder-node-private.h"
 #include "xb-builder-source-private.h"
 #include "xb-builder.h"
+#include "xb-common-private.h"
 #include "xb-opcode-private.h"
 #include "xb-silo-private.h"
 #include "xb-string-private.h"
@@ -139,7 +140,8 @@ xb_builder_compile_start_element_cb(GMarkupParseContext *context,
 				xb_builder_node_set_priority(bn, prio);
 			}
 		} else {
-			gint prio = xb_builder_get_locale_priority(helper, xml_lang);
+			g_autofree gchar *xml_lang_safe = xb_locale_ensure_posix(xml_lang);
+			gint prio = xb_builder_get_locale_priority(helper, xml_lang_safe);
 			if (prio < 0)
 				xb_builder_node_add_flag(bn, XB_BUILDER_NODE_FLAG_IGNORE);
 			xb_builder_node_set_priority(bn, prio);
@@ -766,7 +768,7 @@ xb_builder_import_node(XbBuilder *self, XbBuilderNode *bn)
 /**
  * xb_builder_add_locale:
  * @self: a #XbSilo
- * @locale: a locale, e.g. "en_US"
+ * @locale: a locale in POSIX form, e.g. "en_US"
  *
  * Adds a locale to the builder. Locales added first will be prioritised over
  * locales added later.

@@ -166,3 +166,94 @@ xb_strsplit(const gchar *str, gsize sz, const gchar *delimiter, gint max_tokens)
 	}
 	return g_strsplit(str, delimiter, max_tokens);
 }
+
+/**
+ * xb_locale_ensure_posix:
+ * @locale: (nullable): a locale, in BCP47 or POSIX form
+ *
+ * Ensures the locale is in POSIX form, e.g. `en_GB`.
+ *
+ * Only the `language_COUNTRY` separator is converted; any codeset or modifier
+ * suffix is left alone, so that e.g. the `-` in `fr_FR.UTF-8` is preserved.
+ *
+ * BCP47 tags are case-insensitive, so the language is made lowercase and a
+ * two-letter country uppercase, e.g. `EN-gb` becomes `en_GB`. Without a separator
+ * only a two or three letter language is changed, so that e.g. `EN` becomes `en`
+ * but `C` and `POSIX` are preserved.
+ *
+ * A separator with nothing on one side is not converted, e.g. `-` and `-gb` are
+ * returned as-is, as they are malformed rather than in BCP47 form.
+ *
+ * A script subtag is dropped only when POSIX implies it from the country, e.g.
+ * `zh-Hans-CN` becomes `zh_CN`. Any other script is kept so that it cannot match
+ * a locale written in a different script, e.g. `zh-Hant-CN` is not `zh_CN`.
+ * Where POSIX spells the script as a modifier instead, the script is moved
+ * there, e.g. `sr-Latn` and `sr-Latn-RS` become `sr@latin` and `sr_RS@latin`,
+ * unless a modifier is already present.
+ *
+ * An empty locale is returned as-is, as the empty and %NULL values mean different
+ * things: to g_str_to_ascii() the former is the generic rules and the latter is
+ * the current locale.
+ *
+ * Returns: (transfer full): a POSIX-form locale string, or %NULL if @locale is %NULL
+ **/
+gchar *
+xb_locale_ensure_posix(const gchar *locale)
+{
+	struct {
+		const gchar *tag;
+		const gchar *posix;
+		const gchar *modifier;
+	} map[] = {
+	    {"sr_Latn", "sr", "latin"},
+	    {"sr_Latn-ME", "sr_ME", "latin"},
+	    {"sr_Latn-RS", "sr_RS", "latin"},
+	    {"zh_Hans-CN", "zh_CN", NULL},
+	    {"zh_Hans-SG", "zh_SG", NULL},
+	    {"zh_Hant-HK", "zh_HK", NULL},
+	    {"zh_Hant-MO", "zh_MO", NULL},
+	    {"zh_Hant-TW", "zh_TW", NULL},
+	};
+	g_autofree gchar *str = g_strdup(locale);
+	gsize langsz;
+	gsize subtagsz = 0;
+
+	if (str == NULL)
+		return NULL;
+
+	/* POSIX locales have at most one separator, and it always comes before
+	 * any `.codeset` or `@modifier` suffix -- it only counts as a separator
+	 * when it has something on both sides */
+	langsz = strcspn(str, "-_.@");
+	if (langsz > 0 && (str[langsz] == '-' || str[langsz] == '_'))
+		subtagsz = strcspn(str + langsz + 1, "-_.@");
+	if (subtagsz > 0 || langsz == 2 || langsz == 3) {
+		for (gsize i = 0; i < langsz; i++)
+			str[i] = g_ascii_tolower(str[i]);
+	}
+	if (subtagsz > 0)
+		str[langsz] = '_';
+	if (subtagsz == 2) {
+		str[langsz + 1] = g_ascii_toupper(str[langsz + 1]);
+		str[langsz + 2] = g_ascii_toupper(str[langsz + 2]);
+	}
+
+	/* the script may be in any case */
+	for (guint i = 0; i < G_N_ELEMENTS(map); i++) {
+		gsize tagsz = strlen(map[i].tag);
+		const gchar *suffix;
+		if (g_ascii_strncasecmp(str, map[i].tag, tagsz) != 0)
+			continue;
+		suffix = str + tagsz;
+		if (suffix[0] != '\0' && suffix[0] != '.' && suffix[0] != '@')
+			continue;
+		if (map[i].modifier == NULL)
+			return g_strdup_printf("%s%s", map[i].posix, suffix);
+
+		/* POSIX only allows one modifier, so do not lose either */
+		if (strchr(suffix, '@') != NULL)
+			break;
+		return g_strdup_printf("%s%s@%s", map[i].posix, suffix, map[i].modifier);
+	}
+	return g_steal_pointer(&str);
+}

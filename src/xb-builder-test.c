@@ -681,6 +681,107 @@ xb_builder_native_lang_func(void)
 }
 
 static void
+xb_builder_native_lang_bcp47_func(void)
+{
+	gboolean ret;
+	g_autofree gchar *str = NULL;
+	g_autofree gchar *tmp = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new();
+	g_autoptr(XbNode) n = NULL;
+	g_autoptr(XbSilo) silo = NULL;
+	const gchar *xml = "<components>\n"
+			   "  <component>\n"
+			   "    <p xml:lang=\"de-DE\">Wilcommen</p>\n"
+			   "    <p>Hello</p>\n"
+			   "    <p xml:lang=\"fr-FR\">Salut</p>\n"
+			   "    <p xml:lang=\"fr_FR\">Au revoir</p>\n"
+			   "  </component>\n"
+			   "</components>\n";
+
+	/* import from XML */
+	ret = xb_test_import_xml(builder, xml, &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+
+	/* the locales are added in POSIX form, but the `xml:lang` attributes
+	 * are in BCP47 form -- both have to match */
+	xb_builder_add_locale(builder, "fr_FR");
+	xb_builder_add_locale(builder, "C");
+	silo = xb_builder_compile(builder, XB_BUILDER_COMPILE_FLAG_SINGLE_LANG, NULL, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	/* test we removed other languages */
+	str = xb_silo_to_string(silo, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(str);
+	g_debug("\n%s", str);
+	g_assert_null(g_strstr_len(str, -1, "Wilcommen"));
+	g_assert_null(g_strstr_len(str, -1, "Hello"));
+	g_assert_nonnull(g_strstr_len(str, -1, "Salut"));
+	g_assert_nonnull(g_strstr_len(str, -1, "Au revoir"));
+
+	/* the attribute value itself is preserved as-authored */
+	n = xb_silo_query_first(silo, "components/component/*", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(n);
+	tmp = xb_node_export(n, XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS, &error);
+	g_assert_no_error(error);
+	g_assert_cmpstr(tmp,
+			==,
+			"<p xml:lang=\"fr-FR\">Salut</p><p xml:lang=\"fr_FR\">Au revoir</p>");
+}
+
+static void
+xb_builder_native_lang_bcp47_match_func(void)
+{
+	gboolean ret;
+	g_autofree gchar *str = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new();
+	g_autoptr(XbSilo) silo = NULL;
+	const gchar *xml = "<components>\n"
+			   "  <component>\n"
+			   "    <p xml:lang=\"en-gb\">Colour</p>\n"
+			   "    <p xml:lang=\"zh-Hans-CN\">Simplified</p>\n"
+			   "    <p xml:lang=\"zh-Hant-CN\">Traditional</p>\n"
+			   "    <p xml:lang=\"sr-Latn\">Latinica</p>\n"
+			   "    <p xml:lang=\"sr-Latn-ME\">Crna Gora</p>\n"
+			   "    <p xml:lang=\"sr-Latn-RS\">Srbija</p>\n"
+			   "    <p xml:lang=\"de-DE\">Wilcommen</p>\n"
+			   "  </component>\n"
+			   "</components>\n";
+
+	/* import from XML */
+	ret = xb_test_import_xml(builder, xml, &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+
+	/* tags differing in case or by an implied script match, but ones in a
+	 * different script do not */
+	xb_builder_add_locale(builder, "en_GB");
+	xb_builder_add_locale(builder, "zh_CN");
+	xb_builder_add_locale(builder, "sr_ME@latin");
+	xb_builder_add_locale(builder, "sr@latin");
+	silo = xb_builder_compile(builder, XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS, NULL, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	str = xb_silo_to_string(silo, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(str);
+	g_debug("\n%s", str);
+	g_assert_nonnull(g_strstr_len(str, -1, "Colour"));
+	g_assert_nonnull(g_strstr_len(str, -1, "Simplified"));
+	g_assert_null(g_strstr_len(str, -1, "Traditional"));
+	g_assert_nonnull(g_strstr_len(str, -1, "Latinica"));
+	g_assert_nonnull(g_strstr_len(str, -1, "Crna Gora"));
+	g_assert_null(g_strstr_len(str, -1, "Srbija"));
+	g_assert_null(g_strstr_len(str, -1, "Wilcommen"));
+}
+
+static void
 xb_builder_comments_func(void)
 {
 	gboolean ret;
@@ -1002,6 +1103,9 @@ xb_builder_test_add_funcs(void)
 	g_test_add_func("/libxmlb/builder/comments", xb_builder_comments_func);
 	g_test_add_func("/libxmlb/builder/cdata", xb_builder_cdata_func);
 	g_test_add_func("/libxmlb/builder/native-lang", xb_builder_native_lang_func);
+	g_test_add_func("/libxmlb/builder/native-lang-bcp47", xb_builder_native_lang_bcp47_func);
+	g_test_add_func("/libxmlb/builder/native-lang-bcp47-match",
+			xb_builder_native_lang_bcp47_match_func);
 	g_test_add_func("/libxmlb/builder/native-lang-nested", xb_builder_native_lang2_func);
 	g_test_add_func("/libxmlb/builder/empty", xb_builder_empty_func);
 	g_test_add_func("/libxmlb/builder/ensure", xb_builder_ensure_func);
