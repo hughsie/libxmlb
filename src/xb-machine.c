@@ -1030,6 +1030,12 @@ xb_machine_run_with_bindings(XbMachine *self,
 				}
 				return FALSE;
 			}
+
+			/* the binding is initialised from scratch, so it has no
+			 * level; carry over the one the parser worked out, or
+			 * a bound value in a tuple breaks the run of operands
+			 * that in() scans for */
+			xb_opcode_set_level(machine_opcode, _xb_opcode_get_level(opcode));
 			continue;
 		}
 		if (kind == XB_OPCODE_KIND_BOUND_UNSET) {
