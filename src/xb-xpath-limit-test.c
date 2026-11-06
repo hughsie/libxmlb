@@ -40,9 +40,13 @@ xb_xpath_or_limit_results_func(void)
 {
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GPtrArray) results = NULL;
+	g_autoptr(GPtrArray) results_filtered = NULL;
+	g_autoptr(GPtrArray) results_unlimited = NULL;
 	g_autoptr(XbSilo) silo = xb_silo_new_from_xml("<components>"
 						      "<component><id>a</id></component>"
 						      "<component><id>b</id></component>"
+						      "<component><id>c</id></component>"
+						      "<component><id>d</id></component>"
 						      "</components>",
 						      &error);
 
@@ -59,6 +63,27 @@ xb_xpath_or_limit_results_func(void)
 	g_assert_nonnull(results);
 	g_assert_cmpuint(results->len, ==, 1);
 	g_assert_cmpstr(xb_node_get_text(g_ptr_array_index(results, 0)), ==, "b");
+
+	/* the predicate matches more nodes than the limit allows through, so
+	 * the case below is not vacuous if the document ever changes */
+	results_unlimited = xb_silo_query(silo, "components/component/id[text()!='a']", 0, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(results_unlimited);
+	g_assert_cmpuint(results_unlimited->len, ==, 3);
+
+	/* one branch matching more nodes than the limit: the limit has to cut
+	 * the results that survived the predicate rather than the nodes
+	 * considered before it ran, which would drop 'a' and return only 'b' */
+	results_filtered =
+	    xb_silo_query(silo,
+			  "components/component/id[text()!='a']|components/component/id",
+			  2,
+			  &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(results_filtered);
+	g_assert_cmpuint(results_filtered->len, ==, 2);
+	g_assert_cmpstr(xb_node_get_text(g_ptr_array_index(results_filtered, 0)), ==, "b");
+	g_assert_cmpstr(xb_node_get_text(g_ptr_array_index(results_filtered, 1)), ==, "c");
 }
 
 static void
