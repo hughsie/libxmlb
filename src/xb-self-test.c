@@ -2177,10 +2177,13 @@ static void
 xb_xpath_unbound_func(void)
 {
 	g_autoptr(GError) error = NULL;
+	g_autoptr(XbNode) n = NULL;
 	g_autoptr(XbQuery) query = NULL;
 	g_autoptr(XbSilo) silo =
 	    xb_silo_new_from_xml("<component timestamp=\"1631923200\"><id>test</id></component>",
 				 &error);
+	g_auto(XbQueryContext) context_bound = XB_QUERY_CONTEXT_INIT();
+	g_auto(XbQueryContext) context_unbound = XB_QUERY_CONTEXT_INIT();
 
 	g_assert_no_error(error);
 	g_assert_nonnull(silo);
@@ -2191,6 +2194,19 @@ xb_xpath_unbound_func(void)
 	g_assert_nonnull(query);
 	g_assert_null(xb_silo_query_first_full(silo, query, &error));
 	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
+	g_clear_error(&error);
+
+	/* ...and the same when the bindings exist but were never set, which
+	 * takes a different path in xb_machine_run_with_bindings() */
+	g_assert_null(xb_silo_query_first_with_context(silo, query, &context_unbound, &error));
+	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
+	g_clear_error(&error);
+
+	/* binding the value still works */
+	xb_value_bindings_bind_val(xb_query_context_get_bindings(&context_bound), 0, 1631923200);
+	n = xb_silo_query_first_with_context(silo, query, &context_bound, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(n);
 }
 
 static void
