@@ -307,6 +307,42 @@ xb_xpath_unbound_func(void)
 }
 
 static void
+xb_xpath_bound_in_func(void)
+{
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbNode) n = NULL;
+	g_autoptr(XbQuery) query = NULL;
+	g_autoptr(XbSilo) silo =
+	    xb_silo_new_from_xml("<component><id>test</id></component>", &error);
+	g_auto(XbQueryContext) context = XB_QUERY_CONTEXT_INIT();
+	g_auto(XbQueryContext) context2 = XB_QUERY_CONTEXT_INIT();
+
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+	xb_value_bindings_bind_str(xb_query_context_get_bindings(&context2), 0, "test", NULL);
+
+	/* the bound value is one element of a tuple, so it has to keep the
+	 * level the parser gave it or in() stops scanning at the wrong place */
+	query = xb_query_new(silo, "component/id[text()=(?,'b')]", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(query);
+	xb_value_bindings_bind_str(xb_query_context_get_bindings(&context), 0, "test", NULL);
+	n = xb_silo_query_first_with_context(silo, query, &context, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(n);
+
+	/* ...and with the binding as the last element of the tuple */
+	g_clear_object(&n);
+	g_clear_object(&query);
+	query = xb_query_new(silo, "component/id[text()=('a',?)]", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(query);
+	n = xb_silo_query_first_with_context(silo, query, &context2, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(n);
+}
+
+static void
 xb_xpath_escape_func(void)
 {
 	gboolean ret;
@@ -368,5 +404,6 @@ xb_xpath_predicate_test_add_funcs(void)
 	g_test_add_func("/libxmlb/xpath/func-args", xb_xpath_func_args_func);
 	g_test_add_func("/libxmlb/xpath/unfinished", xb_xpath_unfinished_func);
 	g_test_add_func("/libxmlb/xpath/unbound", xb_xpath_unbound_func);
+	g_test_add_func("/libxmlb/xpath/bound-in", xb_xpath_bound_in_func);
 	g_test_add_func("/libxmlb/xpath/escape", xb_xpath_escape_func);
 }
