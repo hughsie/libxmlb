@@ -103,6 +103,77 @@ xb_common_func(void)
 }
 
 static void
+xb_common_locale_ensure_posix_func(void)
+{
+	struct {
+		const gchar *locale;
+		const gchar *posix;
+	} items[] = {
+	    /* already POSIX, left alone */
+	    {"en_GB", "en_GB"},
+	    {"fr", "fr"},
+	    {"C", "C"},
+	    /* BCP47 gets converted to POSIX */
+	    {"en-GB", "en_GB"},
+	    {"zh-TW", "zh_TW"},
+	    /* the language and country get normalized, whatever the separator */
+	    {"en-gb", "en_GB"},
+	    {"EN-GB", "en_GB"},
+	    {"en_gb", "en_GB"},
+	    {"fil-ph", "fil_PH"},
+	    {"en-gb.UTF-8", "en_GB.UTF-8"},
+	    {"ca-es@valencia", "ca_ES@valencia"},
+	    /* without a separator only a language gets normalized */
+	    {"EN", "en"},
+	    {"FIL", "fil"},
+	    {"EN.UTF-8", "en.UTF-8"},
+	    {"POSIX", "POSIX"},
+	    {"C.UTF-8", "C.UTF-8"},
+	    /* the `-` in a codeset or modifier suffix is not a separator */
+	    {"fr_FR.UTF-8", "fr_FR.UTF-8"},
+	    {"fr-FR.UTF-8", "fr_FR.UTF-8"},
+	    {"ca-ES@valencia", "ca_ES@valencia"},
+	    {"sr-RS.UTF-8@latin", "sr_RS.UTF-8@latin"},
+	    /* only the first delimiter is converted, as POSIX locales have at
+	     * most one `lang_COUNTRY` separator */
+	    {"zh-Hans", "zh_Hans"},
+	    /* a script implied by the country is dropped, in any case and with
+	     * any suffix preserved */
+	    {"zh-Hans-CN", "zh_CN"},
+	    {"zh-Hant-TW", "zh_TW"},
+	    {"zh-hans-cn", "zh_CN"},
+	    {"zh-Hans-CN.UTF-8", "zh_CN.UTF-8"},
+	    /* any other script stays distinct */
+	    {"zh-Hant-CN", "zh_Hant-CN"},
+	    {"zh-Hans-TW", "zh_Hans-TW"},
+	    {"zh-Hans-CNX", "zh_Hans-CNX"},
+	    {"sr-Latn-RS", "sr_Latn-RS"},
+	    {"zh-hant", "zh_hant"},
+	    {"ZH-Hant-CN", "zh_Hant-CN"},
+	    /* a form we already converted is not changed again */
+	    {"zh_Hant-CN", "zh_Hant-CN"},
+	    /* a separator with nothing on one side is not converted */
+	    {"-", "-"},
+	    {"_", "_"},
+	    {"--", "--"},
+	    {"-gb", "-gb"},
+	    {"en-", "en-"},
+	    {"EN-", "en-"},
+	    {"en-.UTF-8", "en-.UTF-8"},
+	    /* a short country, or a trailing delimiter after the first */
+	    {"en-g", "en_g"},
+	    {"en-gb-", "en_GB-"},
+	    /* empty is not the same as unset */
+	    {"", ""},
+	    {NULL, NULL},
+	};
+	for (guint i = 0; i < G_N_ELEMENTS(items); i++) {
+		g_autofree gchar *posix = xb_locale_ensure_posix(items[i].locale);
+		g_assert_cmpstr(posix, ==, items[i].posix);
+	}
+}
+
+static void
 xb_common_content_type_func(void)
 {
 	struct {
@@ -191,6 +262,7 @@ xb_common_test_add_funcs(void)
 {
 	g_test_add_func("/libxmlb/common", xb_common_func);
 	g_test_add_func("/libxmlb/common/content-type", xb_common_content_type_func);
+	g_test_add_func("/libxmlb/common/locale-ensure-posix", xb_common_locale_ensure_posix_func);
 	g_test_add_func("/libxmlb/common/searchv", xb_common_searchv_func);
 	g_test_add_func("/libxmlb/common/union", xb_common_union_func);
 	g_test_add_func("/libxmlb/value-bindings/copy", xb_value_bindings_copy_func);
