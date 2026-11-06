@@ -787,6 +787,24 @@ xb_builder_add_locale(XbBuilder *self, const gchar *locale)
 
 	/* if the user changes LANG, the blob is no longer valid */
 	xb_builder_append_guid(self, locale);
+
+	/* change underscores to dashes, to get close to the BCP47 form used in the XML */
+	if (strchr(locale, '_') != NULL) {
+		g_autofree gchar *converted_locale = g_strdup(locale);
+
+		for (guint i = 0; converted_locale[i] != '\0'; i++) {
+			if (converted_locale[i] == '_')
+				converted_locale[i] = '-';
+		}
+
+		for (guint i = 0; i < priv->locales->len; i++) {
+			const gchar *locale_tmp = g_ptr_array_index(priv->locales, i);
+			if (g_strcmp0(locale_tmp, converted_locale) == 0)
+				return;
+		}
+
+		g_ptr_array_add(priv->locales, g_steal_pointer(&converted_locale));
+	}
 }
 
 static gboolean

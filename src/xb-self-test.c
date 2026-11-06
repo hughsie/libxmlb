@@ -2376,6 +2376,107 @@ xb_builder_native_lang2_func(void)
 }
 
 static void
+xb_builder_test_bcp47_lang(const gchar *xml,
+			   const gchar *locale1,
+			   const gchar *locale2,
+			   const gchar *expected_name)
+{
+	XbNode *n;
+	gboolean ret;
+	g_autoptr(GError) error = NULL;
+	g_autofree gchar *str = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new();
+	g_autoptr(XbSilo) silo = NULL;
+
+	/* import from XML */
+	ret = xb_test_import_xml(builder, xml, &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+	xb_builder_add_locale(builder, locale1);
+	if (locale2 != NULL)
+		xb_builder_add_locale(builder, locale2);
+	silo = xb_builder_compile(builder, XB_BUILDER_COMPILE_FLAG_SINGLE_LANG, NULL, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	n = xb_silo_query_first(silo, "components/component/name", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(n);
+	g_assert_cmpstr(xb_node_get_text(n), ==, expected_name);
+	g_clear_object(&n);
+}
+
+static void
+xb_builder_bcp47_zh_lang_func(void)
+{
+	const gchar *xml = "<components>\n"
+			   "  <component>\n"
+			   "    <name xml:lang=\"zh_CN\">uses zh_CN</name>\n"
+			   "    <name xml:lang=\"zh\">uses zh</name>\n"
+			   "    <name xml:lang=\"en_US\">uses en_US</name>\n"
+			   "  </component>\n"
+			   "</components>\n";
+
+	xb_builder_test_bcp47_lang(xml, "zh", NULL, "uses zh");
+}
+
+static void
+xb_builder_bcp47_zhCN_lang_func(void)
+{
+	const gchar *xml = "<components>\n"
+			   "  <component>\n"
+			   "    <name xml:lang=\"zh_CN\">uses zh_CN</name>\n"
+			   "    <name xml:lang=\"zh\">uses zh</name>\n"
+			   "    <name xml:lang=\"en_US\">uses en_US</name>\n"
+			   "  </component>\n"
+			   "</components>\n";
+
+	xb_builder_test_bcp47_lang(xml, "zh_CN", "zh", "uses zh_CN");
+}
+
+static void
+xb_builder_bcp47_zhCN2_lang_func(void)
+{
+	const gchar *xml = "<components>\n"
+			   "  <component>\n"
+			   "    <name xml:lang=\"zh-CN\">uses zh-CN</name>\n"
+			   "    <name xml:lang=\"zh\">uses zh</name>\n"
+			   "    <name xml:lang=\"en_US\">uses en_US</name>\n"
+			   "  </component>\n"
+			   "</components>\n";
+
+	xb_builder_test_bcp47_lang(xml, "zh-CN", "zh", "uses zh-CN");
+}
+
+static void
+xb_builder_bcp47_zhCN3_lang_func(void)
+{
+	const gchar *xml = "<components>\n"
+			   "  <component>\n"
+			   "    <name xml:lang=\"zh-CN\">uses zh-CN</name>\n"
+			   "    <name xml:lang=\"zh\">uses zh</name>\n"
+			   "    <name xml:lang=\"en_US\">uses en_US</name>\n"
+			   "  </component>\n"
+			   "</components>\n";
+
+	xb_builder_test_bcp47_lang(xml, "zh_CN", "zh", "uses zh-CN");
+}
+
+static void
+xb_builder_bcp47_zhXY_lang_func(void)
+{
+	const gchar *xml = "<components>\n"
+			   "  <component>\n"
+			   "    <name xml:lang=\"zh-CN\">uses zh-CN</name>\n"
+			   "    <name xml:lang=\"zh\">uses zh</name>\n"
+			   "    <name xml:lang=\"en_US\">uses en_US</name>\n"
+			   "  </component>\n"
+			   "</components>\n";
+
+	xb_builder_test_bcp47_lang(xml, "zh_XY", "zh", "uses zh");
+}
+
+static void
 xb_xpath_parent_func(void)
 {
 	XbNode *n;
@@ -3619,6 +3720,11 @@ main(int argc, char **argv)
 	g_test_add_func("/libxmlb/builder/cdata", xb_builder_cdata_func);
 	g_test_add_func("/libxmlb/builder/native-lang", xb_builder_native_lang_func);
 	g_test_add_func("/libxmlb/builder/native-lang-nested", xb_builder_native_lang2_func);
+	g_test_add_func("/libxmlb/builder/bcp47-zh-lang", xb_builder_bcp47_zh_lang_func);
+	g_test_add_func("/libxmlb/builder/bcp47-zhCN-lang", xb_builder_bcp47_zhCN_lang_func);
+	g_test_add_func("/libxmlb/builder/bcp47-zhCN2-lang", xb_builder_bcp47_zhCN2_lang_func);
+	g_test_add_func("/libxmlb/builder/bcp47-zhCN3-lang", xb_builder_bcp47_zhCN3_lang_func);
+	g_test_add_func("/libxmlb/builder/bcp47-zhXY-lang", xb_builder_bcp47_zhXY_lang_func);
 	g_test_add_func("/libxmlb/builder/empty", xb_builder_empty_func);
 	g_test_add_func("/libxmlb/builder/ensure", xb_builder_ensure_func);
 	g_test_add_func("/libxmlb/builder/ensure-watch-source",
