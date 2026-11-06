@@ -339,12 +339,14 @@ xb_builder_node_tokenize_text(XbBuilderNode *self)
 	guint tokens_sz;
 	g_autofree gchar **ascii_tokens = NULL;
 	g_autofree gchar **tokens = NULL;
+	g_autofree gchar *xml_lang_safe = NULL;
 
 	g_return_if_fail(XB_IS_BUILDER_NODE(self));
 
 	if (priv->text == NULL)
 		return;
-	tokens = g_str_tokenize_and_fold(priv->text, xml_lang, &ascii_tokens);
+	xml_lang_safe = xb_locale_ensure_posix(xml_lang);
+	tokens = g_str_tokenize_and_fold(priv->text, xml_lang_safe, &ascii_tokens);
 
 	/* preallocate the right array size (and more for invalid tokens) */
 	tokens_sz = g_strv_length(tokens);

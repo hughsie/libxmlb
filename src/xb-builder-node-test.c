@@ -47,6 +47,69 @@ xb_builder_node_export_collapse_func(void)
 	g_assert_cmpstr("<empty />", ==, xml);
 }
 
+static gboolean
+xb_builder_node_has_token(XbBuilderNode *bn, const gchar *token)
+{
+	GPtrArray *tokens = xb_builder_node_get_tokens(bn);
+	g_assert_nonnull(tokens);
+	return g_ptr_array_find_with_equal_func(tokens, token, g_str_equal, NULL);
+}
+
+static void
+xb_builder_node_tokenize_xml_lang_func(void)
+{
+	const gchar *xml_langs[] = {
+	    "de_DE",
+	    "de-DE",
+	    "de-de",
+	    "DE-DE",
+	    "de",
+	    "DE",
+	    NULL,
+	};
+
+	/* the `xml:lang` attribute may be either POSIX or BCP47, and both have
+	 * to select the German transliteration rules, i.e. ü->ue and ß->ss
+	 * rather than the generic ü->u and ß->s */
+	for (guint i = 0; xml_langs[i] != NULL; i++) {
+		g_autoptr(XbBuilderNode) bn = xb_builder_node_new("name");
+		xb_builder_node_set_attr(bn, "xml:lang", xml_langs[i]);
+		xb_builder_node_set_text(bn, "Gewürze Straße", -1);
+		xb_builder_node_tokenize_text(bn);
+		g_assert_true(xb_builder_node_has_token(bn, "gewürze"));
+		g_assert_true(xb_builder_node_has_token(bn, "gewuerze"));
+		g_assert_false(xb_builder_node_has_token(bn, "gewurze"));
+		g_assert_true(xb_builder_node_has_token(bn, "strasse"));
+	}
+}
+
+static void
+xb_builder_node_tokenize_no_xml_lang_func(void)
+{
+	g_autoptr(XbBuilderNode) bn = xb_builder_node_new("name");
+
+	/* no `xml:lang` at all must still tokenize; the ASCII alternate is not
+	 * checked as that depends on the current locale */
+	xb_builder_node_set_text(bn, "Gewürze", -1);
+	xb_builder_node_tokenize_text(bn);
+	g_assert_true(xb_builder_node_has_token(bn, "gewürze"));
+}
+
+static void
+xb_builder_node_tokenize_empty_xml_lang_func(void)
+{
+	g_autoptr(XbBuilderNode) bn = xb_builder_node_new("name");
+
+	/* an empty `xml:lang` means no language, so uses the generic rules
+	 * whatever the current locale is */
+	xb_builder_node_set_attr(bn, "xml:lang", "");
+	xb_builder_node_set_text(bn, "Gewürze", -1);
+	xb_builder_node_tokenize_text(bn);
+	g_assert_true(xb_builder_node_has_token(bn, "gewürze"));
+	g_assert_true(xb_builder_node_has_token(bn, "gewurze"));
+	g_assert_false(xb_builder_node_has_token(bn, "gewuerze"));
+}
+
 static void
 xb_builder_node_token_max_func(void)
 {
@@ -377,6 +440,12 @@ xb_builder_node_test_add_funcs(void)
 			xb_builder_node_export_collapse_func);
 	g_test_add_func("/libxmlb/builder-node/nul", xb_builder_node_nul_func);
 	g_test_add_func("/libxmlb/builder-node/token-max", xb_builder_node_token_max_func);
+	g_test_add_func("/libxmlb/builder-node/tokenize-xml-lang",
+			xb_builder_node_tokenize_xml_lang_func);
+	g_test_add_func("/libxmlb/builder-node/tokenize-no-xml-lang",
+			xb_builder_node_tokenize_no_xml_lang_func);
+	g_test_add_func("/libxmlb/builder-node/tokenize-empty-xml-lang",
+			xb_builder_node_tokenize_empty_xml_lang_func);
 	g_test_add_func("/libxmlb/builder-node/info", xb_builder_node_info_func);
 	g_test_add_func("/libxmlb/builder-node/info-flag", xb_builder_node_info_flag_func);
 	g_test_add_func("/libxmlb/builder-node/literal-text", xb_builder_node_literal_text_func);
