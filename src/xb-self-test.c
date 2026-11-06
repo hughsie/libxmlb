@@ -454,8 +454,10 @@ xb_builder_custom_mime_func(void)
 {
 	gboolean ret;
 	g_autofree gchar *xml = NULL;
-	g_autofree gchar *tmp_desktop = g_build_filename(g_get_tmp_dir(), "temp.desktop", NULL);
-	g_autofree gchar *tmp_xmlb = g_build_filename(g_get_tmp_dir(), "temp.xmlb", NULL);
+	g_autofree gchar *tmp_desktop =
+	    g_build_filename(g_get_tmp_dir(), "xb-test-custom-mime.desktop", NULL);
+	g_autofree gchar *tmp_xmlb =
+	    g_build_filename(g_get_tmp_dir(), "xb-test-custom-mime.xmlb", NULL);
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GFile) file_desktop = NULL;
 	g_autoptr(GFile) file = NULL;
@@ -494,7 +496,7 @@ xb_builder_custom_mime_func(void)
 	g_assert_nonnull(xml);
 	g_print("%s", xml);
 	g_assert_cmpstr("<component type=\"desktop\">"
-			"<id>temp.desktop</id>"
+			"<id>xb-test-custom-mime.desktop</id>"
 			"</component>",
 			==,
 			xml);
@@ -505,7 +507,8 @@ xb_builder_source_lzma_func(void)
 {
 	gboolean ret;
 	g_autofree gchar *path = NULL;
-	g_autofree gchar *tmp_xmlb = g_build_filename(g_get_tmp_dir(), "temp.xmlb", NULL);
+	g_autofree gchar *tmp_xmlb =
+	    g_build_filename(g_get_tmp_dir(), "xb-test-source-lzma.xmlb", NULL);
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GFile) file = NULL;
 	g_autoptr(GFile) file_src = NULL;
@@ -545,7 +548,8 @@ xb_builder_source_zstd_func(void)
 {
 	gboolean ret;
 	g_autofree gchar *path = NULL;
-	g_autofree gchar *tmp_xmlb = g_build_filename(g_get_tmp_dir(), "temp.xmlb", NULL);
+	g_autofree gchar *tmp_xmlb =
+	    g_build_filename(g_get_tmp_dir(), "xb-test-source-zstd.xmlb", NULL);
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GFile) file = NULL;
 	g_autoptr(GFile) file_src = NULL;
@@ -586,7 +590,8 @@ xb_builder_chained_adapters_func(void)
 	gboolean ret;
 	g_autofree gchar *xml = NULL;
 	g_autofree gchar *path = NULL;
-	g_autofree gchar *tmp_xmlb = g_build_filename(g_get_tmp_dir(), "temp.xmlb", NULL);
+	g_autofree gchar *tmp_xmlb =
+	    g_build_filename(g_get_tmp_dir(), "xb-test-chained-adapters.xmlb", NULL);
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GFile) file_src = NULL;
 	g_autoptr(GFile) file = NULL;
@@ -633,8 +638,10 @@ xb_builder_ensure_watch_source_func(void)
 	g_autoptr(XbBuilder) builder = xb_builder_new();
 	g_autoptr(XbBuilderSource) source = xb_builder_source_new();
 	g_autoptr(XbSilo) silo = NULL;
-	g_autofree gchar *tmp_xml = g_build_filename(g_get_tmp_dir(), "temp.xml", NULL);
-	g_autofree gchar *tmp_xmlb = g_build_filename(g_get_tmp_dir(), "temp.xmlb", NULL);
+	g_autofree gchar *tmp_xml =
+	    g_build_filename(g_get_tmp_dir(), "xb-test-ensure-watch-source.xml", NULL);
+	g_autofree gchar *tmp_xmlb =
+	    g_build_filename(g_get_tmp_dir(), "xb-test-ensure-watch-source.xmlb", NULL);
 
 #ifdef _WIN32
 	/* no inotify */
@@ -692,7 +699,7 @@ xb_builder_ensure_func(void)
 	g_autofree gchar *bytes1str = NULL;
 	g_autofree gchar *bytes2str = NULL;
 	g_autofree gchar *bytes3str = NULL;
-	g_autofree gchar *tmp_xmlb = g_build_filename(g_get_tmp_dir(), "temp.xmlb", NULL);
+	g_autofree gchar *tmp_xmlb = g_build_filename(g_get_tmp_dir(), "xb-test-ensure.xmlb", NULL);
 	g_autoptr(GBytes) bytes1 = NULL;
 	g_autoptr(GBytes) bytes2 = NULL;
 	g_autoptr(GBytes) bytes3 = NULL;
@@ -3285,7 +3292,8 @@ xb_builder_node_info_func(void)
 {
 	gboolean ret;
 	g_autofree gchar *xml = NULL;
-	g_autofree gchar *tmp_xml = g_build_filename(g_get_tmp_dir(), "temp.xml", NULL);
+	g_autofree gchar *tmp_xml =
+	    g_build_filename(g_get_tmp_dir(), "xb-test-builder-node-info.xml", NULL);
 	g_autoptr(GError) error = NULL;
 	g_autoptr(XbBuilderSource) import1 = xb_builder_source_new();
 	g_autoptr(XbBuilderSource) import2 = xb_builder_source_new();
@@ -3653,7 +3661,7 @@ xb_speed_func(void)
 	XbNode *n;
 	gboolean ret;
 	guint n_components = 5000;
-	g_autofree gchar *tmp_xmlb = g_build_filename(g_get_tmp_dir(), "test.xmlb", NULL);
+	g_autofree gchar *tmp_xmlb = g_build_filename(g_get_tmp_dir(), "xb-test-speed.xmlb", NULL);
 	g_autofree gchar *xpath1 = NULL;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GFile) file = NULL;
