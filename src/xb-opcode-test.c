@@ -150,6 +150,7 @@ xb_predicate_optimize_func(void)
 		     {"lower-case('Fire')", "'fire'"},
 		     {"upper-case('Τάχιστη')", "'ΤΆΧΙΣΤΗ'"},
 		     {"upper-case(lower-case('Fire'))", "'FIRE'"}, /* 2nd pass */
+		     {"normalize-space(' a  b ')", "'a b'"},
 		     {"text()==('a','b','c')", "text(),'a'^1,'b'^1,'c'^1,in()"},
 		     /* sentinel */
 		     {NULL, NULL}};

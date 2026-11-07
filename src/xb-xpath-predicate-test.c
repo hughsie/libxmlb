@@ -239,11 +239,15 @@ xb_xpath_func_args_func(void)
 	    {"starts-with('te','test')", FALSE, TRUE},
 	    {"ends-with('test','st')", TRUE, TRUE},
 	    {"ends-with('st','test')", FALSE, TRUE},
+	    {"normalize-space('  a \t b\n\nc  ')='a b c'", TRUE, TRUE},
+	    {"normalize-space('   ')=''", TRUE, TRUE},
+	    {"normalize-space('a  b')='a  b'", FALSE, TRUE},
 	    /* arguments not separated by the comma parser */
 	    {"contains(text(),'es')", TRUE, FALSE},
 	    {"contains(text(),'zz')", FALSE, FALSE},
 	    {"starts-with(text(),'te')", TRUE, FALSE},
 	    {"starts-with(text(),'zz')", FALSE, FALSE},
+	    {"normalize-space(text())='test'", TRUE, FALSE},
 	    {NULL, FALSE, FALSE},
 	};
 

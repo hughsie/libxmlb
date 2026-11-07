@@ -2006,6 +2006,44 @@ xb_machine_func_upper_cb(XbMachine *self,
 }
 
 static gboolean
+xb_machine_func_normalize_space_cb(XbMachine *self,
+				   XbStack *stack,
+				   gboolean *result,
+				   gpointer user_data,
+				   gpointer exec_data,
+				   GError **error)
+{
+	const gchar *str;
+	gboolean in_space = FALSE;
+	GString *tmp;
+	g_auto(XbOpcode) op = XB_OPCODE_INIT();
+
+	if (!xb_machine_check_one_arg(stack, xb_opcode_cmp_str, error))
+		return FALSE;
+	if (!xb_machine_stack_pop(self, stack, &op, error))
+		return FALSE;
+
+	/* TEXT */
+	str = _xb_opcode_get_str(&op);
+	if (str == NULL)
+		return xb_machine_stack_push_text_static(self, stack, NULL, error);
+
+	/* strip leading and trailing whitespace, and collapse runs to a single space */
+	tmp = g_string_sized_new(strlen(str));
+	for (guint i = 0; str[i] != '\0'; i++) {
+		if (str[i] == ' ' || str[i] == '\t' || str[i] == '\r' || str[i] == '\n') {
+			in_space = TRUE;
+			continue;
+		}
+		if (in_space && tmp->len > 0)
+			g_string_append_c(tmp, ' ');
+		in_space = FALSE;
+		g_string_append_c(tmp, str[i]);
+	}
+	return xb_machine_stack_push_text_steal(self, stack, g_string_free(tmp, FALSE), error);
+}
+
+static gboolean
 xb_machine_func_not_cb(XbMachine *self,
 		       XbStack *stack,
 		       gboolean *result,
@@ -2411,6 +2449,12 @@ xb_machine_init(XbMachine *self)
 	xb_machine_add_method(self, "not", 1, xb_machine_func_not_cb, NULL, NULL);
 	xb_machine_add_method(self, "lower-case", 1, xb_machine_func_lower_cb, NULL, NULL);
 	xb_machine_add_method(self, "upper-case", 1, xb_machine_func_upper_cb, NULL, NULL);
+	xb_machine_add_method(self,
+			      "normalize-space",
+			      1,
+			      xb_machine_func_normalize_space_cb,
+			      NULL,
+			      NULL);
 	xb_machine_add_method(self, "contains", 2, xb_machine_func_contains_cb, NULL, NULL);
 	xb_machine_add_method(self, "starts-with", 2, xb_machine_func_starts_with_cb, NULL, NULL);
 	xb_machine_add_method(self, "ends-with", 2, xb_machine_func_ends_with_cb, NULL, NULL);
