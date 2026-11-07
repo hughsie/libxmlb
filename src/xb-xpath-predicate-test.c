@@ -239,11 +239,35 @@ xb_xpath_func_args_func(void)
 	    {"starts-with('te','test')", FALSE, TRUE},
 	    {"ends-with('test','st')", TRUE, TRUE},
 	    {"ends-with('st','test')", FALSE, TRUE},
+	    {"normalize-space('  a \t b\n\nc  ')='a b c'", TRUE, TRUE},
+	    {"normalize-space('   ')=''", TRUE, TRUE},
+	    {"normalize-space('a  b')='a  b'", FALSE, TRUE},
+	    {"normalize-space(12)='12'", TRUE, TRUE},
 	    /* arguments not separated by the comma parser */
 	    {"contains(text(),'es')", TRUE, FALSE},
 	    {"contains(text(),'zz')", FALSE, FALSE},
 	    {"starts-with(text(),'te')", TRUE, FALSE},
 	    {"starts-with(text(),'zz')", FALSE, FALSE},
+	    {"normalize-space(text())='test'", TRUE, FALSE},
+	    {"normalize-space(@missing)=''", TRUE, FALSE},
+	    {NULL, FALSE, FALSE},
+	};
+
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	xb_xpath_predicate_assert(silo, tests);
+}
+
+static void
+xb_xpath_func_normalize_space_func(void)
+{
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbSilo) silo =
+	    xb_silo_new_from_xml("<component><id> a  b </id></component>", &error);
+	const XbXpathPredicateTest tests[] = {
+	    {"normalize-space(text())='a b'", TRUE, FALSE},
+	    {"normalize-space(text())=' a  b '", FALSE, FALSE},
 	    {NULL, FALSE, FALSE},
 	};
 
@@ -402,6 +426,7 @@ xb_xpath_predicate_test_add_funcs(void)
 	g_test_add_func("/libxmlb/xpath/stem", xb_xpath_stem_func);
 	g_test_add_func("/libxmlb/xpath/compare", xb_xpath_compare_func);
 	g_test_add_func("/libxmlb/xpath/func-args", xb_xpath_func_args_func);
+	g_test_add_func("/libxmlb/xpath/func-normalize-space", xb_xpath_func_normalize_space_func);
 	g_test_add_func("/libxmlb/xpath/unfinished", xb_xpath_unfinished_func);
 	g_test_add_func("/libxmlb/xpath/unbound", xb_xpath_unbound_func);
 	g_test_add_func("/libxmlb/xpath/bound-in", xb_xpath_bound_in_func);
