@@ -62,7 +62,7 @@ xb_builder_func(void)
 
 	/* check size */
 	bytes = xb_silo_get_bytes(silo);
-	g_assert_cmpint(g_bytes_get_size(bytes), ==, 628);
+	g_assert_cmpint(g_bytes_get_size(bytes), ==, 654);
 }
 
 static void
@@ -960,7 +960,7 @@ xb_builder_attr_max_func(void)
 	g_autoptr(XbNode) n = NULL;
 
 	/* the maximum number of attributes is allowed */
-	for (guint i = 0; i < 31; i++)
+	for (guint i = 0; i < G_MAXUINT8; i++)
 		g_string_append_printf(xml, " a%u=\"%u\"", i, i);
 	xml_toomany = g_string_new(xml->str);
 	g_string_append(xml, "/>");
@@ -975,11 +975,11 @@ xb_builder_attr_max_func(void)
 	g_assert_no_error(error);
 	g_assert_nonnull(n);
 	g_assert_cmpstr(xb_node_get_attr(n, "a0"), ==, "0");
-	g_assert_cmpstr(xb_node_get_attr(n, "a30"), ==, "30");
+	g_assert_cmpstr(xb_node_get_attr(n, "a254"), ==, "254");
 	g_assert_false(xb_node_is_info(n));
 
 	/* one more is not */
-	g_string_append(xml_toomany, " a31=\"31\"/>");
+	g_string_append(xml_toomany, " a255=\"255\"/>");
 	ret = xb_builder_source_load_xml(source2,
 					 xml_toomany->str,
 					 XB_BUILDER_SOURCE_FLAG_NONE,

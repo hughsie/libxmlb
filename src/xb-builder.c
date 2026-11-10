@@ -555,8 +555,6 @@ xb_builder_nodetab_write_sentinel(XbBuilderNodetabHelper *helper)
 	g_byte_array_append(helper->buf, (const guint8 *)&sn, xb_silo_node_get_size(&sn));
 }
 
-#define XB_BUILDER_ATTR_MAX ((1 << 5) - 1)
-
 static gboolean
 xb_builder_nodetab_write_node(XbBuilderNodetabHelper *helper, XbBuilderNode *bn, GError **error)
 {
@@ -574,7 +572,7 @@ xb_builder_nodetab_write_node(XbBuilderNodetabHelper *helper, XbBuilderNode *bn,
 	};
 
 	/* sanity check */
-	if (attrs != NULL && attrs->len > XB_BUILDER_ATTR_MAX) {
+	if (attrs != NULL && attrs->len > G_MAXUINT8) {
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_NOT_SUPPORTED,
