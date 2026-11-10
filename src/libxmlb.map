@@ -282,3 +282,9 @@ LIBXMLB_0.3.27 {
     xb_silo_lookup_query_full;
   local: *;
 } LIBXMLB_0.3.19;
+
+LIBXMLB_0.3.30 {
+  global:
+    xb_node_is_info;
+  local: *;
+} LIBXMLB_0.3.27;

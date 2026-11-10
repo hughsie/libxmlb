@@ -14,11 +14,12 @@ typedef enum {
 	XB_SILO_NODE_FLAG_NONE = 0,
 	XB_SILO_NODE_FLAG_IS_ELEMENT = 1 << 0,
 	XB_SILO_NODE_FLAG_IS_TOKENIZED = 1 << 1,
+	XB_SILO_NODE_FLAG_IS_INFO = 1 << 2,
 } XbSiloNodeFlag;
 
 typedef struct __attribute__((packed)) {
-	guint8 flags : 2;
-	guint8 attr_count : 6;
+	guint8 flags : 3;
+	guint8 attr_count : 5;
 	guint8 token_count;   /* ONLY when is_element */
 	guint32 element_name; /* ONLY when is_element: from strtab */
 	guint32 parent;	      /* ONLY when is_element: from 0 */

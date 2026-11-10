@@ -652,6 +652,26 @@ xb_node_get_depth(XbNode *self)
 }
 
 /**
+ * xb_node_is_info:
+ * @self: a #XbNode
+ *
+ * Gets if the node was added using xb_builder_source_set_info().
+ *
+ * Returns: %TRUE if the node, or any of its parents, was added as info
+ *
+ * Since: 0.3.30
+ **/
+gboolean
+xb_node_is_info(XbNode *self)
+{
+	XbNodePrivate *priv = GET_PRIVATE(self);
+	g_return_val_if_fail(XB_IS_NODE(self), FALSE);
+	if (priv->sn == NULL)
+		return FALSE;
+	return xb_silo_node_has_flag(priv->sn, XB_SILO_NODE_FLAG_IS_INFO);
+}
+
+/**
  * xb_node_export:
  * @self: a #XbNode
  * @flags: some #XbNodeExportFlags, e.g. #XB_NODE_EXPORT_FLAG_NONE

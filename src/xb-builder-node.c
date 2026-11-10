@@ -541,6 +541,10 @@ xb_builder_node_add_child(XbBuilderNode *self, XbBuilderNode *child)
 	if (priv->children == NULL)
 		priv->children = g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
 
+	/* if parent is info, child is info too */
+	if (xb_builder_node_has_flag(self, XB_BUILDER_NODE_FLAG_IS_INFO))
+		xb_builder_node_add_flag(child, XB_BUILDER_NODE_FLAG_IS_INFO);
+
 	g_ptr_array_add(priv->children, g_object_ref(child));
 }
 
