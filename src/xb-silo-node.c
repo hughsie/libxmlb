@@ -12,8 +12,8 @@ xb_silo_node_to_string(const XbSiloNode *self)
 {
 	GString *str = g_string_new("XbSiloNode:\n");
 	g_string_append_printf(str, "  flags: 0x%x\n", (guint)self->flags);
-	g_string_append_printf(str, "  attr_count: %u\n", (guint)self->attr_count);
 	if (self->flags & XB_SILO_NODE_FLAG_IS_ELEMENT) {
+		g_string_append_printf(str, "  attr_count: %u\n", (guint)self->attr_count);
 		if (self->element_name != XB_SILO_UNSET)
 			g_string_append_printf(str, "  element_name: %u\n", self->element_name);
 		if (self->parent != XB_SILO_UNSET)
@@ -24,10 +24,13 @@ xb_silo_node_to_string(const XbSiloNode *self)
 			g_string_append_printf(str, "  text: %u\n", self->text);
 		if (self->tail != XB_SILO_UNSET)
 			g_string_append_printf(str, "  tail: %u\n", self->tail);
-	}
-	for (guint idx = 0; idx < self->attr_count; idx++) {
-		XbSiloNodeAttr *attr = xb_silo_node_get_attr(self, idx);
-		g_string_append_printf(str, "  attr: %u=%u\n", attr->attr_name, attr->attr_value);
+		for (guint idx = 0; idx < self->attr_count; idx++) {
+			XbSiloNodeAttr *attr = xb_silo_node_get_attr(self, idx);
+			g_string_append_printf(str,
+					       "  attr: %u=%u\n",
+					       attr->attr_name,
+					       attr->attr_value);
+		}
 	}
 	return g_string_free(str, FALSE);
 }

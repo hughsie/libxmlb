@@ -468,7 +468,7 @@ xb_silo_to_string(XbSilo *self, GError **error)
 						       attr_value,
 						       a->attr_value);
 			}
-			for (guint8 i = 0; i < xb_silo_node_get_token_count(n); i++) {
+			for (guint16 i = 0; i < xb_silo_node_get_token_count(n); i++) {
 				guint32 idx_tmp = xb_silo_node_get_token_idx(n, i);
 				const gchar *token = xb_silo_from_strtab(self, idx_tmp, error);
 				if (token == NULL)
@@ -1452,7 +1452,7 @@ xb_silo_machine_func_text_cb(XbMachine *self,
 	XbSiloQueryData *query_data = (XbSiloQueryData *)exec_data;
 	XbOpcode *op;
 	const gchar *text;
-	guint8 token_count;
+	guint16 token_count;
 
 	/* optimize pass */
 	if (query_data == NULL) {

@@ -18,9 +18,9 @@ typedef enum {
 } XbSiloNodeFlag;
 
 typedef struct __attribute__((packed)) {
-	guint8 flags : 3;
-	guint8 attr_count : 5;
-	guint8 token_count;   /* ONLY when is_element */
+	guint8 flags;
+	guint8 attr_count;    /* ONLY when is_element */
+	guint16 token_count;  /* ONLY when is_element */
 	guint32 element_name; /* ONLY when is_element: from strtab */
 	guint32 parent;	      /* ONLY when is_element: from 0 */
 	guint32 next;	      /* ONLY when is_element: from 0 */
@@ -86,6 +86,8 @@ xb_silo_node_get_tail_idx(const XbSiloNode *self)
 static inline guint8
 xb_silo_node_get_attr_count(const XbSiloNode *self)
 {
+	if (!xb_silo_node_has_flag(self, XB_SILO_NODE_FLAG_IS_ELEMENT))
+		return 0;
 	return self->attr_count;
 }
 
@@ -96,7 +98,7 @@ xb_silo_node_get_attr(const XbSiloNode *self, guint8 idx)
 	guint32 off = sizeof(XbSiloNode);
 
 	/* bounds check to prevent out-of-bounds read */
-	if (G_UNLIKELY(idx >= self->attr_count))
+	if (G_UNLIKELY(idx >= xb_silo_node_get_attr_count(self)))
 		return NULL;
 
 	off += sizeof(XbSiloNodeAttr) * idx;
@@ -104,7 +106,7 @@ xb_silo_node_get_attr(const XbSiloNode *self, guint8 idx)
 }
 
 /* private */
-static inline guint8
+static inline guint16
 xb_silo_node_get_token_count(const XbSiloNode *self)
 {
 	return self->token_count;
