@@ -32,24 +32,68 @@ struct _XbBuilderClass {
 
 /**
  * XbBuilderCompileFlags:
- * @XB_BUILDER_COMPILE_FLAG_NONE:		No extra flags to use
- * @XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS:	Only load native languages
- * @XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID:	Ignore invalid files without an error
- * @XB_BUILDER_COMPILE_FLAG_SINGLE_LANG:	Only store a single language
- * @XB_BUILDER_COMPILE_FLAG_WATCH_BLOB:		Watch the XMLB file for changes
- * @XB_BUILDER_COMPILE_FLAG_IGNORE_GUID:	Ignore the cache GUID value
- * @XB_BUILDER_COMPILE_FLAG_SINGLE_ROOT:	Require at most one root node
  *
- * The flags for converting to XML.
+ * The flags for compiling the silo.
+ *
+ * Since: 0.1.0
  **/
 typedef enum {
-	XB_BUILDER_COMPILE_FLAG_NONE = 0,		 /* Since: 0.1.0 */
-	XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS = 1 << 1,	 /* Since: 0.1.0 */
-	XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID = 1 << 2, /* Since: 0.1.0 */
-	XB_BUILDER_COMPILE_FLAG_SINGLE_LANG = 1 << 3,	 /* Since: 0.1.0 */
-	XB_BUILDER_COMPILE_FLAG_WATCH_BLOB = 1 << 4,	 /* Since: 0.1.0 */
-	XB_BUILDER_COMPILE_FLAG_IGNORE_GUID = 1 << 5,	 /* Since: 0.1.7 */
-	XB_BUILDER_COMPILE_FLAG_SINGLE_ROOT = 1 << 6,	 /* Since: 0.3.4 */
+	/**
+	 * XB_BUILDER_COMPILE_FLAG_NONE:
+	 *
+	 * No extra flags to use.
+	 *
+	 * Since: 0.1.0
+	 **/
+	XB_BUILDER_COMPILE_FLAG_NONE = 0,
+	/**
+	 * XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS:
+	 *
+	 * Only load native languages.
+	 *
+	 * Since: 0.1.0
+	 **/
+	XB_BUILDER_COMPILE_FLAG_NATIVE_LANGS = 1 << 1,
+	/**
+	 * XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID:
+	 *
+	 * Ignore invalid files without an error.
+	 *
+	 * Since: 0.1.0
+	 **/
+	XB_BUILDER_COMPILE_FLAG_IGNORE_INVALID = 1 << 2,
+	/**
+	 * XB_BUILDER_COMPILE_FLAG_SINGLE_LANG:
+	 *
+	 * Only store a single language.
+	 *
+	 * Since: 0.1.0
+	 **/
+	XB_BUILDER_COMPILE_FLAG_SINGLE_LANG = 1 << 3,
+	/**
+	 * XB_BUILDER_COMPILE_FLAG_WATCH_BLOB:
+	 *
+	 * Watch the XMLB file for changes.
+	 *
+	 * Since: 0.1.0
+	 **/
+	XB_BUILDER_COMPILE_FLAG_WATCH_BLOB = 1 << 4,
+	/**
+	 * XB_BUILDER_COMPILE_FLAG_IGNORE_GUID:
+	 *
+	 * Ignore the cache GUID value.
+	 *
+	 * Since: 0.1.7
+	 **/
+	XB_BUILDER_COMPILE_FLAG_IGNORE_GUID = 1 << 5,
+	/**
+	 * XB_BUILDER_COMPILE_FLAG_SINGLE_ROOT:
+	 *
+	 * Require at most one root node.
+	 *
+	 * Since: 0.3.4
+	 **/
+	XB_BUILDER_COMPILE_FLAG_SINGLE_ROOT = 1 << 6,
 	/*< private >*/
 	XB_BUILDER_COMPILE_FLAG_LAST
 } XbBuilderCompileFlags;

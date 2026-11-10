@@ -27,25 +27,68 @@ struct _XbNodeClass {
 
 /**
  * XbNodeExportFlags:
- * @XB_NODE_EXPORT_FLAG_NONE:			No extra flags to use
- * @XB_NODE_EXPORT_FLAG_ADD_HEADER:		Add an XML header to the data
- * @XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE:	Split up children with a newline
- * @XB_NODE_EXPORT_FLAG_FORMAT_INDENT:		Indent the XML by child depth
- * @XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS:	Include the siblings when converting
- * @XB_NODE_EXPORT_FLAG_ONLY_CHILDREN:		Only export the children of the node
- * @XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY:		If node has no children, collapse open and close
- *tags
  *
  * The flags for converting to XML.
+ *
+ * Since: 0.1.0
  **/
 typedef enum {
-	XB_NODE_EXPORT_FLAG_NONE = 0,		       /* Since: 0.1.0 */
-	XB_NODE_EXPORT_FLAG_ADD_HEADER = 1 << 0,       /* Since: 0.1.0 */
-	XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE = 1 << 1, /* Since: 0.1.0 */
-	XB_NODE_EXPORT_FLAG_FORMAT_INDENT = 1 << 2,    /* Since: 0.1.0 */
-	XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS = 1 << 3, /* Since: 0.1.0 */
-	XB_NODE_EXPORT_FLAG_ONLY_CHILDREN = 1 << 4,    /* Since: 0.1.0 */
-	XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY = 1 << 5,   /* Since: 0.2.2 */
+	/**
+	 * XB_NODE_EXPORT_FLAG_NONE:
+	 *
+	 * No extra flags to use.
+	 *
+	 * Since: 0.1.0
+	 **/
+	XB_NODE_EXPORT_FLAG_NONE = 0,
+	/**
+	 * XB_NODE_EXPORT_FLAG_ADD_HEADER:
+	 *
+	 * Add an XML header to the data.
+	 *
+	 * Since: 0.1.0
+	 **/
+	XB_NODE_EXPORT_FLAG_ADD_HEADER = 1 << 0,
+	/**
+	 * XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE:
+	 *
+	 * Split up children with a newline.
+	 *
+	 * Since: 0.1.0
+	 **/
+	XB_NODE_EXPORT_FLAG_FORMAT_MULTILINE = 1 << 1,
+	/**
+	 * XB_NODE_EXPORT_FLAG_FORMAT_INDENT:
+	 *
+	 * Indent the XML by child depth.
+	 *
+	 * Since: 0.1.0
+	 **/
+	XB_NODE_EXPORT_FLAG_FORMAT_INDENT = 1 << 2,
+	/**
+	 * XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS:
+	 *
+	 * Include the siblings when converting.
+	 *
+	 * Since: 0.1.0
+	 **/
+	XB_NODE_EXPORT_FLAG_INCLUDE_SIBLINGS = 1 << 3,
+	/**
+	 * XB_NODE_EXPORT_FLAG_ONLY_CHILDREN:
+	 *
+	 * Only export the children of the node.
+	 *
+	 * Since: 0.1.0
+	 **/
+	XB_NODE_EXPORT_FLAG_ONLY_CHILDREN = 1 << 4,
+	/**
+	 * XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY:
+	 *
+	 * If node has no children, collapse open and close tags.
+	 *
+	 * Since: 0.2.2
+	 **/
+	XB_NODE_EXPORT_FLAG_COLLAPSE_EMPTY = 1 << 5,
 	/*< private >*/
 	XB_NODE_EXPORT_FLAG_LAST
 } XbNodeExportFlags;

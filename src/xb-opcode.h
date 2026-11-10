@@ -12,12 +12,6 @@ G_BEGIN_DECLS
 
 /**
  * XbOpcodeFlags:
- * @XB_OPCODE_FLAG_NONE:			No flags set
- * @XB_OPCODE_FLAG_INTEGER:			Integer value set
- * @XB_OPCODE_FLAG_TEXT:			Text value set
- * @XB_OPCODE_FLAG_FUNCTION:			An operator
- * @XB_OPCODE_FLAG_BOUND:			A bound value, assigned later
- * @XB_OPCODE_FLAG_TOKENIZED:			Tokenized text
  *
  * The opcode flags. The values have been carefully chosen so that a simple
  * bitmask can be done to know how to compare for equality.
@@ -27,46 +21,159 @@ G_BEGIN_DECLS
  * token┐ │ │ │ │
  *  X X X X X X X
  *        8 4 2 1
+ *
+ * Since: 0.1.4
  **/
 typedef enum {
-	XB_OPCODE_FLAG_UNKNOWN = 0x0,	   /* Since: 0.1.4 */
-	XB_OPCODE_FLAG_INTEGER = 1 << 0,   /* Since: 0.1.4 */
-	XB_OPCODE_FLAG_TEXT = 1 << 1,	   /* Since: 0.1.4 */
-	XB_OPCODE_FLAG_FUNCTION = 1 << 2,  /* Since: 0.1.4 */
-	XB_OPCODE_FLAG_BOUND = 1 << 3,	   /* Since: 0.1.4 */
-	XB_OPCODE_FLAG_BOOLEAN = 1 << 4,   /* Since: 0.1.11 */
-	XB_OPCODE_FLAG_TOKENIZED = 1 << 5, /* Since: 0.3.1 */
+	/**
+	 * XB_OPCODE_FLAG_UNKNOWN:
+	 *
+	 * No flags set.
+	 *
+	 * Since: 0.1.4
+	 **/
+	XB_OPCODE_FLAG_UNKNOWN = 0x0,
+	/**
+	 * XB_OPCODE_FLAG_INTEGER:
+	 *
+	 * Integer value set.
+	 *
+	 * Since: 0.1.4
+	 **/
+	XB_OPCODE_FLAG_INTEGER = 1 << 0,
+	/**
+	 * XB_OPCODE_FLAG_TEXT:
+	 *
+	 * Text value set.
+	 *
+	 * Since: 0.1.4
+	 **/
+	XB_OPCODE_FLAG_TEXT = 1 << 1,
+	/**
+	 * XB_OPCODE_FLAG_FUNCTION:
+	 *
+	 * An operator.
+	 *
+	 * Since: 0.1.4
+	 **/
+	XB_OPCODE_FLAG_FUNCTION = 1 << 2,
+	/**
+	 * XB_OPCODE_FLAG_BOUND:
+	 *
+	 * A bound value, assigned later.
+	 *
+	 * Since: 0.1.4
+	 **/
+	XB_OPCODE_FLAG_BOUND = 1 << 3,
+	/**
+	 * XB_OPCODE_FLAG_BOOLEAN:
+	 *
+	 * Boolean value set.
+	 *
+	 * Since: 0.1.11
+	 **/
+	XB_OPCODE_FLAG_BOOLEAN = 1 << 4,
+	/**
+	 * XB_OPCODE_FLAG_TOKENIZED:
+	 *
+	 * Tokenized text.
+	 *
+	 * Since: 0.3.1
+	 **/
+	XB_OPCODE_FLAG_TOKENIZED = 1 << 5,
 	/*< private >*/
 	XB_OPCODE_FLAG_LAST
 } XbOpcodeFlags;
 
 /**
  * XbOpcodeKind:
- * @XB_OPCODE_KIND_UNKNOWN:			Unknown opcode
- * @XB_OPCODE_KIND_INTEGER:			A literal integer value
- * @XB_OPCODE_KIND_TEXT:			A literal text value
- * @XB_OPCODE_KIND_FUNCTION:			An operator
- * @XB_OPCODE_KIND_BOUND_INTEGER:		A bound integer value
- * @XB_OPCODE_KIND_BOUND_TEXT:			A bound text value
- * @XB_OPCODE_KIND_INDEXED_TEXT:		An indexed text value
- * @XB_OPCODE_KIND_BOUND_INDEXED_TEXT:		An bound indexed text value
+ *
+ * The kind of opcode.
+ *
+ * Since: 0.1.1
  **/
 typedef enum {
-	XB_OPCODE_KIND_UNKNOWN = 0x0,			 /* Since: 0.1.1 */
-	XB_OPCODE_KIND_INTEGER = XB_OPCODE_FLAG_INTEGER, /* Since: 0.1.1 */
-	XB_OPCODE_KIND_TEXT = XB_OPCODE_FLAG_TEXT,	 /* Since: 0.1.1 */
-	XB_OPCODE_KIND_FUNCTION =
-	    XB_OPCODE_FLAG_FUNCTION | XB_OPCODE_FLAG_INTEGER, /* Since: 0.1.1 */
-	XB_OPCODE_KIND_BOUND_UNSET = XB_OPCODE_FLAG_BOUND,    /* Since: 0.1.4 */
-	XB_OPCODE_KIND_BOUND_INTEGER =
-	    XB_OPCODE_FLAG_BOUND | XB_OPCODE_FLAG_INTEGER,			/* Since: 0.1.4 */
-	XB_OPCODE_KIND_BOUND_TEXT = XB_OPCODE_FLAG_BOUND | XB_OPCODE_FLAG_TEXT, /* Since: 0.1.4 */
-	XB_OPCODE_KIND_INDEXED_TEXT =
-	    XB_OPCODE_FLAG_INTEGER | XB_OPCODE_FLAG_TEXT, /* Since: 0.1.4 */
-	XB_OPCODE_KIND_BOOLEAN =
-	    XB_OPCODE_FLAG_INTEGER | XB_OPCODE_FLAG_BOOLEAN, /* Since: 0.1.11 */
+	/**
+	 * XB_OPCODE_KIND_UNKNOWN:
+	 *
+	 * Unknown opcode.
+	 *
+	 * Since: 0.1.1
+	 **/
+	XB_OPCODE_KIND_UNKNOWN = 0x0,
+	/**
+	 * XB_OPCODE_KIND_INTEGER:
+	 *
+	 * A literal integer value.
+	 *
+	 * Since: 0.1.1
+	 **/
+	XB_OPCODE_KIND_INTEGER = XB_OPCODE_FLAG_INTEGER,
+	/**
+	 * XB_OPCODE_KIND_TEXT:
+	 *
+	 * A literal text value.
+	 *
+	 * Since: 0.1.1
+	 **/
+	XB_OPCODE_KIND_TEXT = XB_OPCODE_FLAG_TEXT,
+	/**
+	 * XB_OPCODE_KIND_FUNCTION:
+	 *
+	 * An operator.
+	 *
+	 * Since: 0.1.1
+	 **/
+	XB_OPCODE_KIND_FUNCTION = XB_OPCODE_FLAG_FUNCTION | XB_OPCODE_FLAG_INTEGER,
+	/**
+	 * XB_OPCODE_KIND_BOUND_UNSET:
+	 *
+	 * A bound value, not yet assigned.
+	 *
+	 * Since: 0.1.4
+	 **/
+	XB_OPCODE_KIND_BOUND_UNSET = XB_OPCODE_FLAG_BOUND,
+	/**
+	 * XB_OPCODE_KIND_BOUND_INTEGER:
+	 *
+	 * A bound integer value.
+	 *
+	 * Since: 0.1.4
+	 **/
+	XB_OPCODE_KIND_BOUND_INTEGER = XB_OPCODE_FLAG_BOUND | XB_OPCODE_FLAG_INTEGER,
+	/**
+	 * XB_OPCODE_KIND_BOUND_TEXT:
+	 *
+	 * A bound text value.
+	 *
+	 * Since: 0.1.4
+	 **/
+	XB_OPCODE_KIND_BOUND_TEXT = XB_OPCODE_FLAG_BOUND | XB_OPCODE_FLAG_TEXT,
+	/**
+	 * XB_OPCODE_KIND_INDEXED_TEXT:
+	 *
+	 * An indexed text value.
+	 *
+	 * Since: 0.1.4
+	 **/
+	XB_OPCODE_KIND_INDEXED_TEXT = XB_OPCODE_FLAG_INTEGER | XB_OPCODE_FLAG_TEXT,
+	/**
+	 * XB_OPCODE_KIND_BOOLEAN:
+	 *
+	 * A boolean value.
+	 *
+	 * Since: 0.1.11
+	 **/
+	XB_OPCODE_KIND_BOOLEAN = XB_OPCODE_FLAG_INTEGER | XB_OPCODE_FLAG_BOOLEAN,
+	/**
+	 * XB_OPCODE_KIND_BOUND_INDEXED_TEXT:
+	 *
+	 * A bound indexed text value.
+	 *
+	 * Since: 0.3.12
+	 **/
 	XB_OPCODE_KIND_BOUND_INDEXED_TEXT =
-	    XB_OPCODE_FLAG_BOUND | XB_OPCODE_FLAG_INTEGER | XB_OPCODE_FLAG_TEXT, /* Since: 0.3.12 */
+	    XB_OPCODE_FLAG_BOUND | XB_OPCODE_FLAG_INTEGER | XB_OPCODE_FLAG_TEXT,
 	/*< private >*/
 	XB_OPCODE_KIND_LAST
 } XbOpcodeKind;
