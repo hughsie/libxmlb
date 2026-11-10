@@ -1,3 +1,30 @@
+Version 0.3.30
+~~~~~~~~~~~~~~
+Released: 2026-11-10
+
+New Features:
+ - Add support for the XPath normalize-space() function (Richard Hughes)
+ - Increase the maximum number of node attributes and tokens (Richard Hughes)
+ - Record in the silo if the node was added as external info (Richard Hughes)
+
+Bugfixes:
+ - Convert xml:lang tags to POSIX form when required (Richard Hughes)
+ - Fix OR branches still being evaluated after the limit is reached (Richard Hughes)
+ - Fix XbLzmaDecompressor reset leaving the stream unusable (Richard Hughes)
+ - Fix a bound value losing its level inside a tuple (Richard Hughes)
+ - Fix a crash when a query value was never bound (Richard Hughes)
+ - Fix a crash when searching one silo from several threads (car12o)
+ - Fix comma-separated function arguments being parsed in reverse (Richard Hughes)
+ - Fix escaped tab and newline not decoding in query parsing (Richard Hughes)
+ - Fix literal backslashes not surviving the query escape round-trip (Richard Hughes)
+ - Fix mixed-type comparisons swapping their operands (Richard Hughes)
+ - Fix parser depth leaking from one failed source to the next (Richard Hughes)
+ - Fix unbound query variables silently comparing against zero (Richard Hughes)
+ - Fix unfinished predicates being ignored at the start of a section (Richard Hughes)
+ - Fix xb_query_context_copy() silently dropping bindings after a gap (Richard Hughes)
+ - Fix xb_silo_stem() returning the unstemmed string on equal length (Richard Hughes)
+ - Fix xb_value_bindings_copy() aborting when a slot is unbound (Richard Hughes)
+
 Version 0.3.29
 ~~~~~~~~~~~~~~
 Released: 2026-07-27
