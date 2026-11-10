@@ -108,6 +108,8 @@ guint64
 xb_node_get_attr_as_uint(XbNode *self, const gchar *name) G_GNUC_NON_NULL(1, 2);
 guint
 xb_node_get_depth(XbNode *self) G_GNUC_NON_NULL(1);
+gboolean
+xb_node_is_info(XbNode *self) G_GNUC_NON_NULL(1);
 
 void
 xb_node_attr_iter_init(XbNodeAttrIter *iter, XbNode *self) G_GNUC_NON_NULL(1, 2);

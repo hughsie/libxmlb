@@ -336,6 +336,7 @@ xb_builder_compile_source(XbBuilderCompileHelper *helper,
 			 * copy; this also leaves the source's info node unmodified so
 			 * it can be reused across roots and recompiles */
 			info_copy = xb_builder_node_copy(info);
+			xb_builder_node_add_flag(info_copy, XB_BUILDER_NODE_FLAG_IS_INFO);
 			xb_builder_node_add_child(bn, info_copy);
 		}
 	}
@@ -554,7 +555,7 @@ xb_builder_nodetab_write_sentinel(XbBuilderNodetabHelper *helper)
 	g_byte_array_append(helper->buf, (const guint8 *)&sn, xb_silo_node_get_size(&sn));
 }
 
-#define XB_BUILDER_ATTR_MAX ((1 << 6) - 1)
+#define XB_BUILDER_ATTR_MAX ((1 << 5) - 1)
 
 static gboolean
 xb_builder_nodetab_write_node(XbBuilderNodetabHelper *helper, XbBuilderNode *bn, GError **error)
@@ -585,6 +586,10 @@ xb_builder_nodetab_write_node(XbBuilderNodetabHelper *helper, XbBuilderNode *bn,
 	/* add tokens */
 	if (token_idxs != NULL)
 		sn.flags |= XB_SILO_NODE_FLAG_IS_TOKENIZED;
+
+	/* was added as dedicated info node */
+	if (xb_builder_node_has_flag(bn, XB_BUILDER_NODE_FLAG_IS_INFO))
+		sn.flags |= XB_SILO_NODE_FLAG_IS_INFO;
 
 	/* if the node had no children and the text is just whitespace then
 	 * remove it even in literal mode */

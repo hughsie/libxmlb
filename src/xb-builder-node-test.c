@@ -346,6 +346,28 @@ xb_builder_node_info_func(void)
 			xml);
 }
 
+static void
+xb_builder_node_info_flag_func(void)
+{
+	g_autoptr(XbBuilderNode) info = xb_builder_node_new("info");
+	g_autoptr(XbBuilderNode) other = xb_builder_node_new("other");
+	g_autoptr(XbBuilderNode) child = xb_builder_node_new("child");
+	g_autoptr(XbBuilderNode) grandchild = xb_builder_node_new("grandchild");
+	g_autoptr(XbBuilderNode) child2 = xb_builder_node_new("child2");
+
+	/* a child added to an info node after it was flagged is info too */
+	xb_builder_node_add_flag(info, XB_BUILDER_NODE_FLAG_IS_INFO);
+	xb_builder_node_add_child(child, grandchild);
+	g_assert_false(xb_builder_node_has_flag(child, XB_BUILDER_NODE_FLAG_IS_INFO));
+	xb_builder_node_add_child(info, child);
+	g_assert_true(xb_builder_node_has_flag(child, XB_BUILDER_NODE_FLAG_IS_INFO));
+	g_assert_true(xb_builder_node_has_flag(grandchild, XB_BUILDER_NODE_FLAG_IS_INFO));
+
+	/* but not when the parent is not info */
+	xb_builder_node_add_child(other, child2);
+	g_assert_false(xb_builder_node_has_flag(child2, XB_BUILDER_NODE_FLAG_IS_INFO));
+}
+
 void
 xb_builder_node_test_add_funcs(void)
 {
@@ -356,6 +378,7 @@ xb_builder_node_test_add_funcs(void)
 	g_test_add_func("/libxmlb/builder-node/nul", xb_builder_node_nul_func);
 	g_test_add_func("/libxmlb/builder-node/token-max", xb_builder_node_token_max_func);
 	g_test_add_func("/libxmlb/builder-node/info", xb_builder_node_info_func);
+	g_test_add_func("/libxmlb/builder-node/info-flag", xb_builder_node_info_flag_func);
 	g_test_add_func("/libxmlb/builder-node/literal-text", xb_builder_node_literal_text_func);
 	g_test_add_func("/libxmlb/builder-node/source-text", xb_builder_node_source_text_func);
 }

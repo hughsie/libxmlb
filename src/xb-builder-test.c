@@ -880,9 +880,123 @@ xb_builder_multiroot_info_func(void)
 	g_assert_cmpstr(xb_node_get_text(nb), ==, "bar");
 }
 
+static void
+xb_builder_info_flag_func(void)
+{
+	gboolean ret;
+	g_autoptr(GBytes) blob = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new();
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new();
+	g_autoptr(XbBuilderNode) info = xb_builder_node_insert(NULL, "info", NULL);
+	g_autoptr(XbSilo) silo = NULL;
+	g_autoptr(XbSilo) silo2 = NULL;
+	g_autoptr(XbNode) n_root = NULL;
+	g_autoptr(XbNode) n_info = NULL;
+	g_autoptr(XbNode) n_info2 = NULL;
+	g_autoptr(XbNode) n_foo = NULL;
+	g_autoptr(XbNode) n_id = NULL;
+
+	xb_builder_node_insert_text(info, "foo", "bar", NULL);
+	ret = xb_builder_source_load_xml(source,
+					 "<component><id>gimp.desktop</id></component>",
+					 XB_BUILDER_SOURCE_FLAG_NONE,
+					 &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+	xb_builder_source_set_info(source, info);
+	xb_builder_import_source(builder, source);
+	silo = xb_builder_compile(builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+
+	/* the info node and all its children are marked, but nothing else */
+	n_info = xb_silo_query_first(silo, "component/info", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(n_info);
+	g_assert_true(xb_node_is_info(n_info));
+	n_root = xb_silo_query_first(silo, "component", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(n_root);
+	g_assert_false(xb_node_is_info(n_root));
+	n_id = xb_silo_query_first(silo, "component/id", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(n_id);
+	g_assert_false(xb_node_is_info(n_id));
+	n_foo = xb_silo_query_first(silo, "component/info/foo", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(n_foo);
+	g_assert_true(xb_node_is_info(n_foo));
+	g_assert_cmpstr(xb_node_get_text(n_foo), ==, "bar");
+
+	/* the source info node is not modified by the compile */
+	g_assert_false(xb_builder_node_has_flag(info, XB_BUILDER_NODE_FLAG_IS_INFO));
+
+	/* the flag survives a round trip through the blob */
+	blob = xb_silo_get_bytes(silo);
+	silo2 = xb_silo_new();
+	ret = xb_silo_load_from_bytes(silo2, blob, XB_SILO_LOAD_FLAG_NONE, &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+	n_info2 = xb_silo_query_first(silo2, "component/info", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(n_info2);
+	g_assert_true(xb_node_is_info(n_info2));
+}
+
+static void
+xb_builder_attr_max_func(void)
+{
+	gboolean ret;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(GString) xml = g_string_new("<component");
+	g_autoptr(GString) xml_toomany = NULL;
+	g_autoptr(XbBuilder) builder = xb_builder_new();
+	g_autoptr(XbBuilder) builder2 = xb_builder_new();
+	g_autoptr(XbBuilderSource) source = xb_builder_source_new();
+	g_autoptr(XbBuilderSource) source2 = xb_builder_source_new();
+	g_autoptr(XbSilo) silo = NULL;
+	g_autoptr(XbSilo) silo2 = NULL;
+	g_autoptr(XbNode) n = NULL;
+
+	/* the maximum number of attributes is allowed */
+	for (guint i = 0; i < 31; i++)
+		g_string_append_printf(xml, " a%u=\"%u\"", i, i);
+	xml_toomany = g_string_new(xml->str);
+	g_string_append(xml, "/>");
+	ret = xb_builder_source_load_xml(source, xml->str, XB_BUILDER_SOURCE_FLAG_NONE, &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+	xb_builder_import_source(builder, source);
+	silo = xb_builder_compile(builder, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(silo);
+	n = xb_silo_query_first(silo, "component", &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(n);
+	g_assert_cmpstr(xb_node_get_attr(n, "a0"), ==, "0");
+	g_assert_cmpstr(xb_node_get_attr(n, "a30"), ==, "30");
+	g_assert_false(xb_node_is_info(n));
+
+	/* one more is not */
+	g_string_append(xml_toomany, " a31=\"31\"/>");
+	ret = xb_builder_source_load_xml(source2,
+					 xml_toomany->str,
+					 XB_BUILDER_SOURCE_FLAG_NONE,
+					 &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+	xb_builder_import_source(builder2, source2);
+	silo2 = xb_builder_compile(builder2, XB_BUILDER_COMPILE_FLAG_NONE, NULL, &error);
+	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED);
+	g_assert_null(silo2);
+}
+
 void
 xb_builder_test_add_funcs(void)
 {
+	g_test_add_func("/libxmlb/builder/info-flag", xb_builder_info_flag_func);
+	g_test_add_func("/libxmlb/builder/attr-max", xb_builder_attr_max_func);
 	g_test_add_func("/libxmlb/builder/multiroot-info", xb_builder_multiroot_info_func);
 	g_test_add_func("/libxmlb/builder", xb_builder_func);
 	g_test_add_func("/libxmlb/builder/comments", xb_builder_comments_func);
