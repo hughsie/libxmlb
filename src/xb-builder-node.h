@@ -28,26 +28,76 @@ struct _XbBuilderNodeClass {
 
 /**
  * XbBuilderNodeFlags:
- * @XB_BUILDER_NODE_FLAG_NONE:			No extra flags to use
- * @XB_BUILDER_NODE_FLAG_IGNORE:		Do not include this node in the silo
- * @XB_BUILDER_NODE_FLAG_LITERAL_TEXT:		Assume the node CDATA is already valid
- * @XB_BUILDER_NODE_FLAG_HAS_TEXT:		If the node has leading text
- * @XB_BUILDER_NODE_FLAG_HAS_TAIL:		If the node has trailing text
- * @XB_BUILDER_NODE_FLAG_TOKENIZE_TEXT:		Tokenize and fold text to ASCII
- * @XB_BUILDER_NODE_FLAG_STRIP_TEXT:		Strip leading and trailing spaces from text
- * @XB_BUILDER_NODE_FLAG_IS_INFO:		The node was added with xb_builder_source_set_info()
  *
  * The flags used when building a node.
+ *
+ * Since: 0.1.0
  **/
 typedef enum {
-	XB_BUILDER_NODE_FLAG_NONE = 0,		     /* Since: 0.1.0 */
-	XB_BUILDER_NODE_FLAG_IGNORE = 1 << 0,	     /* Since: 0.1.0 */
-	XB_BUILDER_NODE_FLAG_LITERAL_TEXT = 1 << 1,  /* Since: 0.1.0 */
-	XB_BUILDER_NODE_FLAG_HAS_TEXT = 1 << 2,	     /* Since: 0.1.12 */
-	XB_BUILDER_NODE_FLAG_HAS_TAIL = 1 << 3,	     /* Since: 0.1.12 */
-	XB_BUILDER_NODE_FLAG_TOKENIZE_TEXT = 1 << 4, /* Since: 0.3.1 */
-	XB_BUILDER_NODE_FLAG_STRIP_TEXT = 1 << 5,    /* Since: 0.3.4 */
-	XB_BUILDER_NODE_FLAG_IS_INFO = 1 << 6,		 /* Since: 0.3.30 */
+	/**
+	 * XB_BUILDER_NODE_FLAG_NONE:
+	 *
+	 * No extra flags to use.
+	 *
+	 * Since: 0.1.0
+	 **/
+	XB_BUILDER_NODE_FLAG_NONE = 0,
+	/**
+	 * XB_BUILDER_NODE_FLAG_IGNORE:
+	 *
+	 * Do not include this node in the silo.
+	 *
+	 * Since: 0.1.0
+	 **/
+	XB_BUILDER_NODE_FLAG_IGNORE = 1 << 0,
+	/**
+	 * XB_BUILDER_NODE_FLAG_LITERAL_TEXT:
+	 *
+	 * Assume the node CDATA is already valid.
+	 *
+	 * Since: 0.1.0
+	 **/
+	XB_BUILDER_NODE_FLAG_LITERAL_TEXT = 1 << 1,
+	/**
+	 * XB_BUILDER_NODE_FLAG_HAS_TEXT:
+	 *
+	 * If the node has leading text.
+	 *
+	 * Since: 0.1.12
+	 **/
+	XB_BUILDER_NODE_FLAG_HAS_TEXT = 1 << 2,
+	/**
+	 * XB_BUILDER_NODE_FLAG_HAS_TAIL:
+	 *
+	 * If the node has trailing text.
+	 *
+	 * Since: 0.1.12
+	 **/
+	XB_BUILDER_NODE_FLAG_HAS_TAIL = 1 << 3,
+	/**
+	 * XB_BUILDER_NODE_FLAG_TOKENIZE_TEXT:
+	 *
+	 * Tokenize and fold text to ASCII.
+	 *
+	 * Since: 0.3.1
+	 **/
+	XB_BUILDER_NODE_FLAG_TOKENIZE_TEXT = 1 << 4,
+	/**
+	 * XB_BUILDER_NODE_FLAG_STRIP_TEXT:
+	 *
+	 * Strip leading and trailing spaces from text.
+	 *
+	 * Since: 0.3.4
+	 **/
+	XB_BUILDER_NODE_FLAG_STRIP_TEXT = 1 << 5,
+	/**
+	 * XB_BUILDER_NODE_FLAG_IS_INFO:
+	 *
+	 * The node was added with xb_builder_source_set_info().
+	 *
+	 * Since: 0.3.30
+	 **/
+	XB_BUILDER_NODE_FLAG_IS_INFO = 1 << 6,
 	/*< private >*/
 	XB_BUILDER_NODE_FLAG_LAST
 } XbBuilderNodeFlags;

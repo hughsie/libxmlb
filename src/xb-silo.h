@@ -31,36 +31,88 @@ struct _XbSiloClass {
 
 /**
  * XbSiloLoadFlags:
- * @XB_SILO_LOAD_FLAG_NONE:			No extra flags to use
- * @XB_SILO_LOAD_FLAG_NO_MAGIC:			No not check header signature
- * @XB_SILO_LOAD_FLAG_WATCH_BLOB:		Watch the XMLB file for changes
  *
  * The flags for loading a silo.
+ *
+ * Since: 0.1.0
  **/
 typedef enum {
-	XB_SILO_LOAD_FLAG_NONE = 0,	       /* Since: 0.1.0 */
-	XB_SILO_LOAD_FLAG_NO_MAGIC = 1 << 0,   /* Since: 0.1.0 */
-	XB_SILO_LOAD_FLAG_WATCH_BLOB = 1 << 1, /* Since: 0.1.0 */
+	/**
+	 * XB_SILO_LOAD_FLAG_NONE:
+	 *
+	 * No extra flags to use.
+	 *
+	 * Since: 0.1.0
+	 **/
+	XB_SILO_LOAD_FLAG_NONE = 0,
+	/**
+	 * XB_SILO_LOAD_FLAG_NO_MAGIC:
+	 *
+	 * Do not check header signature.
+	 *
+	 * Since: 0.1.0
+	 **/
+	XB_SILO_LOAD_FLAG_NO_MAGIC = 1 << 0,
+	/**
+	 * XB_SILO_LOAD_FLAG_WATCH_BLOB:
+	 *
+	 * Watch the XMLB file for changes.
+	 *
+	 * Since: 0.1.0
+	 **/
+	XB_SILO_LOAD_FLAG_WATCH_BLOB = 1 << 1,
 	/*< private >*/
 	XB_SILO_LOAD_FLAG_LAST
 } XbSiloLoadFlags;
 
 /**
  * XbSiloProfileFlags:
- * @XB_SILO_PROFILE_FLAG_NONE:			No extra flags to use
- * @XB_SILO_PROFILE_FLAG_DEBUG:			Output profiling as debug
- * @XB_SILO_PROFILE_FLAG_APPEND:		Save profiling in an appended string
- * @XB_SILO_PROFILE_FLAG_XPATH:			Save XPATH queries
- * @XB_SILO_PROFILE_FLAG_OPTIMIZER:		Output the machine optimizer as debug
  *
  * The flags used when profiling a silo.
+ *
+ * Since: 0.1.1
  **/
 typedef enum {
-	XB_SILO_PROFILE_FLAG_NONE = 0,		 /* Since: 0.1.1 */
-	XB_SILO_PROFILE_FLAG_DEBUG = 1 << 0,	 /* Since: 0.1.1 */
-	XB_SILO_PROFILE_FLAG_APPEND = 1 << 1,	 /* Since: 0.1.1 */
-	XB_SILO_PROFILE_FLAG_XPATH = 1 << 2,	 /* Since: 0.1.1 */
-	XB_SILO_PROFILE_FLAG_OPTIMIZER = 1 << 3, /* Since: 0.3.1 */
+	/**
+	 * XB_SILO_PROFILE_FLAG_NONE:
+	 *
+	 * No extra flags to use.
+	 *
+	 * Since: 0.1.1
+	 **/
+	XB_SILO_PROFILE_FLAG_NONE = 0,
+	/**
+	 * XB_SILO_PROFILE_FLAG_DEBUG:
+	 *
+	 * Output profiling as debug.
+	 *
+	 * Since: 0.1.1
+	 **/
+	XB_SILO_PROFILE_FLAG_DEBUG = 1 << 0,
+	/**
+	 * XB_SILO_PROFILE_FLAG_APPEND:
+	 *
+	 * Save profiling in an appended string.
+	 *
+	 * Since: 0.1.1
+	 **/
+	XB_SILO_PROFILE_FLAG_APPEND = 1 << 1,
+	/**
+	 * XB_SILO_PROFILE_FLAG_XPATH:
+	 *
+	 * Save XPATH queries.
+	 *
+	 * Since: 0.1.1
+	 **/
+	XB_SILO_PROFILE_FLAG_XPATH = 1 << 2,
+	/**
+	 * XB_SILO_PROFILE_FLAG_OPTIMIZER:
+	 *
+	 * Output the machine optimizer as debug.
+	 *
+	 * Since: 0.3.1
+	 **/
+	XB_SILO_PROFILE_FLAG_OPTIMIZER = 1 << 3,
 	/*< private >*/
 	XB_SILO_PROFILE_FLAG_LAST
 } XbSiloProfileFlags;
