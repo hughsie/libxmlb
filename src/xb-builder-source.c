@@ -95,7 +95,9 @@ xb_builder_source_load_file(XbBuilderSource *self,
 	fileinfo = g_file_query_info(file,
 				     G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE
 				     "," G_FILE_ATTRIBUTE_TIME_CHANGED
-				     "," G_FILE_ATTRIBUTE_TIME_CHANGED_USEC,
+				     "," G_FILE_ATTRIBUTE_TIME_CHANGED_USEC
+				     "," G_FILE_ATTRIBUTE_STANDARD_SIZE
+				     "," G_FILE_ATTRIBUTE_UNIX_INODE,
 				     G_FILE_QUERY_INFO_NONE,
 				     cancellable,
 				     error);
@@ -111,6 +113,16 @@ xb_builder_source_load_file(XbBuilderSource *self,
 	ctime_usec = g_file_info_get_attribute_uint32(fileinfo, G_FILE_ATTRIBUTE_TIME_CHANGED_USEC);
 	if (ctime_usec != 0)
 		g_string_append_printf(guid, ".%" G_GUINT32_FORMAT, ctime_usec);
+	if (ctime == 0 && ctime_usec == 0) {
+		guint64 inode =
+		    g_file_info_get_attribute_uint64(fileinfo, G_FILE_ATTRIBUTE_UNIX_INODE);
+		guint64 size =
+		    g_file_info_get_attribute_uint64(fileinfo, G_FILE_ATTRIBUTE_STANDARD_SIZE);
+		if (inode != 0)
+			g_string_append_printf(guid, ":inode=%" G_GUINT64_FORMAT, inode);
+		if (size != 0)
+			g_string_append_printf(guid, ":size=%" G_GUINT64_FORMAT, size);
+	}
 	priv->guid = g_string_free(g_steal_pointer(&guid), FALSE);
 
 	/* check content type of file */
